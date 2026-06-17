@@ -329,7 +329,7 @@
             gap: 6px;
             padding: 2px 0;
             -webkit-overflow-scrolling: touch;
-            scroll-behavior: auto !important; /* Deaktiviert jegliche Browser-Animationen komplett */
+            scroll-behavior: auto !important; 
         }
         .modal-rounds-container {
             display: flex;
@@ -630,7 +630,6 @@ function startLiveSync() {
     }, 2000); 
 }
 
-// Sofortiger, lautloser Sprung ohne Animation (Verhindert jegliche Ruckler)
 function instantScrollToContainerEnd(element) {
     if (!element) return;
     requestAnimationFrame(() => {
@@ -1057,7 +1056,6 @@ function renderGame(isSyncUpdate = false) {
     let modeTextInfo = currentGame.rated === false ? ' (Ungewertet)' : '';
     let statusText = currentGame.mode === 'round' ? `${currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${currentGame.name}${modeTextInfo}`;
 
-    // BEHOBEN: Diese Logik wird jetzt IMMER ausgeführt, wenn das Grundgerüst schon da steht
     if (lastRenderedGameId === currentGame.id && document.getElementById("gameStatusLabel")) {
         document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
         
@@ -1239,7 +1237,7 @@ async function addRoundRow() {
     });
     
     await apiSave('currentGame', currentGame);
-    renderGame(true); // BEHOBEN: Nutzt jetzt den ressourcenschonenden Sync-Update statt harten Refresh!
+    renderGame(true); 
 }
 
 async function addSingleScore(playerId) {
@@ -1259,7 +1257,7 @@ async function addSingleScore(playerId) {
     if(p) { p.rounds.push(val); p.total += val; }
     
     await apiSave('currentGame', currentGame);
-    renderGame(true); // BEHOBEN: Nutzt jetzt den ressourcenschonenden Sync-Update statt harten Refresh!
+    renderGame(true); 
     
     let nextInp = document.getElementById("inp_" + playerId);
     if(nextInp) {
@@ -1315,8 +1313,13 @@ async function submitEditRound() {
         if(p) {
             p.rounds[activeEditRoundData.roundIndex] = num;
             p.total = p.rounds.reduce((a, b) => a + b, 0);
+            
+            // BEHOBEN: Setzt die Erkennung der Pillen-Anzahl zurück, damit die Zeile gezwungen wird, sich direkt neu zu rendern!
+            let scrollBox = document.getElementById(`scroll_${p.id}`);
+            if (scrollBox) scrollBox.dataset.len = -1;
+            
             await apiSave('currentGame', currentGame);
-            renderGame(true); // BEHOBEN: Auch beim Editieren bleibt die Ansicht stabil
+            renderGame(true); 
         }
     }
     closeModal();
