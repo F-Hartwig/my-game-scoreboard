@@ -323,11 +323,18 @@
             border-radius: 8px;
             box-shadow: 0 2px 4px rgba(79, 70, 229, 0.15);
         }
-        .history-scroll, .modal-rounds-container {
+        .history-scroll {
             display: flex;
             overflow-x: auto;
             gap: 6px;
-            scroll-behavior: smooth;
+            padding: 2px 0;
+            -webkit-overflow-scrolling: touch;
+            scroll-behavior: auto !important; /* Deaktiviert jegliche Browser-Animationen komplett */
+        }
+        .modal-rounds-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 6px;
             padding: 2px 0;
             -webkit-overflow-scrolling: touch;
         }
@@ -623,10 +630,12 @@ function startLiveSync() {
     }, 2000); 
 }
 
-// Sofortiger und lautloser Fokus ganz nach rechts (Keine Animation, kein Zurückspringen)
+// Sofortiger, lautloser Sprung ohne Animation (Verhindert jegliche Ruckler)
 function instantScrollToContainerEnd(element) {
     if (!element) return;
-    element.scrollTo({ left: element.scrollWidth, behavior: 'auto' });
+    requestAnimationFrame(() => {
+        element.scrollLeft = element.scrollWidth;
+    });
 }
 
 function removeSyncBlockAndNavigate(pageId, element) {
@@ -811,7 +820,7 @@ function startSetup() {
         <div class="title">📝 3. Name des Spiels</div>
         <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)" style="margin-bottom: 20px;">
         
-        <div class="title">⚙️ 4. Eigentlich Modus wählen</div>
+        <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
         <div style="display:grid; gap:10px; margin-bottom:20px;">
             <div class="mode-select-card selected" onclick="selectGameMode('round', this)">
                 <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
@@ -1048,7 +1057,8 @@ function renderGame(isSyncUpdate = false) {
     let modeTextInfo = currentGame.rated === false ? ' (Ungewertet)' : '';
     let statusText = currentGame.mode === 'round' ? `${currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${currentGame.name}${modeTextInfo}`;
 
-    if (isSyncUpdate && lastRenderedGameId === currentGame.id && document.getElementById("gameStatusLabel")) {
+    // BEHOBEN: Diese Logik wird jetzt IMMER ausgeführt, wenn das Grundgerüst schon da steht
+    if (lastRenderedGameId === currentGame.id && document.getElementById("gameStatusLabel")) {
         document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
         
         currentGame.players.forEach(p => {
@@ -1076,7 +1086,6 @@ function renderGame(isSyncUpdate = false) {
                 }).join("");
                 if(p.rounds.length === 0) pillsHtml = '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>';
                 
-                // BEHOBEN: Sofortiger, stabiler Fokus ganz rechts (kein Hineinscrollen, kein Zurückspringen)
                 if (scrollBox.dataset.len != p.rounds.length) {
                     scrollBox.innerHTML = pillsHtml;
                     scrollBox.dataset.len = p.rounds.length;
@@ -1172,7 +1181,6 @@ function renderGame(isSyncUpdate = false) {
 
     contentBox.innerHTML = html;
     
-    // Beim ersten Laden der App oder Modus-Wechsel sofort ans Ende springen
     setTimeout(() => {
         currentGame.players.forEach(p => {
             let sd = document.getElementById("scroll_" + p.id);
@@ -1231,7 +1239,7 @@ async function addRoundRow() {
     });
     
     await apiSave('currentGame', currentGame);
-    renderGame();
+    renderGame(true); // BEHOBEN: Nutzt jetzt den ressourcenschonenden Sync-Update statt harten Refresh!
 }
 
 async function addSingleScore(playerId) {
@@ -1251,7 +1259,7 @@ async function addSingleScore(playerId) {
     if(p) { p.rounds.push(val); p.total += val; }
     
     await apiSave('currentGame', currentGame);
-    renderGame();
+    renderGame(true); // BEHOBEN: Nutzt jetzt den ressourcenschonenden Sync-Update statt harten Refresh!
     
     let nextInp = document.getElementById("inp_" + playerId);
     if(nextInp) {
@@ -1308,7 +1316,7 @@ async function submitEditRound() {
             p.rounds[activeEditRoundData.roundIndex] = num;
             p.total = p.rounds.reduce((a, b) => a + b, 0);
             await apiSave('currentGame', currentGame);
-            renderGame();
+            renderGame(true); // BEHOBEN: Auch beim Editieren bleibt die Ansicht stabil
         }
     }
     closeModal();
