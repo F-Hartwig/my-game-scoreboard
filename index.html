@@ -623,6 +623,12 @@ function startLiveSync() {
     }, 2000); 
 }
 
+// Sofortiger und lautloser Fokus ganz nach rechts (Keine Animation, kein Zurückspringen)
+function instantScrollToContainerEnd(element) {
+    if (!element) return;
+    element.scrollTo({ left: element.scrollWidth, behavior: 'auto' });
+}
+
 function removeSyncBlockAndNavigate(pageId, element) {
     isSettingUpGame = false;
     lastRenderedGameId = null; 
@@ -658,7 +664,6 @@ function openModal(title, bodyHtml, actionHtml) {
     document.getElementById("appModal").classList.add("open");
 }
 
-// Helper zum Umschalten des Vorzeichens (wird auch im Modal genutzt)
 function toggleSignElement(btn) {
     if (!btn) return;
     if (btn.innerText === '+') {
@@ -806,7 +811,7 @@ function startSetup() {
         <div class="title">📝 3. Name des Spiels</div>
         <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)" style="margin-bottom: 20px;">
         
-        <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
+        <div class="title">⚙️ 4. Eigentlich Modus wählen</div>
         <div style="display:grid; gap:10px; margin-bottom:20px;">
             <div class="mode-select-card selected" onclick="selectGameMode('round', this)">
                 <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
@@ -984,7 +989,7 @@ async function createGame() {
 }
 
 // ===============================
-// CORE MATCH ENGINE & CONTROLLER
+// CORE MATCH ENGINE & RENDERING
 // ===============================
 function renderGame(isSyncUpdate = false) {
     if (isSettingUpGame) return; 
@@ -1071,10 +1076,11 @@ function renderGame(isSyncUpdate = false) {
                 }).join("");
                 if(p.rounds.length === 0) pillsHtml = '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>';
                 
+                // BEHOBEN: Sofortiger, stabiler Fokus ganz rechts (kein Hineinscrollen, kein Zurückspringen)
                 if (scrollBox.dataset.len != p.rounds.length) {
                     scrollBox.innerHTML = pillsHtml;
                     scrollBox.dataset.len = p.rounds.length;
-                    scrollBox.scrollLeft = scrollBox.scrollWidth;
+                    instantScrollToContainerEnd(scrollBox);
                 }
             }
         });
@@ -1166,10 +1172,11 @@ function renderGame(isSyncUpdate = false) {
 
     contentBox.innerHTML = html;
     
+    // Beim ersten Laden der App oder Modus-Wechsel sofort ans Ende springen
     setTimeout(() => {
         currentGame.players.forEach(p => {
             let sd = document.getElementById("scroll_" + p.id);
-            if(sd) sd.scrollLeft = sd.scrollWidth;
+            if(sd) instantScrollToContainerEnd(sd);
         });
     }, 40);
 }
@@ -1185,6 +1192,9 @@ function handleRoundEnter(e, index) {
     if(inputs[index + 1]) inputs[index + 1].focus(); else addRoundRow();
 }
 
+// ===============================
+// ACTION LOGIC
+// ===============================
 function handleSingleEnter(e, playerId) {
     if(e.key !== "Enter") return;
     e.preventDefault();
@@ -1251,9 +1261,7 @@ async function addSingleScore(playerId) {
     resetSignButton(playerId);
 }
 
-// ===============================
-// LIVE-RUNDEN BEARBEITUNG (MIT VORZEICHEN-TOGGLE)
-// ===============================
+// LIVE-RUNDEN BEARBEITUNG
 let activeEditRoundData = null;
 
 function triggerEditRound(playerId, roundIndex, currentVal) {
@@ -1261,7 +1269,6 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
     activeEditRoundData = { playerId, roundIndex };
     let labelText = currentGame.mode === 'round' ? `Runde ${roundIndex + 1}` : `Eintrag ${roundIndex + 1}`;
     
-    // Betrag und Vorzeichen trennen, um die UI passend voreinzustellen
     let absoluteValue = Math.abs(currentVal);
     let isNegative = currentVal < 0;
 
@@ -1289,7 +1296,6 @@ async function submitEditRound() {
     let num = Number(cleanVal);
     if(isNaN(num)) num = 0;
     
-    // Vorzeichen aus dem Modal-Button anwenden
     if (modalSignBtn && modalSignBtn.innerText === '-') {
         num = -Math.abs(num);
     } else {
@@ -1550,7 +1556,7 @@ function viewGameDetails(gameId) {
         <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
 
     g.players.forEach(p => {
-        const isWinner = p.name === g.winner || (g.winner === 'Unentschieden' && p.total === highestScore && anyRannedPlayed);
+        const isWinner = p.name === g.winner || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
         
         html += `
             <div class="modal-player-card">
@@ -1589,7 +1595,7 @@ function viewGameDetails(gameId) {
     setTimeout(() => {
         g.players.forEach(p => {
             let container = document.getElementById("modal_scroll_" + p.id);
-            if(container) container.scrollLeft = container.scrollWidth;
+            if(container) instantScrollToContainerEnd(container);
         });
     }, 50);
 }
