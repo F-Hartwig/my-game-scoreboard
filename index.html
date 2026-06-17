@@ -573,7 +573,7 @@ let activeEditPlayerId = null;
 let showAllHistory = false;
 let autoRefreshInterval = null;
 let isSettingUpGame = false;
-let lastRenderedGameId = null; // Erkennt strukturelle Änderungen im Spielmodus
+let lastRenderedGameId = null; 
 let ratedMode = true;
 
 async function apiFetch(endpoint) {
@@ -617,10 +617,10 @@ function startLiveSync() {
 
         await loadAllFromDb();
         const activePage = document.querySelector(".page.active").id;
-        if (activePage === 'gamePage') renderGame(true); // "true" signalisiert einen reinen Werte-Update
+        if (activePage === 'gamePage') renderGame(true); 
         if (activePage === 'playersPage' && document.activeElement.tagName !== 'INPUT') renderPlayers();
         if (activePage === 'statsPage') { renderRanking(); renderHistory(); }
-    }, 2000); // Schnellerer Intervall für flüssiges NAS-Erlebnis
+    }, 2000); 
 }
 
 function removeSyncBlockAndNavigate(pageId, element) {
@@ -656,6 +656,20 @@ function openModal(title, bodyHtml, actionHtml) {
     document.getElementById("modalBody").innerHTML = bodyHtml;
     document.getElementById("modalActions").innerHTML = actionHtml;
     document.getElementById("appModal").classList.add("open");
+}
+
+// Helper zum Umschalten des Vorzeichens (wird auch im Modal genutzt)
+function toggleSignElement(btn) {
+    if (!btn) return;
+    if (btn.innerText === '+') {
+        btn.innerText = '-';
+        btn.style.background = 'var(--danger-light)';
+        btn.style.color = 'var(--danger)';
+    } else {
+        btn.innerText = '+';
+        btn.style.background = '#e2e8f0';
+        btn.style.color = '#475569';
+    }
 }
 
 function closeModal() {
@@ -970,14 +984,13 @@ async function createGame() {
 }
 
 // ===============================
-// CORE MATCH ENGINE & CONTROLLER (ZWEI-WEGE-RENDERING FÜR LIVE-NAS-BETRIEB)
+// CORE MATCH ENGINE & CONTROLLER
 // ===============================
 function renderGame(isSyncUpdate = false) {
     if (isSettingUpGame) return; 
 
     let contentBox = document.getElementById("gameContent");
     
-    // Fall 1: Kein aktives Spiel vorhanden
     if(!currentGame) {
         lastRenderedGameId = null;
         let html = `
@@ -1022,7 +1035,6 @@ function renderGame(isSyncUpdate = false) {
         return;
     }
 
-    // Spieldaten berechnen
     let maxRounds = Math.max(...currentGame.players.map(p => p.rounds.length), 0);
     let highestScore = Math.max(...currentGame.players.map(p => p.total));
     let leadsCount = currentGame.players.filter(p => p.total === highestScore).length;
@@ -1031,25 +1043,20 @@ function renderGame(isSyncUpdate = false) {
     let modeTextInfo = currentGame.rated === false ? ' (Ungewertet)' : '';
     let statusText = currentGame.mode === 'round' ? `${currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${currentGame.name}${modeTextInfo}`;
 
-    // Fall 2: Wenn das Spiel läuft, aber ein reiner Background-Sync stattfindet und die Inputs existieren
     if (isSyncUpdate && lastRenderedGameId === currentGame.id && document.getElementById("gameStatusLabel")) {
-        // Aktualisiere reinen Text, damit die Inputs vom Tippen nicht flackern oder verschwinden
         document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
         
         currentGame.players.forEach(p => {
             const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
             
-            // Scoreboard Leader Krone aktualisieren
             let metaBox = document.getElementById(`meta_${p.id}`);
             if (metaBox) {
                 metaBox.innerHTML = `<span>${p.name}</span>${isLeading ? '<span>👑</span>' : ''}`;
             }
             
-            // Total-Punkte-Badge aktualisieren
             let totalBadge = document.getElementById(`total_${p.id}`);
             if (totalBadge) totalBadge.innerText = `${p.total} Pkt`;
             
-            // Scroll-Zeile mit den Runden-Pillen updaten
             let scrollBox = document.getElementById(`scroll_${p.id}`);
             if (scrollBox) {
                 let pillsHtml = p.rounds.map((val, i) => {
@@ -1064,7 +1071,6 @@ function renderGame(isSyncUpdate = false) {
                 }).join("");
                 if(p.rounds.length === 0) pillsHtml = '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>';
                 
-                // Nur neu schreiben, wenn sich der Pillen-Inhalt strukturell geändert hat (z.B. neue Runde hinzugefügt)
                 if (scrollBox.dataset.len != p.rounds.length) {
                     scrollBox.innerHTML = pillsHtml;
                     scrollBox.dataset.len = p.rounds.length;
@@ -1072,10 +1078,9 @@ function renderGame(isSyncUpdate = false) {
                 }
             }
         });
-        return; // Synchronisierung beendet, ohne die Input-Karten zu berühren!
+        return; 
     }
 
-    // Fall 3: Kompletter Neuaufbau der Seite (nur bei Spielwechsel oder Seitenaufruf)
     lastRenderedGameId = currentGame.id;
 
     let html = `
@@ -1117,7 +1122,6 @@ function renderGame(isSyncUpdate = false) {
 
     html += `</div></div>`;
 
-    // Eingabebereich aufbauen (Bleibt bei Hintergrund-Syncs unangetastet)
     if(currentGame.mode === 'round') {
         html += `
             <div class="card" id="inputCardAnchor">
@@ -1162,7 +1166,6 @@ function renderGame(isSyncUpdate = false) {
 
     contentBox.innerHTML = html;
     
-    // Auto-Scroll an das Ende der Pillen-Liste
     setTimeout(() => {
         currentGame.players.forEach(p => {
             let sd = document.getElementById("scroll_" + p.id);
@@ -1172,16 +1175,7 @@ function renderGame(isSyncUpdate = false) {
 }
 
 function toggleSign(playerId) {
-    const btn = document.getElementById(`sign_${playerId}`);
-    if (btn.innerText === '+') {
-        btn.innerText = '-';
-        btn.style.background = 'var(--danger-light)';
-        btn.style.color = 'var(--danger)';
-    } else {
-        btn.innerText = '+';
-        btn.style.background = '#e2e8f0';
-        btn.style.color = '#475569';
-    }
+    toggleSignElement(document.getElementById(`sign_${playerId}`));
 }
 
 function handleRoundEnter(e, index) {
@@ -1257,16 +1251,31 @@ async function addSingleScore(playerId) {
     resetSignButton(playerId);
 }
 
-// LIVE-RUNDEN BEARBEITUNG
+// ===============================
+// LIVE-RUNDEN BEARBEITUNG (MIT VORZEICHEN-TOGGLE)
+// ===============================
 let activeEditRoundData = null;
+
 function triggerEditRound(playerId, roundIndex, currentVal) {
     let p = currentGame.players.find(x => x.id === playerId);
     activeEditRoundData = { playerId, roundIndex };
     let labelText = currentGame.mode === 'round' ? `Runde ${roundIndex + 1}` : `Eintrag ${roundIndex + 1}`;
     
+    // Betrag und Vorzeichen trennen, um die UI passend voreinzustellen
+    let absoluteValue = Math.abs(currentVal);
+    let isNegative = currentVal < 0;
+
     let body = `
         <p style="color:var(--muted); margin-bottom:10px; font-size:14px;">Korrigiere die Punktzahl für <strong>${p.name}</strong> (${labelText}):</p>
-        <input type="text" inputmode="decimal" id="modalRoundInput" value="${currentVal}" style="text-align:center; font-weight:bold; font-size:18px;">`;
+        <div style="display:flex; gap:8px; align-items:center;">
+            <button id="modalSignBtn" onclick="toggleSignElement(this)" style="width:44px; height:48px; border-radius:var(--radius-md); font-size:18px; font-weight:800; padding:0; flex-shrink:0; 
+                background: ${isNegative ? 'var(--danger-light)' : '#e2e8f0'}; 
+                color: ${isNegative ? 'var(--danger)' : '#475569'};">
+                ${isNegative ? '-' : '+'}
+            </button>
+            <input type="text" inputmode="decimal" id="modalRoundInput" value="${absoluteValue}" style="text-align:center; font-weight:bold; font-size:18px;">
+        </div>`;
+        
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitEditRound()">✓ Speichern</button>`;
     
     openModal("✏️ Wert bearbeiten", body, actions);
@@ -1274,9 +1283,18 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
 
 async function submitEditRound() {
     let inputVal = document.getElementById("modalRoundInput").value.trim();
+    let modalSignBtn = document.getElementById("modalSignBtn");
+    
     let cleanVal = inputVal.replace(',', '.');
     let num = Number(cleanVal);
     if(isNaN(num)) num = 0;
+    
+    // Vorzeichen aus dem Modal-Button anwenden
+    if (modalSignBtn && modalSignBtn.innerText === '-') {
+        num = -Math.abs(num);
+    } else {
+        num = Math.abs(num);
+    }
     
     if(activeEditRoundData) {
         let p = currentGame.players.find(x => x.id === activeEditRoundData.playerId);
@@ -1532,7 +1550,7 @@ function viewGameDetails(gameId) {
         <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
 
     g.players.forEach(p => {
-        const isWinner = p.name === g.winner || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
+        const isWinner = p.name === g.winner || (g.winner === 'Unentschieden' && p.total === highestScore && anyRannedPlayed);
         
         html += `
             <div class="modal-player-card">
