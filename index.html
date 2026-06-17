@@ -573,6 +573,7 @@ let activeEditPlayerId = null;
 let showAllHistory = false;
 let autoRefreshInterval = null;
 let isSettingUpGame = false;
+let lastRenderedGameId = null; // Erkennt strukturelle Änderungen im Spielmodus
 let ratedMode = true;
 
 async function apiFetch(endpoint) {
@@ -615,17 +616,16 @@ function startLiveSync() {
         if (isSettingUpGame) return;
 
         await loadAllFromDb();
-        if (document.activeElement.tagName !== 'INPUT') {
-            const activePage = document.querySelector(".page.active").id;
-            if (activePage === 'gamePage') renderGame();
-            if (activePage === 'playersPage') renderPlayers();
-            if (activePage === 'statsPage') { renderRanking(); renderHistory(); }
-        }
-    }, 3000);
+        const activePage = document.querySelector(".page.active").id;
+        if (activePage === 'gamePage') renderGame(true); // "true" signalisiert einen reinen Werte-Update
+        if (activePage === 'playersPage' && document.activeElement.tagName !== 'INPUT') renderPlayers();
+        if (activePage === 'statsPage') { renderRanking(); renderHistory(); }
+    }, 2000); // Schnellerer Intervall für flüssiges NAS-Erlebnis
 }
 
 function removeSyncBlockAndNavigate(pageId, element) {
     isSettingUpGame = false;
+    lastRenderedGameId = null; 
     navigate(pageId, element);
 }
 
@@ -645,7 +645,7 @@ async function navigate(pageId, element) {
     await loadAllFromDb();
     if(pageId === 'playersPage') renderPlayers();
     if(pageId === 'statsPage') { showAllHistory = false; renderRanking(); renderHistory(); }
-    if(pageId === 'gamePage') renderGame();
+    if(pageId === 'gamePage') { lastRenderedGameId = null; renderGame(); }
 }
 
 // ===============================
@@ -826,6 +826,7 @@ function setRated(val) {
 
 function cancelSetup() {
     isSettingUpGame = false;
+    lastRenderedGameId = null;
     renderGame();
 }
 
@@ -963,19 +964,22 @@ async function createGame() {
     };
     
     isSettingUpGame = false;
+    lastRenderedGameId = null; 
     await apiSave('currentGame', currentGame);
     renderGame();
 }
 
 // ===============================
-// CORE MATCH ENGINE & CONTROLLER
+// CORE MATCH ENGINE & CONTROLLER (ZWEI-WEGE-RENDERING FÜR LIVE-NAS-BETRIEB)
 // ===============================
-function renderGame() {
+function renderGame(isSyncUpdate = false) {
     if (isSettingUpGame) return; 
 
     let contentBox = document.getElementById("gameContent");
     
+    // Fall 1: Kein aktives Spiel vorhanden
     if(!currentGame) {
+        lastRenderedGameId = null;
         let html = `
             <div class="card">
                 <div class="title">🎮 Neues Spiel starten</div>
@@ -1018,6 +1022,7 @@ function renderGame() {
         return;
     }
 
+    // Spieldaten berechnen
     let maxRounds = Math.max(...currentGame.players.map(p => p.rounds.length), 0);
     let highestScore = Math.max(...currentGame.players.map(p => p.total));
     let leadsCount = currentGame.players.filter(p => p.total === highestScore).length;
@@ -1026,9 +1031,56 @@ function renderGame() {
     let modeTextInfo = currentGame.rated === false ? ' (Ungewertet)' : '';
     let statusText = currentGame.mode === 'round' ? `${currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${currentGame.name}${modeTextInfo}`;
 
+    // Fall 2: Wenn das Spiel läuft, aber ein reiner Background-Sync stattfindet und die Inputs existieren
+    if (isSyncUpdate && lastRenderedGameId === currentGame.id && document.getElementById("gameStatusLabel")) {
+        // Aktualisiere reinen Text, damit die Inputs vom Tippen nicht flackern oder verschwinden
+        document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
+        
+        currentGame.players.forEach(p => {
+            const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
+            
+            // Scoreboard Leader Krone aktualisieren
+            let metaBox = document.getElementById(`meta_${p.id}`);
+            if (metaBox) {
+                metaBox.innerHTML = `<span>${p.name}</span>${isLeading ? '<span>👑</span>' : ''}`;
+            }
+            
+            // Total-Punkte-Badge aktualisieren
+            let totalBadge = document.getElementById(`total_${p.id}`);
+            if (totalBadge) totalBadge.innerText = `${p.total} Pkt`;
+            
+            // Scroll-Zeile mit den Runden-Pillen updaten
+            let scrollBox = document.getElementById(`scroll_${p.id}`);
+            if (scrollBox) {
+                let pillsHtml = p.rounds.map((val, i) => {
+                    let cls = val > 0 ? 'val-pos' : (val < 0 ? 'val-neg' : '');
+                    let prefix = (currentGame.mode === 'single' && val > 0) ? '+' : '';
+                    let label = currentGame.mode === 'round' ? `<span class="r-num">R${i+1}:</span>` : '';
+                    return `
+                        <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, ${val})">
+                            ${label}
+                            <span class="${cls}">${prefix}${val}</span>
+                        </div>`;
+                }).join("");
+                if(p.rounds.length === 0) pillsHtml = '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>';
+                
+                // Nur neu schreiben, wenn sich der Pillen-Inhalt strukturell geändert hat (z.B. neue Runde hinzugefügt)
+                if (scrollBox.dataset.len != p.rounds.length) {
+                    scrollBox.innerHTML = pillsHtml;
+                    scrollBox.dataset.len = p.rounds.length;
+                    scrollBox.scrollLeft = scrollBox.scrollWidth;
+                }
+            }
+        });
+        return; // Synchronisierung beendet, ohne die Input-Karten zu berühren!
+    }
+
+    // Fall 3: Kompletter Neuaufbau der Seite (nur bei Spielwechsel oder Seitenaufruf)
+    lastRenderedGameId = currentGame.id;
+
     let html = `
         <div class="card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-            <span style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:75%;">⚡ ${statusText}</span>
+            <span id="gameStatusLabel" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:75%;">⚡ ${statusText}</span>
             <button class="secondary" style="width:40px; height:32px; font-size:14px; padding:0; border-radius:8px; flex-shrink:0;" onclick="pauseCurrentGame()">⏸</button>
         </div>
 
@@ -1041,13 +1093,13 @@ function renderGame() {
         html += `
             <div class="scoreboard-row">
                 <div class="scoreboard-player-header">
-                    <div class="player-meta">
+                    <div class="player-meta" id="meta_${p.id}">
                         <span>${p.name}</span>
                         ${isLeading ? '<span>👑</span>' : ''}
                     </div>
-                    <div class="total-badge">${p.total} Pkt</div>
+                    <div class="total-badge" id="total_${p.id}">${p.total} Pkt</div>
                 </div>
-                <div class="history-scroll" id="scroll_${p.id}">
+                <div class="history-scroll" id="scroll_${p.id}" data-len="${p.rounds.length}">
                     ${p.rounds.map((val, i) => {
                         let cls = val > 0 ? 'val-pos' : (val < 0 ? 'val-neg' : '');
                         let prefix = (currentGame.mode === 'single' && val > 0) ? '+' : '';
@@ -1065,10 +1117,11 @@ function renderGame() {
 
     html += `</div></div>`;
 
+    // Eingabebereich aufbauen (Bleibt bei Hintergrund-Syncs unangetastet)
     if(currentGame.mode === 'round') {
         html += `
             <div class="card" id="inputCardAnchor">
-                <div class="title">➕ Runde ${maxRounds + 1} eintragen</div>
+                <div class="title">➕ Runde eintragen</div>
                 <div class="round-grid" id="roundInputs">`;
 
         currentGame.players.forEach((p, idx) => {
@@ -1109,6 +1162,7 @@ function renderGame() {
 
     contentBox.innerHTML = html;
     
+    // Auto-Scroll an das Ende der Pillen-Liste
     setTimeout(() => {
         currentGame.players.forEach(p => {
             let sd = document.getElementById("scroll_" + p.id);
@@ -1171,6 +1225,7 @@ async function addRoundRow() {
         if (input) input.value = "";
         resetSignButton(p.id);
     });
+    
     await apiSave('currentGame', currentGame);
     renderGame();
 }
@@ -1190,6 +1245,7 @@ async function addSingleScore(playerId) {
 
     let p = currentGame.players.find(x => x.id === playerId);
     if(p) { p.rounds.push(val); p.total += val; }
+    
     await apiSave('currentGame', currentGame);
     renderGame();
     
@@ -1213,7 +1269,7 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
         <input type="text" inputmode="decimal" id="modalRoundInput" value="${currentVal}" style="text-align:center; font-weight:bold; font-size:18px;">`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitEditRound()">✓ Speichern</button>`;
     
-    openModal("✏️ Wert bearhalten", body, actions);
+    openModal("✏️ Wert bearbeiten", body, actions);
 }
 
 async function submitEditRound() {
@@ -1527,7 +1583,7 @@ function triggerDeleteHistoryGame(gameId) {
     closeModal();
     
     setTimeout(() => {
-        let body = `<p style="color:var(--muted)">Möchtest du das Spiel <strong>${g.name}</strong> wirklich löschen? Alle Siege und Punkte werden restlos aus der Bestenliste abgezogen!</p>`;
+        let body = `<p style="color:var(--muted)">Möchtest du das spiel <strong>${g.name}</strong> wirklich löschen? Alle Siege und Punkte werden restlos aus der Bestenliste abgezogen!</p>`;
         let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteHistoryGame()">Definitiv löschen</button>`;
         openModal("⚠️ Spiel unwiderruflich löschen?", body, actions);
     }, 300);
