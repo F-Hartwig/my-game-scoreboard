@@ -136,7 +136,6 @@
             box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
         }
 
-        /* Fliegende Navigation: Schmaler & hält Abstand zu den iPhone-Ecken */
         .bottom-nav {
             position: fixed;
             bottom: 32px; left: 32px; right: 32px;
@@ -193,7 +192,6 @@
             user-select: none;
         }
 
-        /* Drag-Cards: touch-action blockiert das iOS-Scrollen beim Sortieren */
         .drag-card { 
             cursor: grab; 
             background: #fafafa; 
@@ -238,7 +236,6 @@
         .icon-btn.edit-btn { background: #eff6ff; color: #2563eb; }
         .icon-btn.delete-btn { background: var(--danger-light); color: var(--danger); }
 
-        /* --- PAUSIERTE MATCH CARDS --- */
         .active-game-card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -287,7 +284,6 @@
         .active-game-actions .resume-btn { flex: 1; height: 40px; font-size: 14px; border-radius: var(--radius-sm); }
         .active-game-actions .abort-btn { width: 40px; height: 40px; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-sm); flex-shrink: 0; }
 
-        /* --- OPTIMIERTES SCOREBOARD SYSTEM --- */
         .scoreboard-list, .modal-scoreboard-list { 
             display: flex; 
             flex-direction: column; 
@@ -357,7 +353,6 @@
         .round-pill:active { background: #f1f5f9; }
         .round-pill .r-num { color: var(--muted); font-weight: 500; }
 
-        /* --- INPUT GRIDS --- */
         .round-grid { display: grid; gap: 12px; margin-bottom: 20px; }
         .round-player-row {
             display: flex;
@@ -399,7 +394,6 @@
             flex-shrink: 0;
         }
 
-        /* TOGGLE BUTTON STYLE */
         .toggle-container {
             display: flex;
             align-items: center;
@@ -424,7 +418,6 @@
             box-shadow: var(--shadow);
         }
 
-        /* --- STATS & HISTORY CARDS --- */
         .ranking-list, .history-list { display: flex; flex-direction: column; gap: 10px; }
         .rank-card {
             background: #f8fafc;
@@ -492,7 +485,6 @@
             white-space: nowrap;
         }
 
-        /* MODAL OVERLAY */
         .modal-overlay {
             position: fixed;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -837,7 +829,6 @@ function cancelSetup() {
     renderGame();
 }
 
-// Integrierte Touch- und Maus-Drag & Drop Engine
 function toggleSelectCard(e, cardElement) {
     const checkbox = cardElement.querySelector('input[type="checkbox"]');
     if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
@@ -881,11 +872,9 @@ function updateDragOrderList() {
                 <strong>${p.name}</strong>
             </div>`;
             
-        // Standard Desktop-Maus Drag-Events
         card.addEventListener('dragstart', () => card.classList.add('dragging'));
         card.addEventListener('dragend', () => card.classList.remove('dragging'));
         
-        // Mobile iOS-Touch Events (Verhindert Scrollen und sortiert präzise)
         card.addEventListener('touchstart', (e) => {
             card.classList.add('dragging');
             card.style.opacity = '0.5';
@@ -895,7 +884,7 @@ function updateDragOrderList() {
         card.addEventListener('touchmove', (e) => {
             const dragging = document.querySelector('.dragging');
             if (!dragging) return;
-            e.preventDefault(); // Stoppt Seiten-Scrollen auf dem iPhone
+            e.preventDefault(); 
 
             const touch = e.touches[0];
             const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
@@ -921,7 +910,6 @@ function updateDragOrderList() {
         dragBox.appendChild(card);
     });
     
-    // Maus-Sortier-Event für Desktop
     dragBox.addEventListener('dragover', e => {
         e.preventDefault();
         const afterElement = getDragAfterElement(dragBox, e.clientY);
@@ -981,9 +969,6 @@ async function createGame() {
 
 // ===============================
 // CORE MATCH ENGINE & CONTROLLER
-// ===============================
-// ===============================
-// CORE MATCH ENGINE & CONTROLLER (MIT VORZEICHEN-TOGGLE)
 // ===============================
 function renderGame() {
     if (isSettingUpGame) return; 
@@ -1132,7 +1117,6 @@ function renderGame() {
     }, 40);
 }
 
-// HILFSFUNKTIONEN FÜR DEN NEUEN VORZEICHEN-TOGGLE
 function toggleSign(playerId) {
     const btn = document.getElementById(`sign_${playerId}`);
     if (btn.innerText === '+') {
@@ -1140,6 +1124,28 @@ function toggleSign(playerId) {
         btn.style.background = 'var(--danger-light)';
         btn.style.color = 'var(--danger)';
     } else {
+        btn.innerText = '+';
+        btn.style.background = '#e2e8f0';
+        btn.style.color = '#475569';
+    }
+}
+
+function handleRoundEnter(e, index) {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    let inputs = document.querySelectorAll("#roundInputs input");
+    if(inputs[index + 1]) inputs[index + 1].focus(); else addRoundRow();
+}
+
+function handleSingleEnter(e, playerId) {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    addSingleScore(playerId);
+}
+
+function resetSignButton(playerId) {
+    const btn = document.getElementById(`sign_${playerId}`);
+    if (btn) {
         btn.innerText = '+';
         btn.style.background = '#e2e8f0';
         btn.style.color = '#475569';
@@ -1155,13 +1161,15 @@ async function addRoundRow() {
         let val = Number(cleanVal || 0);
         if (isNaN(val)) val = 0;
         
-        // Vorzeichen anwenden
         if (signBtn && signBtn.innerText === '-') {
             val = -Math.abs(val);
         }
         
         p.rounds.push(val);
         p.total += val;
+
+        if (input) input.value = "";
+        resetSignButton(p.id);
     });
     await apiSave('currentGame', currentGame);
     renderGame();
@@ -1170,13 +1178,12 @@ async function addRoundRow() {
 async function addSingleScore(playerId) {
     let input = document.getElementById("inp_" + playerId);
     let signBtn = document.getElementById("sign_" + playerId);
-    if(input.value === "") return; 
+    if(!input || input.value === "") return; 
     
     let cleanVal = input.value.replace(',', '.');
     let val = Number(cleanVal);
     if (isNaN(val)) val = 0;
 
-    // Vorzeichen anwenden
     if (signBtn && signBtn.innerText === '-') {
         val = -Math.abs(val);
     }
@@ -1191,6 +1198,7 @@ async function addSingleScore(playerId) {
         nextInp.value = ""; 
         nextInp.focus();
     }
+    resetSignButton(playerId);
 }
 
 // LIVE-RUNDEN BEARBEITUNG
@@ -1205,7 +1213,7 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
         <input type="text" inputmode="decimal" id="modalRoundInput" value="${currentVal}" style="text-align:center; font-weight:bold; font-size:18px;">`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitEditRound()">✓ Speichern</button>`;
     
-    openModal("✏️ Wert bearbeiten", body, actions);
+    openModal("✏️ Wert bearhalten", body, actions);
 }
 
 async function submitEditRound() {
@@ -1263,53 +1271,6 @@ async function submitDeleteActiveGame() {
         renderGame();
     }
     closeModal();
-}
-
-function handleRoundEnter(e, index) {
-    if(e.key !== "Enter") return;
-    e.preventDefault();
-    let inputs = document.querySelectorAll("#roundInputs input");
-    if(inputs[index + 1]) inputs[index + 1].focus(); else addRoundRow();
-}
-
-async function addRoundRow() {
-    currentGame.players.forEach(p => {
-        let input = document.getElementById("inp_" + p.id);
-        let cleanVal = input.value.replace(',', '.');
-        let val = Number(cleanVal || 0);
-        if (isNaN(val)) val = 0;
-        
-        p.rounds.push(val);
-        p.total += val;
-    });
-    await apiSave('currentGame', currentGame);
-    renderGame();
-}
-
-function handleSingleEnter(e, playerId) {
-    if(e.key !== "Enter") return;
-    e.preventDefault();
-    addSingleScore(playerId);
-}
-
-async function addSingleScore(playerId) {
-    let input = document.getElementById("inp_" + playerId);
-    if(input.value === "") return; 
-    
-    let cleanVal = input.value.replace(',', '.');
-    let val = Number(cleanVal);
-    if (isNaN(val)) val = 0;
-
-    let p = currentGame.players.find(x => x.id === playerId);
-    if(p) { p.rounds.push(val); p.total += val; }
-    await apiSave('currentGame', currentGame);
-    renderGame();
-    
-    let nextInp = document.getElementById("inp_" + playerId);
-    if(nextInp) {
-        nextInp.value = ""; 
-        nextInp.focus();
-    }
 }
 
 // ===============================
