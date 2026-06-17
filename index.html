@@ -982,6 +982,9 @@ async function createGame() {
 // ===============================
 // CORE MATCH ENGINE & CONTROLLER
 // ===============================
+// ===============================
+// CORE MATCH ENGINE & CONTROLLER (MIT VORZEICHEN-TOGGLE)
+// ===============================
 function renderGame() {
     if (isSettingUpGame) return; 
 
@@ -1085,9 +1088,10 @@ function renderGame() {
 
         currentGame.players.forEach((p, idx) => {
             html += `
-                <div class="round-player-row" style="background:#f8fafc; border:1px solid var(--border); padding:8px 12px;">
-                    <span class="player-name">${p.name}</span>
-                    <input type="text" inputmode="decimal" id="inp_${p.id}" placeholder="0" 
+                <div class="round-player-row" style="background:#f8fafc; border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
+                    <span class="player-name" style="flex:1;">${p.name}</span>
+                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:#e2e8f0; color:#475569; font-size:16px; font-weight:800; padding:0; flex-shrink:0;">+</button>
+                    <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleRoundEnter(event, ${idx})">
                 </div>`;
         });
@@ -1104,11 +1108,12 @@ function renderGame() {
 
         currentGame.players.forEach((p, idx) => {
             html += `
-                <div class="round-player-row">
-                    <span class="player-name">${p.name}</span>
-                    <input type="text" inputmode="decimal" id="inp_${p.id}" placeholder="0" 
+                <div class="round-player-row" style="display:flex; align-items:center; gap:8px;">
+                    <span class="player-name" style="flex:1;">${p.name}</span>
+                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:#e2e8f0; color:#475569; font-size:16px; font-weight:800; padding:0; flex-shrink:0;">+</button>
+                    <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleSingleEnter(event, ${p.id})">
-                    <button class="submit-single-btn" onclick="addSingleScore(${p.id})">✓</button>
+                    <button class="submit-single-btn" onclick="addSingleScore(${p.id})" style="width:38px; height:38px;">✓</button>
                 </div>`;
         });
 
@@ -1125,6 +1130,67 @@ function renderGame() {
             if(sd) sd.scrollLeft = sd.scrollWidth;
         });
     }, 40);
+}
+
+// HILFSFUNKTIONEN FÜR DEN NEUEN VORZEICHEN-TOGGLE
+function toggleSign(playerId) {
+    const btn = document.getElementById(`sign_${playerId}`);
+    if (btn.innerText === '+') {
+        btn.innerText = '-';
+        btn.style.background = 'var(--danger-light)';
+        btn.style.color = 'var(--danger)';
+    } else {
+        btn.innerText = '+';
+        btn.style.background = '#e2e8f0';
+        btn.style.color = '#475569';
+    }
+}
+
+async function addRoundRow() {
+    currentGame.players.forEach(p => {
+        let input = document.getElementById("inp_" + p.id);
+        let signBtn = document.getElementById("sign_" + p.id);
+        
+        let cleanVal = input.value.replace(',', '.');
+        let val = Number(cleanVal || 0);
+        if (isNaN(val)) val = 0;
+        
+        // Vorzeichen anwenden
+        if (signBtn && signBtn.innerText === '-') {
+            val = -Math.abs(val);
+        }
+        
+        p.rounds.push(val);
+        p.total += val;
+    });
+    await apiSave('currentGame', currentGame);
+    renderGame();
+}
+
+async function addSingleScore(playerId) {
+    let input = document.getElementById("inp_" + playerId);
+    let signBtn = document.getElementById("sign_" + playerId);
+    if(input.value === "") return; 
+    
+    let cleanVal = input.value.replace(',', '.');
+    let val = Number(cleanVal);
+    if (isNaN(val)) val = 0;
+
+    // Vorzeichen anwenden
+    if (signBtn && signBtn.innerText === '-') {
+        val = -Math.abs(val);
+    }
+
+    let p = currentGame.players.find(x => x.id === playerId);
+    if(p) { p.rounds.push(val); p.total += val; }
+    await apiSave('currentGame', currentGame);
+    renderGame();
+    
+    let nextInp = document.getElementById("inp_" + playerId);
+    if(nextInp) {
+        nextInp.value = ""; 
+        nextInp.focus();
+    }
 }
 
 // LIVE-RUNDEN BEARBEITUNG
