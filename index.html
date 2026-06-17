@@ -1,0 +1,1498 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Spiele Counter Elite</title>
+    <style>
+        :root {
+            --primary: #4f46e5;
+            --primary-light: #f5f3ff;
+            --primary-hover: #4338ca;
+            --success: #10b981;
+            --success-light: #f0fdf4;
+            --danger: #ef4444;
+            --danger-light: #fef2f2;
+            --warning: #f59e0b;
+            --bg: #f8fafc;
+            --card: #ffffff;
+            --text: #0f172a;
+            --muted: #64748b;
+            --border: #e2e8f0;
+            --radius-lg: 20px;
+            --radius-md: 14px;
+            --radius-sm: 10px;
+            --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-size: 16px;
+            padding: 16px 16px 110px;
+        }
+
+        .header {
+            max-width: 600px;
+            margin: 8px auto 20px;
+            text-align: left;
+            padding: 0 4px;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            color: var(--text);
+        }
+
+        .page {
+            display: none;
+            max-width: 600px;
+            margin: 0 auto;
+            animation: fadeIn 0.2s ease-out;
+        }
+
+        .page.active { display: block; }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(4px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .card {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            margin-bottom: 14px;
+            box-shadow: var(--shadow);
+            border: 1px solid var(--border);
+        }
+
+        .title {
+            font-size: 17px;
+            font-weight: 700;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        button {
+            width: 100%;
+            height: 48px;
+            border: 0;
+            border-radius: var(--radius-md);
+            background: var(--primary);
+            color: white;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        button:active { transform: scale(0.98); }
+        button.green { background: var(--success); }
+        button.red { background: var(--danger); }
+        button.secondary { 
+            background: #f1f5f9; 
+            color: var(--text);
+            border: 1px solid var(--border);
+        }
+
+        input {
+            width: 100%;
+            height: 48px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            padding: 0 14px;
+            font-size: 16px;
+            background: #f8fafc;
+            color: var(--text);
+            transition: all 0.15s ease;
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--primary);
+            background: var(--card);
+            box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+        }
+
+        .bottom-nav {
+            position: fixed;
+            bottom: 12px; left: 16px; right: 16px;
+            height: 64px;
+            background: var(--card);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            z-index: 1000;
+        }
+
+        .nav-item {
+            text-align: center;
+            font-size: 12px;
+            color: var(--muted);
+            cursor: pointer;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+        }
+
+        .nav-item span { font-size: 20px; margin-bottom: 2px; }
+        .nav-item.active { color: var(--primary); font-weight: 700; }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 14px;
+        }
+
+        .player-card, .select-card, .winner-select-card, .mode-select-card, .drag-card {
+            background: var(--card);
+            border-radius: var(--radius-md);
+            padding: 12px 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .drag-card { cursor: grab; background: #fafafa; }
+        .drag-card:active { cursor: grabbing; background: var(--primary-light); }
+        .drag-card.dragging { opacity: 0.4; border: 2px dashed var(--primary); }
+
+        .mode-select-card {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 4px;
+            padding: 16px;
+        }
+
+        .select-card.selected, .winner-select-card.selected, .mode-select-card.selected {
+            background: var(--primary-light);
+            border-color: var(--primary);
+        }
+
+        .select-card input[type="checkbox"], .mode-select-card input[type="radio"] { 
+            width: 20px; height: 20px; accent-color: var(--primary); 
+        }
+        
+        .player-left { display: flex; align-items: center; gap: 12px; }
+        .player-name { font-size: 15px; font-weight: 700; }
+        .player-info { font-size: 13px; color: var(--muted); }
+
+        .favorite-badge {
+            display: inline-block;
+            margin-top: 2px;
+            padding: 1px 6px;
+            background: #fffbeb;
+            color: #b45309;
+            border-radius: 8px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .actions { display: flex; gap: 6px; }
+        .icon-btn { width: 34px; height: 34px; border-radius: var(--radius-sm); padding: 0; font-size: 14px; background: #f1f5f9; }
+        .icon-btn.edit-btn { background: #eff6ff; color: #2563eb; }
+        .icon-btn.delete-btn { background: var(--danger-light); color: var(--danger); }
+
+        /* --- PAUSIERTE MATCH CARDS --- */
+        .active-game-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-left: 4px solid var(--warning);
+            border-radius: var(--radius-md);
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            box-shadow: var(--shadow);
+        }
+        .active-game-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 8px;
+        }
+        .active-game-badge {
+            font-size: 11px;
+            font-weight: 700;
+            background: #fffbeb;
+            color: #b45309;
+            padding: 4px 8px;
+            border-radius: 6px;
+            border: 1px solid #fde68a;
+            white-space: nowrap;
+        }
+        .active-game-meta { font-size: 12px; color: var(--muted); font-weight: 500; flex: 1; }
+        .active-game-players-box {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            background: #f8fafc;
+            padding: 10px 12px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        .active-game-player-line {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+            color: var(--text);
+        }
+        .active-game-actions { display: flex; gap: 8px; margin-top: 2px; }
+        .active-game-actions .resume-btn { flex: 1; height: 40px; font-size: 14px; border-radius: var(--radius-sm); }
+        .active-game-actions .abort-btn { width: 40px; height: 40px; background: var(--danger-light); color: var(--danger); border-radius: var(--radius-sm); flex-shrink: 0; }
+
+        /* --- OPTIMIERTES SCOREBOARD SYSTEM --- */
+        .scoreboard-list, .modal-scoreboard-list { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 12px; 
+        }
+        .scoreboard-row, .modal-player-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .scoreboard-player-header, .modal-player-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .scoreboard-row .player-meta, .modal-player-meta {
+            font-weight: 700;
+            font-size: 15px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .scoreboard-row .total-badge, .modal-total-badge {
+            background: var(--primary);
+            color: white;
+            font-weight: 800;
+            font-size: 13px;
+            padding: 4px 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(79, 70, 229, 0.15);
+        }
+        .history-scroll, .modal-rounds-container {
+            display: flex;
+            overflow-x: auto;
+            gap: 6px;
+            scroll-behavior: smooth;
+            padding: 2px 0;
+            -webkit-overflow-scrolling: touch;
+        }
+        .history-scroll::-webkit-scrollbar, .modal-rounds-container::-webkit-scrollbar { 
+            display: none; 
+        }
+
+        .round-pill {
+            background: var(--card);
+            border: 1px solid var(--border);
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            padding: 4px 8px;
+            border-radius: 8px;
+            white-space: nowrap;
+            flex-shrink: 0;
+            display: inline-flex;
+            gap: 4px;
+            align-items: center;
+            cursor: pointer;
+        }
+        .round-pill:active { background: #f1f5f9; }
+        .round-pill .r-num { color: var(--muted); font-weight: 500; }
+
+        /* --- INPUT GRIDS --- */
+        .round-grid { display: grid; gap: 12px; margin-bottom: 20px; }
+        .round-player-row {
+            display: flex;
+            align-items: center;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 10px 14px;
+            gap: 12px;
+        }
+        .round-player-row .player-name {
+            font-size: 15px;
+            font-weight: 700;
+            color: var(--text);
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .round-player-row input {
+            width: 85px;
+            height: 38px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--card);
+            text-align: center;
+            font-size: 16px;
+            font-weight: 700;
+            padding: 0;
+        }
+        .round-player-row .submit-single-btn {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-sm);
+            background: var(--primary);
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+
+        /* TOGGLE BUTTON STYLE */
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: #f1f5f9;
+            padding: 4px;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+        .toggle-btn {
+            padding: 6px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 700;
+            background: transparent;
+            color: var(--muted);
+            height: auto; width: auto;
+        }
+        .toggle-btn.active {
+            background: var(--card);
+            color: var(--text);
+            box-shadow: var(--shadow);
+        }
+
+        /* --- STATS & HISTORY CARDS --- */
+        .ranking-list, .history-list { display: flex; flex-direction: column; gap: 10px; }
+        .rank-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .rank-card-header { display: flex; align-items: center; gap: 8px; font-size: 16px; font-weight: 700; }
+
+        .stat-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            text-align: center;
+            background: var(--card);
+            padding: 10px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border);
+        }
+        .stat-grid strong { font-size: 16px; display: block; color: var(--text); }
+        .stat-grid span { font-size: 11px; color: var(--muted); margin-top: 2px; display: block; }
+
+        .history-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-md);
+            padding: 14px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            cursor: pointer;
+            transition: background 0.15s ease;
+        }
+        .history-card:hover { background: #f8fafc; }
+
+        .history-card-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            border-bottom: 1px dashed var(--border);
+            padding-bottom: 8px;
+            gap: 10px;
+        }
+        .history-card-info { flex: 1; }
+        .history-card-date { font-size: 16px; font-weight: 800; color: var(--text); }
+        .history-card-sub { font-size: 12px; color: var(--muted); font-weight: 600; margin-top: 2px; }
+        
+        .history-card-scores { display: flex; flex-wrap: wrap; gap: 12px 18px; padding: 2px 4px; }
+        .history-player-score { font-size: 14px; color: var(--muted); }
+        .history-player-score.is-winner { color: var(--primary); font-weight: 700; }
+
+        .winner-badge {
+            background: var(--success-light);
+            color: var(--success);
+            font-size: 12px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 12px;
+            border: 1px solid rgba(16, 185, 129, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            white-space: nowrap;
+        }
+
+        /* MODAL OVERLAY */
+        .modal-overlay {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(15, 23, 42, 0.4);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            z-index: 1100;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 20px;
+            width: 100%;
+            max-width: 420px;
+            box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+            max-height: 85vh;
+            overflow-y: auto;
+        }
+
+        .val-pos { color: var(--success); font-weight: 700; }
+        .val-neg { color: var(--danger); font-weight: 700; }
+        .leader-crown { color: #f59e0b; }
+        .rec-tag { font-size: 10px; background: #dcfce7; color: #14532d; padding: 2px 6px; border-radius: 6px; font-weight: bold;}
+    </style>
+</head>
+<body>
+
+<div class="header">
+    <h1 id="headerTitle">🎲 Scoreboard</h1>
+</div>
+
+<div id="gamePage" class="page active">
+    <div id="gameContent"></div>
+</div>
+
+<div id="playersPage" class="page">
+    <div class="card">
+        <div class="title">👥 Spieler hinzufügen</div>
+        <div style="display: flex; gap: 8px;">
+            <input id="playerInput" placeholder="Name...">
+            <button style="width: 48px; font-size: 20px; flex-shrink: 0;" onclick="addPlayer()">+</button>
+        </div>
+    </div>
+    <div id="playersList"></div>
+</div>
+
+<div id="statsPage" class="page">
+    <div class="card" style="padding: 16px 14px;">
+        <div class="title">🏆 Bestenliste</div>
+        <div id="ranking" class="ranking-list"></div>
+    </div>
+    <div class="card" style="padding: 16px 14px;">
+        <div class="title">📜 Historie</div>
+        <div id="history" class="history-list"></div>
+    </div>
+</div>
+
+<div class="bottom-nav">
+    <div class="nav-item active" onclick="navigate('gamePage', this)"><span>🎮</span>Spiel</div>
+    <div class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><span>👥</span>Spieler</div>
+    <div class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><span>🏆</span>Statistik</div>
+</div>
+
+<div class="modal-overlay" id="appModal" onclick="closeModal()">
+    <div class="modal" onclick="event.stopPropagation()">
+        <h3 class="title" id="modalTitle">✏️ Bearbeiten</h3>
+        <div id="modalBody"></div>
+        <div style="display: flex; gap: 8px; margin-top: 16px;" id="modalActions"></div>
+    </div>
+</div>
+
+<script>
+// ===============================
+// STATE & CENTRAL DATABASE LOGIC
+// ===============================
+let players = [];
+let games = [];
+let activeGames = [];
+let currentGame = null;
+let activeEditPlayerId = null;
+let showAllHistory = false;
+let autoRefreshInterval = null;
+let isSettingUpGame = false;
+let ratedMode = true;
+
+async function apiFetch(endpoint) {
+    try {
+        const res = await fetch(`/api/${endpoint}`);
+        return await res.json();
+    } catch (e) {
+        console.error("Fehler beim Laden von " + endpoint, e);
+        return [];
+    }
+}
+
+async function apiSave(endpoint, data) {
+    try {
+        await fetch(`/api/${endpoint}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+    } catch (e) {
+        console.error("Fehler beim Speichern von " + endpoint, e);
+    }
+}
+
+async function loadAllFromDb() {
+    if (isSettingUpGame) return;
+
+    players = await apiFetch('players');
+    games = await apiFetch('games');
+    activeGames = await apiFetch('activeGames');
+    currentGame = await apiFetch('currentGame');
+    
+    if (Array.isArray(currentGame) && currentGame.length === 0) currentGame = null;
+    if (currentGame && Object.keys(currentGame).length === 0) currentGame = null;
+}
+
+function startLiveSync() {
+    if(autoRefreshInterval) clearInterval(autoRefreshInterval);
+    autoRefreshInterval = setInterval(async () => {
+        if (isSettingUpGame) return;
+
+        await loadAllFromDb();
+        if (document.activeElement.tagName !== 'INPUT') {
+            const activePage = document.querySelector(".page.active").id;
+            if (activePage === 'gamePage') renderGame();
+            if (activePage === 'playersPage') renderPlayers();
+            if (activePage === 'statsPage') { renderRanking(); renderHistory(); }
+        }
+    }, 3000);
+}
+
+function removeSyncBlockAndNavigate(pageId, element) {
+    isSettingUpGame = false;
+    navigate(pageId, element);
+}
+
+// ===============================
+// NAVIGATION
+// ===============================
+async function navigate(pageId, element) {
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    document.getElementById(pageId).classList.add("active");
+    
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    element.classList.add("active");
+
+    const titles = { gamePage: "🎲 Scoreboard", playersPage: "👥 Spieler", statsPage: "🏆 Statistik" };
+    document.getElementById("headerTitle").innerText = titles[pageId];
+
+    await loadAllFromDb();
+    if(pageId === 'playersPage') renderPlayers();
+    if(pageId === 'statsPage') { showAllHistory = false; renderRanking(); renderHistory(); }
+    if(pageId === 'gamePage') renderGame();
+}
+
+// ===============================
+// MODAL ENGINE
+// ===============================
+function openModal(title, bodyHtml, actionHtml) {
+    document.getElementById("modalTitle").innerText = title;
+    document.getElementById("modalBody").innerHTML = bodyHtml;
+    document.getElementById("modalActions").innerHTML = actionHtml;
+    document.getElementById("appModal").classList.add("open");
+}
+
+function closeModal() {
+    document.getElementById("appModal").classList.remove("open");
+    activeEditPlayerId = null;
+}
+
+// ===============================
+// PLAYERS MANAGEMENT
+// ===============================
+async function addPlayer() {
+    let input = document.getElementById("playerInput");
+    let name = input.value.trim();
+    if(!name) return;
+    players.push({ id: Date.now(), name, favorite: false, wins: 0, games: 0, points: 0 });
+    input.value = "";
+    await apiSave('players', players);
+    renderPlayers();
+}
+
+async function toggleFav(id) {
+    let p = players.find(x => x.id === id);
+    if(p) p.favorite = !p.favorite;
+    await apiSave('players', players);
+    renderPlayers();
+}
+
+function triggerRename(id) {
+    let p = players.find(x => x.id === id);
+    activeEditPlayerId = id;
+    let body = `<input id="modalInput" value="${p.name}">`;
+    let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitRename()">Speichern</button>`;
+    openModal("✏️ Name ändern", body, actions);
+}
+
+async function submitRename() {
+    let newName = document.getElementById("modalInput").value.trim();
+    if(newName && activeEditPlayerId) {
+        let p = players.find(x => x.id === activeEditPlayerId);
+        if(p) p.name = newName;
+        await apiSave('players', players);
+        renderPlayers();
+    }
+    closeModal();
+}
+
+function triggerDelete(id) {
+    activeEditPlayerId = id;
+    let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDelete()">Löschen</button>`;
+    openModal("🗑️ Spieler löschen?", "<p style='color:var(--muted)'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
+}
+
+async function submitDelete() {
+    if(activeEditPlayerId) {
+        players = players.filter(p => p.id !== activeEditPlayerId);
+        await apiSave('players', players);
+        renderPlayers();
+    }
+    closeModal();
+}
+
+function renderPlayers() {
+    let box = document.getElementById("playersList");
+    if(!box) return; box.innerHTML = "";
+
+    if(players.length === 0) {
+        box.innerHTML = `<p style="text-align:center; color:var(--muted); padding:20px;">Keine Spieler vorhanden.</p>`;
+        return;
+    }
+
+    players.forEach(p => {
+        let initials = p.name.substring(0, 2).toUpperCase();
+        box.innerHTML += `
+            <div class="player-card">
+                <div class="player-left">
+                    <div class="avatar">${initials}</div>
+                    <div>
+                        <div class="player-name">${p.name}</div>
+                        <div class="player-info">${p.wins} 🏆 · ${p.games} Matches</div>
+                        ${p.favorite ? `<div class="favorite-badge">⭐ Favorit</div>` : ""}
+                    </div>
+                </div>
+                <div class="actions">
+                    <button class="icon-btn edit-btn" onclick="toggleFav(${p.id})">⭐</button>
+                    <button class="icon-btn edit-btn" onclick="triggerRename(${p.id})">✏️</button>
+                    <button class="icon-btn delete-btn" onclick="triggerDelete(${p.id})">🗑</button>
+                </div>
+            </div>`;
+    });
+}
+
+// ===============================
+// CONFIGURABLE GAME SETUP (WITH DRAG & DROP)
+// ===============================
+function startSetup() {
+    if(players.length < 2) {
+        alert("Bitte lege zuerst mindestens 2 Spieler an!");
+        return;
+    }
+    
+    isSettingUpGame = true;
+    ratedMode = true;
+
+    let html = `
+        <div class="card">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
+                <div class="title" style="margin:0;">🎮 1. Spieler wählen</div>
+                <div class="toggle-container">
+                    <button class="toggle-btn active" id="toggleRated" onclick="setRated(true)">Gewertet</button>
+                    <button class="toggle-btn" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
+                </div>
+            </div>
+            <div id="selectList" style="margin-bottom: 20px;">`;
+            
+    players.forEach(p => {
+        html += `
+            <div class="select-card" onclick="toggleSelectCard(event, this)">
+                <div class="player-left">
+                    <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
+                    <strong>${p.name}</strong>
+                </div>
+            </div>`;
+    });
+
+    html += `
+        </div>
+
+        <div class="title">↕️ 2. Reihenfolge anpassen (ziehen)</div>
+        <div id="dragOrderList" style="margin-bottom:20px; background:#f8fafc; border:1px solid var(--border); padding:10px; border-radius:var(--radius-md); min-height:50px;">
+            <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Spieler aus, um deren Reihenfolge festzulegen.</p>
+        </div>
+
+        <div class="title">📝 3. Name des Spiels</div>
+        <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)" style="margin-bottom: 20px;">
+        
+        <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
+        <div style="display:grid; gap:10px; margin-bottom:20px;">
+            <div class="mode-select-card selected" onclick="selectGameMode('round', this)">
+                <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
+                    <span>Klassischer Runden-Modus</span>
+                    <input type="radio" name="gameMode" value="round" checked>
+                </div>
+                <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
+            </div>
+            
+            <div class="mode-select-card" onclick="selectGameMode('single', this)">
+                <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
+                    <span>Flexibler Einzel-Modus</span>
+                    <input type="radio" name="gameMode" value="single">
+                </div>
+                <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
+            </div>
+        </div>
+
+        <button onclick="createGame()">Spiel starten 🚀</button>
+        <button class="secondary" style="margin-top:8px;" onclick="cancelSetup()">Abbrechen</button>
+    </div>`;
+
+    document.getElementById("gameContent").innerHTML = html;
+}
+
+function setRated(val) {
+    ratedMode = val;
+    document.getElementById("toggleRated").classList.toggle("active", val);
+    document.getElementById("toggleUnrated").classList.toggle("active", !val);
+}
+
+function cancelSetup() {
+    isSettingUpGame = false;
+    renderGame();
+}
+
+function toggleSelectCard(e, cardElement) {
+    const checkbox = cardElement.querySelector('input[type="checkbox"]');
+    if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
+    cardElement.classList.toggle('selected', checkbox.checked);
+    updateDragOrderList();
+}
+
+function updateDragOrderList() {
+    const checkedBoxes = [...document.querySelectorAll("#selectList input:checked")];
+    const dragBox = document.getElementById("dragOrderList");
+    const placeholder = document.getElementById("dragPlaceholder");
+    
+    if(checkedBoxes.length === 0) {
+        dragBox.innerHTML = "";
+        dragBox.appendChild(placeholder);
+        return;
+    }
+    
+    if(placeholder) placeholder.remove();
+    
+    const currentOrderIds = [...dragBox.querySelectorAll(".drag-card")].map(c => Number(c.dataset.id));
+    const selectedIds = checkedBoxes.map(b => Number(b.value));
+    
+    dragBox.innerHTML = "";
+    
+    const finalIds = currentOrderIds.filter(id => selectedIds.includes(id));
+    selectedIds.forEach(id => { if(!finalIds.includes(id)) finalIds.push(id); });
+    
+    finalIds.forEach(id => {
+        let p = players.find(x => x.id === id);
+        if(!p) return;
+        
+        let card = document.createElement("div");
+        card.className = "drag-card";
+        card.draggable = true;
+        card.dataset.id = p.id;
+        card.innerHTML = `
+            <div class="player-left">
+                <span style="color:var(--muted); font-size:14px; margin-right:4px;">↕️</span>
+                <div class="avatar" style="width:28px; height:28px; font-size:10px;">${p.name.substring(0,2).toUpperCase()}</div>
+                <strong>${p.name}</strong>
+            </div>`;
+            
+        card.addEventListener('dragstart', () => card.classList.add('dragging'));
+        card.addEventListener('dragend', () => card.classList.remove('dragging'));
+        dragBox.appendChild(card);
+    });
+    
+    dragBox.addEventListener('dragover', e => {
+        e.preventDefault();
+        const afterElement = getDragAfterElement(dragBox, e.clientY);
+        const dragging = document.querySelector('.dragging');
+        if (dragging) {
+            if (afterElement == null) dragBox.appendChild(dragging);
+            else dragBox.insertBefore(dragging, afterElement);
+        }
+    });
+}
+
+function getDragAfterElement(container, y) {
+    const draggableElements = [...container.querySelectorAll('.drag-card:not(.dragging)')];
+    return draggableElements.reduce((closest, child) => {
+        const box = child.getBoundingClientRect();
+        const offset = y - box.top - box.height / 2;
+        if (offset < 0 && offset > closest.offset) {
+            return { offset: offset, element: child };
+        } else {
+            return closest;
+        }
+    }, { offset: -Infinity }).element;
+}
+
+function selectGameMode(mode, element) {
+    document.querySelectorAll(".mode-select-card").forEach(c => c.classList.remove("selected"));
+    element.classList.add("selected");
+    element.querySelector('input[type="radio"]').checked = true;
+}
+
+async function createGame() {
+    let selectedOrder = [...document.querySelectorAll("#dragOrderList .drag-card")].map(c => Number(c.dataset.id));
+    if(selectedOrder.length < 2){ alert("Wähle mindestens 2 Spieler aus!"); return; }
+
+    let selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
+    
+    let typedName = document.getElementById("gameNameInput").value.trim();
+    let defaultName = selectedMode === 'round' ? 'Runden-Spiel' : 'Einzel-Spiel';
+    let gameName = typedName || defaultName;
+
+    currentGame = {
+        id: Date.now(),
+        name: gameName,
+        mode: selectedMode,
+        rated: ratedMode,
+        date: new Date().toLocaleDateString("de-DE"),
+        players: selectedOrder.map(id => {
+            let p = players.find(x => x.id === id);
+            return { id: p.id, name: p.name, rounds: [], total: 0 };
+        })
+    };
+    
+    isSettingUpGame = false;
+    await apiSave('currentGame', currentGame);
+    renderGame();
+}
+
+// ===============================
+// CORE MATCH ENGINE & CONTROLLER
+// ===============================
+function renderGame() {
+    if (isSettingUpGame) return; 
+
+    let contentBox = document.getElementById("gameContent");
+    
+    if(!currentGame) {
+        let html = `
+            <div class="card">
+                <div class="title">🎮 Neues Spiel starten</div>
+                <p style="color: var(--muted); margin-bottom: 16px;">Aktuell läuft kein Spiel. Möchtest du eine neue Runde werten?</p>
+                <button onclick="startSetup()">✨ Neues Spiel anlegen</button>
+            </div>`;
+
+        if(activeGames && activeGames.length > 0) {
+            html += `<div class="title" style="margin-top:20px; padding:0 4px;">⏳ Aktive & pausierte Spiele (${activeGames.length})</div>`;
+                
+            activeGames.forEach(ag => {
+                let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
+                let ratedBadge = ag.rated === false ? ' <span style="font-size:10px; background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:6px; font-weight:bold;">Ungewertet</span>' : '';
+                
+                html += `
+                    <div class="active-game-card">
+                        <div class="active-game-card-top">
+                            <div class="active-game-meta">
+                                <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">🎲 ${ag.name}${ratedBadge}</strong>
+                                <span style="font-size:11px; font-weight:600;">📅 Am ${ag.date} · ${modeText}</span>
+                            </div>
+                            <span class="active-game-badge">⏸ Pausiert</span>
+                        </div>
+                        <div class="active-game-players-box">
+                            ${ag.players.map(x => `
+                                <div class="active-game-player-line">
+                                    <span>${x.name}</span>
+                                    <strong>${x.total} Pkt</strong>
+                                </div>
+                            `).join("")}
+                        </div>
+                        <div class="active-game-actions">
+                            <button class="resume-btn" onclick="resumeGame(${ag.id})">▶ Weiter spielen</button>
+                            <button class="abort-btn" onclick="triggerDeleteActiveGame(${ag.id})">🗑</button>
+                        </div>
+                    </div>`;
+            });
+        }
+        contentBox.innerHTML = html;
+        return;
+    }
+
+    let maxRounds = Math.max(...currentGame.players.map(p => p.rounds.length), 0);
+    let highestScore = Math.max(...currentGame.players.map(p => p.total));
+    let leadsCount = currentGame.players.filter(p => p.total === highestScore).length;
+    let anyRoundsPlayed = currentGame.players.some(p => p.rounds.length > 0);
+
+    let modeTextInfo = currentGame.rated === false ? ' (Ungewertet)' : '';
+    let statusText = currentGame.mode === 'round' ? `${currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${currentGame.name}${modeTextInfo}`;
+
+    let html = `
+        <div class="card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:75%;">⚡ ${statusText}</span>
+            <button class="secondary" style="width:40px; height:32px; font-size:14px; padding:0; border-radius:8px; flex-shrink:0;" onclick="pauseCurrentGame()">⏸</button>
+        </div>
+
+        <div class="card" style="padding: 14px 12px;">
+            <div class="scoreboard-list">`;
+
+    currentGame.players.forEach(p => {
+        const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
+        
+        html += `
+            <div class="scoreboard-row">
+                <div class="scoreboard-player-header">
+                    <div class="player-meta">
+                        <span>${p.name}</span>
+                        ${isLeading ? '<span>👑</span>' : ''}
+                    </div>
+                    <div class="total-badge">${p.total} Pkt</div>
+                </div>
+                <div class="history-scroll" id="scroll_${p.id}">
+                    ${p.rounds.map((val, i) => {
+                        let cls = val > 0 ? 'val-pos' : (val < 0 ? 'val-neg' : '');
+                        let prefix = (currentGame.mode === 'single' && val > 0) ? '+' : '';
+                        let label = currentGame.mode === 'round' ? `<span class="r-num">R${i+1}:</span>` : '';
+                        return `
+                            <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, ${val})">
+                                ${label}
+                                <span class="${cls}">${prefix}${val}</span>
+                            </div>`;
+                    }).join("")}
+                    ${p.rounds.length === 0 ? '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>' : ''}
+                </div>
+            </div>`;
+    });
+
+    html += `</div></div>`;
+
+    if(currentGame.mode === 'round') {
+        html += `
+            <div class="card" id="inputCardAnchor">
+                <div class="title">➕ Runde ${maxRounds + 1} eintragen</div>
+                <div class="round-grid" id="roundInputs">`;
+
+        currentGame.players.forEach((p, idx) => {
+            // Geändert: inputmode="decimal" für perfekten iOS-Zahlensupport samt Minuszeichen-Sonderauswahl
+            html += `
+                <div class="round-player-row" style="background:#f8fafc; border:1px solid var(--border); padding:8px 12px;">
+                    <span class="player-name">${p.name}</span>
+                    <input type="text" inputmode="decimal" id="inp_${p.id}" placeholder="0" 
+                    onfocus="focusMobileInput(this)"
+                    onkeydown="handleRoundEnter(event, ${idx})">
+                </div>`;
+        });
+
+        html += `</div>
+                <button onclick="addRoundRow()">Runde speichern ✓</button>
+                <button class="green" style="margin-top: 8px;" onclick="finishGame()">🏆 Spiel beenden</button>
+             </div>`;
+    } else {
+        html += `
+            <div class="card">
+                <div class="title">➕ Einzelpunkte eintragen</div>
+                <div class="round-grid" id="roundInputs">`;
+
+        currentGame.players.forEach((p, idx) => {
+            html += `
+                <div class="round-player-row">
+                    <span class="player-name">${p.name}</span>
+                    <input type="text" inputmode="decimal" id="inp_${p.id}" placeholder="0" 
+                    onfocus="focusMobileInput(this)"
+                    onkeydown="handleSingleEnter(event, ${p.id})">
+                    <button class="submit-single-btn" onclick="addSingleScore(${p.id})">✓</button>
+                </div>`;
+        });
+
+        html += `</div>
+                <button class="green" style="margin-top: 14px;" onclick="finishGame()">🏆 Spiel beenden</button>
+             </div>`;
+    }
+
+    contentBox.innerHTML = html;
+    
+    setTimeout(() => {
+        currentGame.players.forEach(p => {
+            let sd = document.getElementById("scroll_" + p.id);
+            if(sd) sd.scrollLeft = sd.scrollWidth;
+        });
+    }, 40);
+}
+
+// LIVE-RUNDEN BEARBEITUNG
+let activeEditRoundData = null;
+function triggerEditRound(playerId, roundIndex, currentVal) {
+    let p = currentGame.players.find(x => x.id === playerId);
+    activeEditRoundData = { playerId, roundIndex };
+    let labelText = currentGame.mode === 'round' ? `Runde ${roundIndex + 1}` : `Eintrag ${roundIndex + 1}`;
+    
+    let body = `
+        <p style="color:var(--muted); margin-bottom:10px; font-size:14px;">Korrigiere die Punktzahl für <strong>${p.name}</strong> (${labelText}):</p>
+        <input type="text" inputmode="decimal" id="modalRoundInput" value="${currentVal}" style="text-align:center; font-weight:bold; font-size:18px;">`;
+    let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitEditRound()">✓ Speichern</button>`;
+    
+    openModal("✏️ Wert bearbeiten", body, actions);
+}
+
+async function submitEditRound() {
+    let inputVal = document.getElementById("modalRoundInput").value.trim();
+    let cleanVal = inputVal.replace(',', '.');
+    let num = Number(cleanVal);
+    if(isNaN(num)) num = 0;
+    
+    if(activeEditRoundData) {
+        let p = currentGame.players.find(x => x.id === activeEditRoundData.playerId);
+        if(p) {
+            p.rounds[activeEditRoundData.roundIndex] = num;
+            p.total = p.rounds.reduce((a, b) => a + b, 0);
+            await apiSave('currentGame', currentGame);
+            renderGame();
+        }
+    }
+    closeModal();
+}
+
+async function pauseCurrentGame() {
+    if(!currentGame) return;
+    activeGames = activeGames.filter(x => x.id !== currentGame.id);
+    activeGames.push(currentGame);
+    currentGame = null;
+    await apiSave('activeGames', activeGames);
+    await apiSave('currentGame', {});
+    renderGame();
+}
+
+async function resumeGame(gameId) {
+    let ag = activeGames.find(x => x.id === gameId);
+    if(ag) {
+        currentGame = ag;
+        activeGames = activeGames.filter(x => x.id !== gameId);
+        await apiSave('activeGames', activeGames);
+        await apiSave('currentGame', currentGame);
+        renderGame();
+    }
+}
+
+// Echtes Modal statt JS-Alert zum Löschen von pausierten Runden
+let activeDeleteActiveGameId = null;
+function triggerDeleteActiveGame(gameId) {
+    activeDeleteActiveGameId = gameId;
+    let ag = activeGames.find(x => x.id === gameId);
+    let body = `<p style="color:var(--muted)">Möchtest du das pausierte Spiel <strong>${ag.name}</strong> wirklich unwiderruflich verwerfen?</p>`;
+    let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteActiveGame()">Löschen</button>`;
+    openModal("🗑️ Spielstand verwerfen?", body, actions);
+}
+
+async function submitDeleteActiveGame() {
+    if(activeDeleteActiveGameId) {
+        activeGames = activeGames.filter(x => x.id !== activeDeleteActiveGameId);
+        await apiSave('activeGames', activeGames);
+        renderGame();
+    }
+    closeModal();
+}
+
+function handleRoundEnter(e, index) {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    let inputs = document.querySelectorAll("#roundInputs input");
+    if(inputs[index + 1]) inputs[index + 1].focus(); else addRoundRow();
+}
+
+async function addRoundRow() {
+    currentGame.players.forEach(p => {
+        let input = document.getElementById("inp_" + p.id);
+        let cleanVal = input.value.replace(',', '.');
+        let val = Number(cleanVal || 0);
+        if (isNaN(val)) val = 0;
+        
+        p.rounds.push(val);
+        p.total += val;
+    });
+    await apiSave('currentGame', currentGame);
+    renderGame();
+}
+
+function handleSingleEnter(e, playerId) {
+    if(e.key !== "Enter") return;
+    e.preventDefault();
+    addSingleScore(playerId);
+}
+
+async function addSingleScore(playerId) {
+    let input = document.getElementById("inp_" + playerId);
+    if(input.value === "") return; 
+    
+    let cleanVal = input.value.replace(',', '.');
+    let val = Number(cleanVal);
+    if (isNaN(val)) val = 0;
+
+    let p = currentGame.players.find(x => x.id === playerId);
+    if(p) { p.rounds.push(val); p.total += val; }
+    await apiSave('currentGame', currentGame);
+    renderGame();
+    
+    let nextInp = document.getElementById("inp_" + playerId);
+    if(nextInp) {
+        nextInp.value = ""; 
+        nextInp.focus();
+    }
+}
+
+// ===============================
+// FINISH GAME
+// ===============================
+function finishGame() {
+    isSettingUpGame = true; 
+    let highestScore = Math.max(...currentGame.players.map(p => p.total));
+    let html = `
+        <div class="card">
+            <div class="title">🏆 Wer hat gewonnen?</div>
+            <div id="winnerCardsList" style="margin-bottom:16px;">
+                <div class="winner-select-card" data-id="Unentschieden" onclick="selectWinnerCard(this)">
+                    <div class="player-left">🤝 <strong>Unentschieden</strong></div>
+                </div>`;
+
+    currentGame.players.forEach(p => {
+        const isHighest = p.total === highestScore;
+        html += `
+            <div class="winner-select-card ${isHighest ? 'selected' : ''}" data-id="${p.id}" onclick="selectWinnerCard(this)">
+                <div class="player-left" style="flex: 1; min-width: 0;">
+                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
+                    <strong class="player-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</strong>
+                    ${isHighest ? '<span class="rec-tag" style="margin-left:8px; flex-shrink:0;">Führung</span>' : ''}
+                </div>
+                <div style="margin-left:auto; padding-left:12px; font-weight:700; font-size:14px; white-space:nowrap; text-align:right; flex-shrink:0;">
+                    ${p.total} Pkt
+                </div>
+            </div>`;
+    });
+
+    html += `</div>
+            <button class="green" onclick="saveGame()">Spielwertung speichern</button>
+            <button class="secondary" style="margin-top:8px;" onclick="cancelSetup()">Zurück</button>
+        </div>`;
+
+    document.getElementById("gameContent").innerHTML = html;
+}
+
+async function saveGame() {
+    let selectedClass = document.querySelector(".winner-select-card.selected");
+    let winnerVal = selectedClass ? selectedClass.getAttribute("data-id") : "Unentschieden";
+    let winnerName = "Unentschieden";
+    
+    let pId = winnerVal !== "Unentschieden" ? Number(winnerVal) : null;
+    if(pId !== null) {
+        let wObj = currentGame.players.find(x => x.id === pId);
+        if(wObj) winnerName = wObj.name;
+    }
+
+    currentGame.winner = winnerName;
+    currentGame.date = new Date().toLocaleDateString("de-DE");
+
+    if (currentGame.rated !== false) {
+        if(pId !== null) {
+            players.forEach(p => { if(p.id === pId) p.wins++; });
+        }
+        currentGame.players.forEach(cp => {
+            let p = players.find(x => x.id === cp.id);
+            if(p) { p.games++; p.points += cp.total; }
+        });
+    }
+
+    activeGames = activeGames.filter(x => x.id !== currentGame.id);
+    games.push(currentGame);
+    
+    await apiSave('players', players);
+    await apiSave('activeGames', activeGames);
+    await apiSave('games', games);
+    
+    showResult();
+}
+
+function showResult() {
+    let textModeInfo = currentGame.rated === false ? ' (Freundschaftsspiel)' : '';
+    let html = `
+        <div class="card" style="text-align:center; padding:24px 16px;">
+            <div style="font-size:48px; margin-bottom:4px;">👑</div>
+            <div style="font-size:22px; font-weight:850; color:var(--success);">${currentGame.winner}</div>
+            <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">🎲 ${currentGame.name}${textModeInfo} · 📅 ${currentGame.date}</p>
+        </div>
+
+        <div class="card">
+            <div class="title">📊 Endresultat</div>`;
+
+    let sortedFinal = [...currentGame.players].sort((a,b) => b.total - a.total);
+    sortedFinal.forEach((p, idx) => {
+        html += `
+            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border)">
+                <span style="font-weight:600; font-size:14px;">${idx+1}. ${p.name}</span>
+                <strong style="color:var(--primary); font-size:15px;">${p.total} Pkt</strong>
+            </div>`;
+    });
+
+    html += `<button style="margin-top:14px;" onclick="newGame()">Hauptmenü</button></div>`;
+    document.getElementById("gameContent").innerHTML = html;
+}
+
+async function newGame() {
+    currentGame = null;
+    isSettingUpGame = false;
+    await apiSave('currentGame', {});
+    renderGame();
+}
+
+// ===============================
+// STATS & RANKING
+// ===============================
+function renderRanking() {
+    let box = document.getElementById("ranking");
+    if(!box) return; box.innerHTML = "";
+
+    if(players.length === 0) {
+        box.innerHTML = `<p style="color:var(--muted); text-align:center; padding:10px;">Keine Daten verfügbar.</p>`;
+        return;
+    }
+
+    let sorted = [...players].sort((a, b) => b.wins - a.wins);
+    sorted.forEach((p, i) => {
+        let winRate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
+        let badge = ["🥇", "🥈", "🥉"][i] || "🏅";
+
+        box.innerHTML += `
+            <div class="rank-card">
+                <div class="rank-card-header">
+                    <span>${badge}</span>
+                    <span>${p.name}</span>
+                </div>
+                <div class="stat-grid">
+                    <div><strong>${p.wins}</strong><span>Siege</span></div>
+                    <div><strong>${p.games}</strong><span>Spiele</span></div>
+                    <div><strong>${winRate}%</strong><span>Quote</span></div>
+                </div>
+            </div>`;
+    });
+}
+
+function renderHistory() {
+    let box = document.getElementById("history");
+    if(!box) return; box.innerHTML = "";
+
+    if(!games || games.length === 0) {
+        box.innerHTML = `<p style="text-align:center; color:var(--muted); padding:10px;">Keine Spiele aufgezeichnet.</p>`;
+        return;
+    }
+
+    let reversedGames = [...games].reverse();
+    let gamesToRender = showAllHistory ? reversedGames : reversedGames.slice(0, 5);
+
+    gamesToRender.forEach(g => {
+        let unratedTag = g.rated === false ? ' <span style="font-size:10px; background:#f1f5f9; color:#64748b; padding:2px 6px; border-radius:6px; font-weight:bold;">Freundschaft</span>' : '';
+        box.innerHTML += `
+            <div class="history-card" onclick="viewGameDetails(${g.id})">
+                <div class="history-card-top">
+                    <div class="history-card-info">
+                        <div class="history-card-date">🎲 ${g.name}${unratedTag}</div>
+                        <div class="history-card-sub">📅 ${g.date}</div>
+                    </div>
+                    <div class="winner-badge">🏆 ${g.winner}</div>
+                </div>
+                <div class="history-card-scores">
+                    ${g.players.map(p => {
+                        const isWinner = p.name === g.winner;
+                        return `<span class="history-player-score ${isWinner ? 'is-winner' : ''}">${p.name}: <strong>${p.total}</strong></span>`;
+                    }).join("")}
+                </div>
+            </div>`;
+    });
+
+    if (games.length > 5 && !showAllHistory) {
+        box.innerHTML += `
+            <button class="secondary" style="margin-top: 10px; height: 40px; font-size: 14px;" onclick="triggerShowAllHistory()">
+                📜 Alle anzeigen (${games.length} Spiele)
+            </button>`;
+    }
+}
+
+function triggerShowAllHistory() {
+    showAllHistory = true;
+    renderHistory();
+}
+
+// ===============================
+// HISTORY-MODAL VIEW & DELETION SYSTEM
+// ===============================
+function viewGameDetails(gameId) {
+    let g = games.find(x => x.id === gameId);
+    if(!g) return;
+
+    let highestScore = Math.max(...g.players.map(p => p.total));
+    let anyRoundsPlayed = g.players.some(p => p.rounds && p.rounds.length > 0);
+
+    let modeTextInfo = g.rated === false ? 'Freundschaftsspiel' : 'Gewertetes Match';
+    let html = `
+        <p style="color: var(--muted); font-size:13px; margin-bottom:16px; font-weight:500;">
+            📅 Datum: ${g.date} · Typ: ${modeTextInfo}
+        </p>
+        <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
+
+    g.players.forEach(p => {
+        const isWinner = p.name === g.winner || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
+        
+        html += `
+            <div class="modal-player-card">
+                <div class="modal-player-header">
+                    <div class="modal-player-meta">
+                        <span>${p.name}</span>
+                        ${isWinner ? '<span>👑</span>' : ''}
+                    </div>
+                    <div class="modal-total-badge">${p.total} Pkt</div>
+                </div>
+                
+                <div class="modal-rounds-container" id="modal_scroll_${p.id}">
+                    ${p.rounds.map((val, i) => {
+                        let cls = val > 0 ? 'val-pos' : (val < 0 ? 'val-neg' : '');
+                        let prefix = (g.mode === 'single' && val > 0) ? '+' : '';
+                        let label = g.mode === 'round' ? `<span class="r-num">R${i+1}:</span>` : '';
+                        return `
+                            <div class="round-pill">
+                                ${label}
+                                <span class="${cls}">${prefix}${val}</span>
+                            </div>`;
+                    }).join("")}
+                    ${p.rounds.length === 0 ? '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>' : ''}
+                </div>
+            </div>`;
+    });
+
+    html += `</div>`;
+    
+    let actions = `
+        <button class="secondary" onclick="closeModal()" style="flex:1">Schließen</button>
+        <button class="red" onclick="triggerDeleteHistoryGame(${g.id})" style="width:auto; padding:0 14px; background:var(--danger-light); color:var(--danger);">🗑️ Löschen</button>`;
+    
+    openModal(`📊 ${g.name}`, html, actions);
+
+    setTimeout(() => {
+        g.players.forEach(p => {
+            let container = document.getElementById("modal_scroll_" + p.id);
+            if(container) container.scrollLeft = container.scrollWidth;
+        });
+    }, 50);
+}
+
+let activeHistoryDeleteId = null;
+function triggerDeleteHistoryGame(gameId) {
+    activeHistoryDeleteId = gameId;
+    let g = games.find(x => x.id === gameId);
+    closeModal();
+    
+    setTimeout(() => {
+        let body = `<p style="color:var(--muted)">Möchtest du das Spiel <strong>${g.name}</strong> wirklich löschen? Alle Siege und Punkte werden restlos aus der Bestenliste abgezogen!</p>`;
+        let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteHistoryGame()">Definitiv löschen</button>`;
+        openModal("⚠️ Spiel unwiderruflich löschen?", body, actions);
+    }, 300);
+}
+
+async function submitDeleteHistoryGame() {
+    if(activeHistoryDeleteId) {
+        let g = games.find(x => x.id === activeHistoryDeleteId);
+        if(g) {
+            if (g.rated !== false) {
+                g.players.forEach(cp => {
+                    let p = players.find(x => x.id === cp.id);
+                    if(p) {
+                        p.games = Math.max(0, p.games - 1);
+                        p.points = Math.max(0, p.points - cp.total);
+                        if(p.name === g.winner) {
+                            p.wins = Math.max(0, p.wins - 1);
+                        }
+                    }
+                });
+            }
+            games = games.filter(x => x.id !== activeHistoryDeleteId);
+            
+            await apiSave('players', players);
+            await apiSave('games', games);
+            
+            renderRanking();
+            renderHistory();
+        }
+    }
+    closeModal();
+}
+
+async function initApp() {
+    await loadAllFromDb();
+    renderGame();
+    startLiveSync(); 
+}
+
+initApp();
+</script>
+</body>
+</html>
