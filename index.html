@@ -2,13 +2,12 @@
 <html lang="de">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>ScoreBuddy</title>
-    <!-- Für normale Browser und PCs (hier funktioniert SVG weiterhin super) -->
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e1b4b'/%3E%3Crect x='10' y='10' width='80' height='80' rx='18' fill='none' stroke='%234f46e5' stroke-width='2.5'/%3E%3Ctext x='50' y='63' font-family='Arial Black, Impact, sans-serif' font-size='34' font-weight='900' fill='%23ffffff' text-anchor='middle' letter-spacing='-1.5'%3ESB%3C/text%3E%3C/svg%3E">
+    
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='22' fill='%231e1b4b'/%3E%3Crect x='10' y='10' width='80' height='80' rx='18' fill='none' stroke='%234f46e5' stroke-width='2.5'/%3E%3Ctext x='50' y='63' font-family='Arial Black, Impact, sans-serif' font-size='34' font-weight='900' fill='%23ffffff' text-anchor='middle' letter-spacing='-1.5'%3ESB%3C/text%3E%3C/svg%3E">
 
-<!-- Für das iPhone – greift direkt auf die neue PNG-Datei zu -->
-<link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
     <style>
         :root {
             --primary: #4f46e5;
@@ -137,6 +136,7 @@
             box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
         }
 
+        /* Fliegende Navigation: Schmaler & hält Abstand zu den iPhone-Ecken */
         .bottom-nav {
             position: fixed;
             bottom: 32px; left: 32px; right: 32px;
@@ -145,11 +145,10 @@
             display: flex;
             justify-content: space-around;
             align-items: center;
-            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.12);
+            box-shadow: 0 8px 30px rgba(15, 23, 42, 0.15);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
             z-index: 1000;
-            
         }
 
         .nav-item {
@@ -194,7 +193,12 @@
             user-select: none;
         }
 
-        .drag-card { cursor: grab; background: #fafafa; }
+        /* Drag-Cards: touch-action blockiert das iOS-Scrollen beim Sortieren */
+        .drag-card { 
+            cursor: grab; 
+            background: #fafafa; 
+            touch-action: none; 
+        }
         .drag-card:active { cursor: grabbing; background: var(--primary-light); }
         .drag-card.dragging { opacity: 0.4; border: 2px dashed var(--primary); }
 
@@ -643,7 +647,7 @@ async function navigate(pageId, element) {
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     element.classList.add("active");
 
-    const titles = { gamePage: "🎲 Scoreboard", playersPage: "👥 Spieler", statsPage: "🏆 Statistik" };
+    const titles = { gamePage: "🎲 ScoreBuddy", playersPage: "👥 Spieler", statsPage: "🏆 Statistik" };
     document.getElementById("headerTitle").innerText = titles[pageId];
 
     await loadAllFromDb();
@@ -752,7 +756,7 @@ function renderPlayers() {
 }
 
 // ===============================
-// CONFIGURABLE GAME SETUP (WITH DRAG & DROP)
+// CONFIGURABLE GAME SETUP (WITH IPHONE TOUCH-DRAG SUPPORT)
 // ===============================
 function startSetup() {
     if(players.length < 2) {
@@ -833,6 +837,7 @@ function cancelSetup() {
     renderGame();
 }
 
+// Integrierte Touch- und Maus-Drag & Drop Engine
 function toggleSelectCard(e, cardElement) {
     const checkbox = cardElement.querySelector('input[type="checkbox"]');
     if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
@@ -876,16 +881,52 @@ function updateDragOrderList() {
                 <strong>${p.name}</strong>
             </div>`;
             
+        // Standard Desktop-Maus Drag-Events
         card.addEventListener('dragstart', () => card.classList.add('dragging'));
         card.addEventListener('dragend', () => card.classList.remove('dragging'));
+        
+        // Mobile iOS-Touch Events (Verhindert Scrollen und sortiert präzise)
+        card.addEventListener('touchstart', (e) => {
+            card.classList.add('dragging');
+            card.style.opacity = '0.5';
+            card.style.transform = 'scale(0.98)';
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e) => {
+            const dragging = document.querySelector('.dragging');
+            if (!dragging) return;
+            e.preventDefault(); // Stoppt Seiten-Scrollen auf dem iPhone
+
+            const touch = e.touches[0];
+            const targetElement = document.elementFromPoint(touch.clientX, touch.clientY);
+            const closestItem = targetElement ? targetElement.closest('.drag-card') : null;
+            
+            if (closestItem && closestItem !== dragging) {
+                const bounding = closestItem.getBoundingClientRect();
+                const offset = touch.clientY - bounding.top - bounding.height / 2;
+                if (offset > 0) {
+                    dragBox.insertBefore(dragging, closestItem.nextSibling);
+                } else {
+                    dragBox.insertBefore(dragging, closestItem);
+                }
+            }
+        }, { passive: false });
+
+        card.addEventListener('touchend', () => {
+            card.classList.remove('dragging');
+            card.style.opacity = '1';
+            card.style.transform = 'none';
+        });
+
         dragBox.appendChild(card);
     });
     
+    // Maus-Sortier-Event für Desktop
     dragBox.addEventListener('dragover', e => {
         e.preventDefault();
         const afterElement = getDragAfterElement(dragBox, e.clientY);
         const dragging = document.querySelector('.dragging');
-        if (dragging) {
+        if (dragging && !e.touches) { 
             if (afterElement == null) dragBox.appendChild(dragging);
             else dragBox.insertBefore(dragging, afterElement);
         }
@@ -1043,12 +1084,10 @@ function renderGame() {
                 <div class="round-grid" id="roundInputs">`;
 
         currentGame.players.forEach((p, idx) => {
-            // Geändert: inputmode="decimal" für perfekten iOS-Zahlensupport samt Minuszeichen-Sonderauswahl
             html += `
                 <div class="round-player-row" style="background:#f8fafc; border:1px solid var(--border); padding:8px 12px;">
                     <span class="player-name">${p.name}</span>
                     <input type="text" inputmode="decimal" id="inp_${p.id}" placeholder="0" 
-                    onfocus="focusMobileInput(this)"
                     onkeydown="handleRoundEnter(event, ${idx})">
                 </div>`;
         });
@@ -1068,7 +1107,6 @@ function renderGame() {
                 <div class="round-player-row">
                     <span class="player-name">${p.name}</span>
                     <input type="text" inputmode="decimal" id="inp_${p.id}" placeholder="0" 
-                    onfocus="focusMobileInput(this)"
                     onkeydown="handleSingleEnter(event, ${p.id})">
                     <button class="submit-single-btn" onclick="addSingleScore(${p.id})">✓</button>
                 </div>`;
@@ -1143,7 +1181,6 @@ async function resumeGame(gameId) {
     }
 }
 
-// Echtes Modal statt JS-Alert zum Löschen von pausierten Runden
 let activeDeleteActiveGameId = null;
 function triggerDeleteActiveGame(gameId) {
     activeDeleteActiveGameId = gameId;
@@ -1244,6 +1281,11 @@ function finishGame() {
         </div>`;
 
     document.getElementById("gameContent").innerHTML = html;
+}
+
+function selectWinnerCard(element) {
+    document.querySelectorAll(".winner-select-card").forEach(c => c.classList.remove("selected"));
+    element.classList.add("selected");
 }
 
 async function saveGame() {
