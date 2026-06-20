@@ -5,11 +5,14 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
 
-const db = new sqlite3.Database(path.join(__dirname, 'data', 'scoreboard.db'), (err) => {
+// Liefert HTML, CSS und JS direkt aus dem aktuellen Ordner aus
+app.use(express.static(__dirname));
+
+// DB liegt direkt neben den Skripten
+const db = new sqlite3.Database(path.join(__dirname, 'scoreboard.db'), (err) => {
     if (err) console.error(err.message);
-    console.log('Verbunden mit der zentralen SQLite-Datenbank.');
+    console.log('Verbunden mit der SQLite-Datenbank.');
 });
 
 db.serialize(() => {
