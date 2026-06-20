@@ -106,7 +106,7 @@ button.secondary {
     border: 1px solid var(--border);
 }
 
-input, select {
+input {
     width: 100%;
     height: 48px;
     border-radius: var(--radius-md);
@@ -118,11 +118,11 @@ input, select {
     transition: all 0.15s ease;
 }
 
-input:focus, select:focus {
+input:focus {
     outline: none;
     border-color: var(--primary);
     background: var(--card);
-    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
+    box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.15);
 }
 
 .bottom-nav {

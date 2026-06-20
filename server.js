@@ -6,17 +6,14 @@ const app = express();
 const PORT = 3000;
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname)));
 
-// Stellt sicher, dass der "data"-Ordner auf dem NAS existiert, sonst stürzt SQLite ab
-const dataDir = path.join(__dirname, 'data');
-if (!fs.existsSync(dataDir)){
-    fs.mkdirSync(dataDir, { recursive: true });
-}
+// Liefert HTML, CSS und JS direkt aus dem aktuellen Ordner aus
+app.use(express.static(__dirname));
 
-const db = new sqlite3.Database(path.join(dataDir, 'scoreboard.db'), (err) => {
+// DB liegt direkt neben den Skripten
+const db = new sqlite3.Database(path.join(__dirname, 'scoreboard.db'), (err) => {
     if (err) console.error(err.message);
-    console.log('Verbunden mit der zentralen SQLite-Datenbank.');
+    console.log('Verbunden mit der SQLite-Datenbank.');
 });
 
 db.serialize(() => {

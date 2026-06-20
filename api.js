@@ -1,45 +1,39 @@
-// ==========================================
-// API LOGIC (MIT AUTOMATISCHEM OFFLINE-MOCK)
-// ==========================================
+// Automatische Erkennung: Wenn 'localhost' oder '127.0.0.1' in der Adresse steht,
+// nutzen wir den Offline-Modus. Auf dem NAS nutzen wir die echte DB.
+const IS_OFFLINE_TEST = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
 
-// Erkennt, ob wir im reinen Frontend-Vorschau-Modus (z.B. Live Server) sind
-const IS_PREVIEW_MODE = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
-
-// Hilfsfunktion für den lokalen Speicher (Fallback ohne DB)
-function localMockSave(key, data) {
-    localStorage.setItem('mock_' + key, JSON.stringify(data));
-}
-function localMockFetch(key) {
-    const data = localStorage.getItem('mock_' + key);
-    return data ? JSON.parse(data) : null;
-}
-
-// API-Abfragen
-async function apiFetch(endpoint) {
-    if (IS_PREVIEW_MODE) {
-        // Im Vorschau-Modus direkt aus dem Browser-Speicher lesen
-        const mockData = localMockFetch(endpoint);
-        if (mockData !== null) return mockData;
-        if (endpoint === 'currentGame') return null;
-        return [];
+export async function apiFetch(endpoint) {
+    // ---- 1. OFFLINE-MODUS (Browser-Speicher) ----
+    if (IS_OFFLINE_TEST) {
+        const localData = localStorage.getItem(`scorebuddy_${endpoint}`);
+        if (!localData) {
+            return endpoint === 'currentGame' ? null : [];
+        }
+        return JSON.parse(localData);
     }
 
+    // ---- 2. ONLINE-MODUS (Echte NAS-Datenbank) ----
     try {
         const res = await fetch(`/api/${endpoint}`);
         return await res.json();
     } catch (e) {
-        console.warn("Server nicht erreichbar, nutze lokalen Speicher für: " + endpoint);
-        return localMockFetch(endpoint) || (endpoint === 'currentGame' ? null : []);
+        console.error("Fehler beim Laden von " + endpoint, e);
+        return endpoint === 'currentGame' ? null : [];
     }
 }
 
-// API-Speichern
-async function apiSave(endpoint, data) {
-    // Immer lokal spiegeln, damit man im Offline-Modus testen kann
-    localMockSave(endpoint, data);
+export async function apiSave(endpoint, data) {
+    // ---- 1. OFFLINE-MODUS (Browser-Speicher) ----
+    if (IS_OFFLINE_TEST) {
+        if (endpoint === 'currentGame' && (!data || Object.keys(data).length === 0)) {
+            localStorage.removeItem(`scorebuddy_${endpoint}`);
+        } else {
+            localStorage.setItem(`scorebuddy_${endpoint}`, JSON.stringify(data));
+        }
+        return;
+    }
 
-    if (IS_PREVIEW_MODE) return { success: true };
-
+    // ---- 2. ONLINE-MODUS (Echte NAS-Datenbank) ----
     try {
         await fetch(`/api/${endpoint}`, {
             method: 'POST',
@@ -47,61 +41,6 @@ async function apiSave(endpoint, data) {
             body: JSON.stringify(data)
         });
     } catch (e) {
-        console.error("Fehler beim Senden an den Server, lokal gesichert.");
+        console.error("Fehler beim Speichern von " + endpoint, e);
     }
-}
-
-// Lädt den gesamten Zustand
-async function loadAllFromDb() {
-    if (isSettingUpGame) return;
-
-    players = await apiFetch('players');
-    games = await apiFetch('games');
-    activeGames = await apiFetch('activeGames');
-    currentGame = await apiFetch('currentGame');
-    
-    if (Array.isArray(currentGame) && currentGame.length === 0) currentGame = null;
-    if (currentGame && Object.keys(currentGame).length === 0) currentGame = null;
-}
-
-// Hintergrund-Sync im 2-Sekunden-Takt
-function startLiveSync() {
-    if(autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(async () => {
-        if (isSettingUpGame) return;
-
-        await loadAllFromDb();
-        const activePage = document.querySelector(".page.active").id;
-        if (activePage === 'gamePage') renderGame(true); 
-        if (activePage === 'playersPage' && document.activeElement.tagName !== 'INPUT') renderPlayers();
-        if (activePage === 'statsPage') { renderRanking(); renderHistory(); }
-    }, 2000); 
-}
-
-// Validiert mathematische Sonderregeln (Cabo 100->50, Limits)
-function checkGameRulesAndLimits() {
-    if (!currentGame || currentGame.gameKey === "custom") return false;
-
-    let template = PREDEFINED_GAMES[currentGame.gameKey];
-    if (!template) return false;
-
-    let reachedLimit = false;
-
-    currentGame.players.forEach(p => {
-        if (template.hasResetRule && p.total === template.resetTrigger) {
-            p.total = template.resetTarget;
-            p.rounds.push(`🔄 Reset auf ${template.resetTarget}`);
-            alert(`💥 Regel-Treffer! ${p.name} hat exakt ${template.resetTrigger} Punkte erreicht und fällt zurück auf ${template.resetTarget}!`);
-        }
-        if (template.hasLimit && p.total >= template.limitValue) {
-            reachedLimit = true;
-        }
-    });
-
-    if (reachedLimit) {
-        alert(`🏁 Das Spiel-Limit von ${template.limitValue} Punkten wurde erreicht! Das Match wird jetzt automatisch ausgewertet.`);
-        finishGame();
-        return true; 
-    }
-    return false;
 }
