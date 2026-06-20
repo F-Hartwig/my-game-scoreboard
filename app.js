@@ -1247,11 +1247,15 @@ function renderRanking() {
         let winRate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
         let badge = ["🥇", "🥈", "🥉"][i] || "🏅";
 
+        // --- UX-UPDATE: onclick hinzugefügt und Cursor auf Pointer gesetzt ---
         box.innerHTML += `
-            <div class="rank-card">
-                <div class="rank-card-header">
-                    <span>${badge}</span>
-                    <span>${p.name}</span>
+            <div class="rank-card" style="cursor: pointer; transition: background 0.15s ease;" onclick="openPlayerProfileModal(${p.id})">
+                <div class="rank-card-header" style="justify-content: space-between;">
+                    <div style="display:flex; align-items:center; gap:8px;">
+                        <span>${badge}</span>
+                        <span>${p.name}</span>
+                    </div>
+                    <span style="font-size:12px; color:var(--primary); font-weight:700;">Profil ansehen ➔</span>
                 </div>
                 <div class="stat-grid">
                     <div><strong>${p.wins}</strong><span>Siege</span></div>
@@ -1261,7 +1265,6 @@ function renderRanking() {
             </div>`;
     });
 }
-
 function renderHistory() {
     let box = document.getElementById("history");
     if(!box) return; box.innerHTML = "";
@@ -1519,7 +1522,126 @@ function openCollectionRulesModal(gameId) {
     openModal(`📜 ${game.name} Regeln`, body, actions);
 }
 
-// Vergiss nicht, die neuen Funktionen ganz unten global zu registrieren:
+// ===============================
+// DETAILED PLAYER PROFILE STATS
+// ===============================
+function openPlayerProfileModal(playerId) {
+    const p = state.players.find(x => x.id === playerId);
+    if (!p) return;
+
+    let gameStats = {}; 
+    let partnerStats = {}; 
+
+    // Alle historischen Spiele auf dem NAS durchscannen
+    state.games.forEach(g => {
+        if (g.rated === false) return; // Ungewertet ignorieren
+
+        // Hat der Spieler an diesem Spiel teilgenommen?[cite: 2]
+        const playerInMatch = g.players.find(cp => cp.playerIds && cp.playerIds.includes(playerId));
+        
+        if (playerInMatch) {
+            // --- WASSERDICHTER FIX FÜR CUSTOM-SPIELE ---
+            // Wenn die ID "custom" ist oder der Name dem Standard-Custom-Namen entspricht, 
+            // nutzen wir den getippten Namen. Falls der leer ist, das Fallback "Custom-Spiel".
+            let matchDisplayName = g.name || "Custom-Spiel";
+            if (g.gameTypeId === "custom" || g.id === "custom") {
+                matchDisplayName = g.name || "Custom-Spiel";
+            }
+
+            if (!gameStats[matchDisplayName]) {
+                gameStats[matchDisplayName] = { games: 0, wins: 0 };
+            }
+            gameStats[matchDisplayName].games++;
+            
+            // Ermittle präzise, ob dieser Spieler (oder sein Team) gewonnen hat
+            // Wir prüfen sowohl auf exakten Namen als auch per .includes() zur Sicherheit
+            const isWinner = g.winner === playerInMatch.name || g.winner.includes(playerInMatch.name);
+            if (isWinner) {
+                gameStats[matchDisplayName].wins++;
+            }
+
+            // Team-Partner-Statistik erfassen[cite: 2]
+            if (playerInMatch.isTeam && playerInMatch.playerIds.length > 1) {
+                playerInMatch.playerIds.forEach(pId => {
+                    if (pId !== playerId) {
+                        let partnerObj = state.players.find(x => x.id === pId);
+                        if (partnerObj) {
+                            if (!partnerStats[partnerObj.name]) {
+                                partnerStats[partnerObj.name] = { games: 0, wins: 0 };
+                            }
+                            partnerStats[partnerObj.name].games++;
+                            if (isWinner) partnerStats[partnerObj.name].wins++;
+                        }
+                    }
+                });
+            }
+        }
+    });
+
+    // HTML für die Spiele-Aufschlüsselung bauen[cite: 2]
+    let gamesHtml = "";
+    const sortedGameNames = Object.keys(gameStats).sort((a, b) => gameStats[b].wins - gameStats[a].wins);
+    
+    if (sortedGameNames.length === 0) {
+        gamesHtml = `<p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;">Noch keine gewerteten Spieldaten vorhanden.</p>`;
+    } else {
+        sortedGameNames.forEach(gName => {
+            const stats = gameStats[gName];
+            const rate = Math.round((stats.wins / stats.games) * 100);
+            gamesHtml += `
+                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border)">
+                    <div style="font-size:14px; font-weight:600;">🎲 ${gName}</div>
+                    <div style="text-align:right; font-size:13px;">
+                        <strong>${stats.wins}🏆</strong> <span style="color:var(--muted)">/ ${stats.games} Spiele</span>
+                        <span style="margin-left:6px; font-weight:700; color:var(--primary); background:var(--primary-light); padding:2px 6px; border-radius:6px;">${rate}%</span>
+                    </div>
+                </div>`;
+        });
+    }
+
+    // HTML für die besten Partner bauen[cite: 2]
+    let partnerHtml = "";
+    const sortedPartners = Object.keys(partnerStats).sort((a, b) => partnerStats[b].wins - partnerStats[a].wins);
+    
+    if (sortedPartners.length > 0) {
+        const bestPartnerName = sortedPartners[0];
+        const pStats = partnerStats[bestPartnerName];
+        const pRate = Math.round((pStats.wins / pStats.games) * 100);
+        partnerHtml = `
+            <div style="margin-top:16px; background:var(--success-light); border:1px solid rgba(16, 185, 129, 0.2); padding:12px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between;">
+                <div>
+                    <div style="font-size:11px; font-weight:700; color:var(--success); text-transform:uppercase; letter-spacing:0.5px;">🤝 Beste Team-Harmonie</div>
+                    <div style="font-size:15px; font-weight:700; margin-top:2px;">Mit ${bestPartnerName}</div>
+                </div>
+                <div style="text-align:right; font-size:13px;">
+                    <strong>${pStats.wins} Siege</strong> <span style="color:var(--muted)">in ${pStats.games} Spielen</span>
+                    <div style="font-weight:800; color:var(--success); font-size:14px;">${pRate}% Win-Rate</div>
+                </div>
+            </div>`;
+    }
+
+    let bodyHtml = `
+        <div style="text-align:center; margin-bottom:16px;">
+            <div class="avatar" style="width:54px; height:54px; font-size:18px; margin:0 auto 8px auto;">${p.name.substring(0,2).toUpperCase()}</div>
+            <h2 style="font-size:20px; font-weight:800;">${p.name}</h2>
+            <p style="color:var(--muted); font-size:13px; margin-top:2px;">Gesamt-Erfolgsquote: <strong>${p.games ? Math.round((p.wins / p.games) * 100) : 0}%</strong></p>
+        </div>
+        
+        <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:var(--muted);">🎯 Siege nach Spielen:</div>
+        <div style="display:flex; flex-direction:column; gap:2px; margin-bottom:10px;">
+            ${gamesHtml}
+        </div>
+        
+        ${partnerHtml}
+    `;
+
+    let actionsHtml = `<button class="secondary" style="flex:1;" onclick="closeModal()">Schließen</button>`;
+
+    openModal(`👤 Spieler-Profil`, bodyHtml, actionsHtml);
+}
+
+// Global für HTML-Onclick registrieren (ganz unten bei den anderen Windows-Registern ablegen)
+window.openPlayerProfileModal = openPlayerProfileModal;
 window.quickStartGame = quickStartGame;
 window.renderRulesPage = renderRulesPage;
 window.openCollectionRulesModal = openCollectionRulesModal;
