@@ -1,64 +1,14 @@
+import { apiSave } from './api.js';
+import { state, loadAllFromDb } from './state.js';
+import { PREDEFINED_GAMES } from './gamesConfig.js';
+
 // ===============================
-// STATE & CENTRAL DATABASE LOGIC
+// CORE TIMING & LIVE SYNC
 // ===============================
-let players = [];
-let games = [];
-let activeGames = [];
-let currentGame = null;
-let activeEditPlayerId = null;
-let showAllHistory = false;
-let autoRefreshInterval = null;
-let isSettingUpGame = false;
-let lastRenderedGameId = null; 
-let ratedMode = true;
-// ==========================================
-// OFFLINE-TESTMODUS (OHNE DATABASE / SERVER)
-// ==========================================
-
-// Holt die Daten direkt aus dem Speicher deines Browsers (LocalStorage)
-async function apiFetch(endpoint) {
-    try {
-        const localData = localStorage.getItem(`scorebuddy_${endpoint}`);
-        // Wenn für diesen Endpunkt noch nichts gespeichert ist, leeres Array/Objekt zurückgeben
-        if (!localData) {
-            return endpoint === 'currentGame' ? null : [];
-        }
-        return JSON.parse(localData);
-    } catch (e) {
-        console.error("Fehler beim lokalen Laden von " + endpoint, e);
-        return endpoint === 'currentGame' ? null : [];
-    }
-}
-
-// Speichert die Daten direkt im Browser
-async function apiSave(endpoint, data) {
-    try {
-        // Falls currentGame geleert wird (z.B. {}), löschen wir es aus dem Speicher
-        if (endpoint === 'currentGame' && (!data || Object.keys(data).length === 0)) {
-            localStorage.removeItem(`scorebuddy_${endpoint}`);
-        } else {
-            localStorage.setItem(`scorebuddy_${endpoint}`, JSON.stringify(data));
-        }
-    } catch (e) {
-        console.error("Fehler beim lokalen Speichern von " + endpoint, e);
-    }
-}
-async function loadAllFromDb() {
-    if (isSettingUpGame) return;
-
-    players = await apiFetch('players');
-    games = await apiFetch('games');
-    activeGames = await apiFetch('activeGames');
-    currentGame = await apiFetch('currentGame');
-    
-    if (Array.isArray(currentGame) && currentGame.length === 0) currentGame = null;
-    if (currentGame && Object.keys(currentGame).length === 0) currentGame = null;
-}
-
 function startLiveSync() {
-    if(autoRefreshInterval) clearInterval(autoRefreshInterval);
-    autoRefreshInterval = setInterval(async () => {
-        if (isSettingUpGame) return;
+    if(state.autoRefreshInterval) clearInterval(state.autoRefreshInterval);
+    state.autoRefreshInterval = setInterval(async () => {
+        if (state.isSettingUpGame) return;
 
         await loadAllFromDb();
         const activePage = document.querySelector(".page.active").id;
@@ -76,8 +26,8 @@ function instantScrollToContainerEnd(element) {
 }
 
 function removeSyncBlockAndNavigate(pageId, element) {
-    isSettingUpGame = false;
-    lastRenderedGameId = null; 
+    state.isSettingUpGame = false;
+    state.lastRenderedGameId = null; 
     navigate(pageId, element);
 }
 
@@ -96,8 +46,8 @@ async function navigate(pageId, element) {
 
     await loadAllFromDb();
     if(pageId === 'playersPage') renderPlayers();
-    if(pageId === 'statsPage') { showAllHistory = false; renderRanking(); renderHistory(); }
-    if(pageId === 'gamePage') { lastRenderedGameId = null; renderGame(); }
+    if(pageId === 'statsPage') { state.showAllHistory = false; renderRanking(); renderHistory(); }
+    if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
 }
 
 // ===============================
@@ -125,7 +75,7 @@ function toggleSignElement(btn) {
 
 function closeModal() {
     document.getElementById("appModal").classList.remove("open");
-    activeEditPlayerId = null;
+    state.activeEditPlayerId = null;
 }
 
 // ===============================
@@ -135,22 +85,22 @@ async function addPlayer() {
     let input = document.getElementById("playerInput");
     let name = input.value.trim();
     if(!name) return;
-    players.push({ id: Date.now(), name, favorite: false, wins: 0, games: 0, points: 0 });
+    state.players.push({ id: Date.now(), name, favorite: false, wins: 0, games: 0, points: 0 });
     input.value = "";
-    await apiSave('players', players);
+    await apiSave('players', state.players);
     renderPlayers();
 }
 
 async function toggleFav(id) {
-    let p = players.find(x => x.id === id);
+    let p = state.players.find(x => x.id === id);
     if(p) p.favorite = !p.favorite;
-    await apiSave('players', players);
+    await apiSave('players', state.players);
     renderPlayers();
 }
 
 function triggerRename(id) {
-    let p = players.find(x => x.id === id);
-    activeEditPlayerId = id;
+    let p = state.players.find(x => x.id === id);
+    state.activeEditPlayerId = id;
     let body = `<input id="modalInput" value="${p.name}">`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitRename()">Speichern</button>`;
     openModal("✏️ Name ändern", body, actions);
@@ -158,25 +108,25 @@ function triggerRename(id) {
 
 async function submitRename() {
     let newName = document.getElementById("modalInput").value.trim();
-    if(newName && activeEditPlayerId) {
-        let p = players.find(x => x.id === activeEditPlayerId);
+    if(newName && state.activeEditPlayerId) {
+        let p = state.players.find(x => x.id === state.activeEditPlayerId);
         if(p) p.name = newName;
-        await apiSave('players', players);
+        await apiSave('players', state.players);
         renderPlayers();
     }
     closeModal();
 }
 
 function triggerDelete(id) {
-    activeEditPlayerId = id;
+    state.activeEditPlayerId = id;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDelete()">Löschen</button>`;
     openModal("🗑️ Spieler löschen?", "<p style='color:var(--muted)'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
 }
 
 async function submitDelete() {
-    if(activeEditPlayerId) {
-        players = players.filter(p => p.id !== activeEditPlayerId);
-        await apiSave('players', players);
+    if(state.activeEditPlayerId) {
+        state.players = state.players.filter(p => p.id !== state.activeEditPlayerId);
+        await apiSave('players', state.players);
         renderPlayers();
     }
     closeModal();
@@ -186,12 +136,12 @@ function renderPlayers() {
     let box = document.getElementById("playersList");
     if(!box) return; box.innerHTML = "";
 
-    if(players.length === 0) {
+    if(state.players.length === 0) {
         box.innerHTML = `<p style="text-align:center; color:var(--muted); padding:20px;">Keine Spieler vorhanden.</p>`;
         return;
     }
 
-    players.forEach(p => {
+    state.players.forEach(p => {
         let initials = p.name.substring(0, 2).toUpperCase();
         box.innerHTML += `
             <div class="player-card">
@@ -213,19 +163,37 @@ function renderPlayers() {
 }
 
 // ===============================
-// CONFIGURABLE GAME SETUP (WITH IPHONE TOUCH-DRAG SUPPORT)
+// CONFIGURABLE GAME SETUP & TOUCH-DRAG
 // ===============================
 function startSetup() {
-    if(players.length < 2) {
+    if(state.players.length < 2) {
         alert("Bitte lege zuerst mindestens 2 Spieler an!");
         return;
     }
     
-    isSettingUpGame = true;
-    ratedMode = true;
+    state.isSettingUpGame = true;
+    state.ratedMode = true;
+
+    // Wir prüfen direkt, welches Spiel als erstes in der PREDEFINED_GAMES Liste steht (sollte 'custom' sein)
+    const firstGame = PREDEFINED_GAMES[0];
+    const isCustomActive = firstGame.id === "custom";
 
     let html = `
         <div class="card">
+            <div class="title">🎯 0. Spiel auswählen</div>
+            <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
+                ${PREDEFINED_GAMES.map(g => `<option value="${g.id}">${g.name}</option>`).join("")}
+            </select>
+            <p id="gameDescriptionText" style="font-size:13px; color:var(--muted); margin-top:-8px; margin-bottom:20px; line-height:1.4; padding:0 4px;">
+                ${firstGame.description}
+            </p>
+
+            <!-- NEUE POSITION: Name des Spiels (wird dynamisch ein-/ausgeblendet) -->
+            <div id="customGameNameContainer" style="display: ${isCustomActive ? 'block' : 'none'}; margin-bottom: 20px;">
+                <div class="title">📝 3. Name des Spiels</div>
+                <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
+            </div>
+
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                 <div class="title" style="margin:0;">🎮 1. Spieler wählen</div>
                 <div class="toggle-container">
@@ -235,7 +203,7 @@ function startSetup() {
             </div>
             <div id="selectList" style="margin-bottom: 20px;">`;
             
-    players.forEach(p => {
+    state.players.forEach(p => {
         html += `
             <div class="select-card" onclick="toggleSelectCard(event, this)">
                 <div class="player-left">
@@ -253,26 +221,26 @@ function startSetup() {
         <div id="dragOrderList" style="margin-bottom:20px; background:#f8fafc; border:1px solid var(--border); padding:10px; border-radius:var(--radius-md); min-height:50px;">
             <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Spieler aus, um deren Reihenfolge festzulegen.</p>
         </div>
-
-        <div class="title">📝 3. Name des Spiels</div>
-        <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)" style="margin-bottom: 20px;">
         
-        <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
-        <div style="display:grid; gap:10px; margin-bottom:20px;">
-            <div class="mode-select-card selected" onclick="selectGameMode('round', this)">
-                <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
-                    <span>Klassischer Runden-Modus</span>
-                    <input type="radio" name="gameMode" value="round" checked>
+        <!-- Eingabe-Modus wählen (wird dynamisch ein-/ausgeblendet) -->
+        <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">
+            <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
+            <div style="display:grid; gap:10px; margin-bottom:20px;">
+                <div class="mode-select-card selected" id="modeCardRound" onclick="selectGameMode('round', this)">
+                    <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
+                        <span>Klassischer Runden-Modus</span>
+                        <input type="radio" name="gameMode" value="round" checked>
+                    </div>
+                    <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
                 </div>
-                <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
-            </div>
-            
-            <div class="mode-select-card" onclick="selectGameMode('single', this)">
-                <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
-                    <span>Flexibler Einzel-Modus</span>
-                    <input type="radio" name="gameMode" value="single">
+                
+                <div class="mode-select-card" id="modeCardSingle" onclick="selectGameMode('single', this)">
+                    <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
+                        <span>Flexibler Einzel-Modus</span>
+                        <input type="radio" name="gameMode" value="single">
+                    </div>
+                    <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
                 </div>
-                <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
             </div>
         </div>
 
@@ -283,15 +251,43 @@ function startSetup() {
     document.getElementById("gameContent").innerHTML = html;
 }
 
+function handleGameSelectionChange(gameId) {
+    const gameConfig = PREDEFINED_GAMES.find(g => g.id === gameId);
+    if (!gameConfig) return;
+    
+    document.getElementById("gameDescriptionText").innerText = gameConfig.description;
+    
+    const nameContainer = document.getElementById("customGameNameContainer");
+    const modeContainer = document.getElementById("customGameModeContainer");
+
+    if (gameId === "custom") {
+        // Blendet die Felder ein, wenn Custom gewählt ist
+        if (nameContainer) nameContainer.style.display = "block";
+        if (modeContainer) modeContainer.style.display = "block";
+        selectGameMode('round', document.getElementById("modeCardRound"));
+    } else {
+        // Blendet die Felder komplett aus, wenn Cabo oder andere feste Spiele gewählt sind
+        if (nameContainer) nameContainer.style.display = "none";
+        if (modeContainer) modeContainer.style.display = "none";
+        
+        // Trotz Ausblendung den vom Spiel vorgegebenen Standardmodus im Hintergrund setzen
+        if (gameConfig.defaultMode === 'single') {
+            selectGameMode('single', document.getElementById("modeCardSingle"));
+        } else {
+            selectGameMode('round', document.getElementById("modeCardRound"));
+        }
+    }
+}
+
 function setRated(val) {
-    ratedMode = val;
+    state.ratedMode = val;
     document.getElementById("toggleRated").classList.toggle("active", val);
     document.getElementById("toggleUnrated").classList.toggle("active", !val);
 }
 
 function cancelSetup() {
-    isSettingUpGame = false;
-    lastRenderedGameId = null;
+    state.isSettingUpGame = false;
+    state.lastRenderedGameId = null;
     renderGame();
 }
 
@@ -324,7 +320,7 @@ function updateDragOrderList() {
     selectedIds.forEach(id => { if(!finalIds.includes(id)) finalIds.push(id); });
     
     finalIds.forEach(id => {
-        let p = players.find(x => x.id === id);
+        let p = state.players.find(x => x.id === id);
         if(!p) return;
         
         let card = document.createElement("div");
@@ -411,26 +407,33 @@ async function createGame() {
     if(selectedOrder.length < 2){ alert("Wähle mindestens 2 Spieler aus!"); return; }
 
     let selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
-    
-    let typedName = document.getElementById("gameNameInput").value.trim();
-    let defaultName = selectedMode === 'round' ? 'Runden-Spiel' : 'Einzel-Spiel';
-    let gameName = typedName || defaultName;
+    let selectedGameId = document.getElementById("predefinedGameSelect").value;
+    const gameConfig = PREDEFINED_GAMES.find(g => g.id === selectedGameId);
 
-    currentGame = {
+    // Wenn es custom ist, nehmen wir den getippten Namen (oder Fallback). Wenn nicht, IMMER den festen Spielnamen.
+    let gameName = gameConfig.name;
+    if (selectedGameId === "custom") {
+        let typedName = document.getElementById("gameNameInput").value.trim();
+        gameName = typedName || gameConfig.name;
+    }
+
+    state.currentGame = {
         id: Date.now(),
+        gameTypeId: gameConfig.id,
         name: gameName,
         mode: selectedMode,
-        rated: ratedMode,
+        rated: state.ratedMode,
         date: new Date().toLocaleDateString("de-DE"),
+        rules: gameConfig.rules,
         players: selectedOrder.map(id => {
-            let p = players.find(x => x.id === id);
+            let p = state.players.find(x => x.id === id);
             return { id: p.id, name: p.name, rounds: [], total: 0 };
         })
     };
     
-    isSettingUpGame = false;
-    lastRenderedGameId = null; 
-    await apiSave('currentGame', currentGame);
+    state.isSettingUpGame = false;
+    state.lastRenderedGameId = null; 
+    await apiSave('currentGame', state.currentGame);
     renderGame();
 }
 
@@ -438,12 +441,12 @@ async function createGame() {
 // CORE MATCH ENGINE & RENDERING
 // ===============================
 function renderGame(isSyncUpdate = false) {
-    if (isSettingUpGame) return; 
+    if (state.isSettingUpGame) return; 
 
     let contentBox = document.getElementById("gameContent");
     
-    if(!currentGame) {
-        lastRenderedGameId = null;
+    if(!state.currentGame) {
+        state.lastRenderedGameId = null;
         let html = `
             <div class="card">
                 <div class="title">🎮 Neues Spiel starten</div>
@@ -451,10 +454,10 @@ function renderGame(isSyncUpdate = false) {
                 <button onclick="startSetup()">✨ Neues Spiel anlegen</button>
             </div>`;
 
-        if(activeGames && activeGames.length > 0) {
-            html += `<div class="title" style="margin-top:20px; padding:0 4px;">⏳ Aktive & pausierte Spiele (${activeGames.length})</div>`;
+        if(state.activeGames && state.activeGames.length > 0) {
+            html += `<div class="title" style="margin-top:20px; padding:0 4px;">⏳ Aktive & pausierte Spiele (${state.activeGames.length})</div>`;
                 
-            activeGames.forEach(ag => {
+            state.activeGames.forEach(ag => {
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
                 let ratedBadge = ag.rated === false ? ' <span style="font-size:10px; background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:6px; font-weight:bold;">Ungewertet</span>' : '';
                 
@@ -486,18 +489,18 @@ function renderGame(isSyncUpdate = false) {
         return;
     }
 
-    let maxRounds = Math.max(...currentGame.players.map(p => p.rounds.length), 0);
-    let highestScore = Math.max(...currentGame.players.map(p => p.total));
-    let leadsCount = currentGame.players.filter(p => p.total === highestScore).length;
-    let anyRoundsPlayed = currentGame.players.some(p => p.rounds.length > 0);
+    let maxRounds = Math.max(...state.currentGame.players.map(p => p.rounds.length), 0);
+    let highestScore = Math.max(...state.currentGame.players.map(p => p.total));
+    let leadsCount = state.currentGame.players.filter(p => p.total === highestScore).length;
+    let anyRoundsPlayed = state.currentGame.players.some(p => p.rounds.length > 0);
 
-    let modeTextInfo = currentGame.rated === false ? ' (Ungewertet)' : '';
-    let statusText = currentGame.mode === 'round' ? `${currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${currentGame.name}${modeTextInfo}`;
+    let modeTextInfo = state.currentGame.rated === false ? ' (Ungewertet)' : '';
+    let statusText = state.currentGame.mode === 'round' ? `${state.currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${state.currentGame.name}${modeTextInfo}`;
 
-    if (lastRenderedGameId === currentGame.id && document.getElementById("gameStatusLabel")) {
+    if (state.lastRenderedGameId === state.currentGame.id && document.getElementById("gameStatusLabel")) {
         document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
         
-        currentGame.players.forEach(p => {
+        state.currentGame.players.forEach(p => {
             const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
             
             let metaBox = document.getElementById(`meta_${p.id}`);
@@ -510,14 +513,34 @@ function renderGame(isSyncUpdate = false) {
             
             let scrollBox = document.getElementById(`scroll_${p.id}`);
             if (scrollBox) {
+                let roundCounter = 1;
                 let pillsHtml = p.rounds.map((val, i) => {
                     let cls = val > 0 ? 'val-pos' : (val < 0 ? 'val-neg' : '');
-                    let prefix = (currentGame.mode === 'single' && val > 0) ? '+' : '';
-                    let label = currentGame.mode === 'round' ? `<span class="r-num">R${i+1}:</span>` : '';
+                    let prefix = (state.currentGame.mode === 'single' && val > 0) ? '+' : '';
+                    
+                    let isEvent = false;
+                    let displayVal = val;
+                    if (typeof val === 'string' && val.startsWith('EVENT:')) {
+                        isEvent = true;
+                        displayVal = val.replace('EVENT:', '');
+                        cls = Number(displayVal) < 0 ? 'val-neg' : 'val-pos';
+                        prefix = '';
+                    }
+
+                    let label = '';
+                    if (state.currentGame.mode === 'round') {
+                        if (isEvent) {
+                            label = ''; 
+                        } else {
+                            label = `<span class="r-num">R${roundCounter}:</span>`;
+                            roundCounter++; 
+                        }
+                    }
+
                     return `
-                        <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, ${val})">
+                        <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
                             ${label}
-                            <span class="${cls}">${prefix}${val}</span>
+                            <span class="${cls}">${prefix}${displayVal}</span>
                         </div>`;
                 }).join("");
                 if(p.rounds.length === 0) pillsHtml = '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>';
@@ -532,20 +555,30 @@ function renderGame(isSyncUpdate = false) {
         return; 
     }
 
-    lastRenderedGameId = currentGame.id;
+    state.lastRenderedGameId = state.currentGame.id;
+
+    // Prüfen, ob das aktuelle Spiel lange Regeln hinterlegt hat
+    const hasLongRules = state.currentGame.rules && state.currentGame.rules.descriptionLong;
+    let rulesBtnHtml = hasLongRules 
+        ? `<button class="secondary" style="width:auto; height:32px; font-size:13px; padding:0 10px; border-radius:8px; flex-shrink:0; font-weight:700;" onclick="showGameRulesModal()">📜 Regeln</button>`
+        : '';
 
     let html = `
-        <div class="card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center;">
-            <span id="gameStatusLabel" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:75%;">⚡ ${statusText}</span>
-            <button class="secondary" style="width:40px; height:32px; font-size:14px; padding:0; border-radius:8px; flex-shrink:0;" onclick="pauseCurrentGame()">⏸</button>
+        <div class="card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+            <span id="gameStatusLabel" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%;">⚡ ${statusText}</span>
+            <div style="display:flex; gap:6px; flex-shrink:0;">
+                ${rulesBtnHtml}
+                <button class="secondary" style="width:40px; height:32px; font-size:14px; padding:0; border-radius:8px;" onclick="pauseCurrentGame()">⏸</button>
+            </div>
         </div>
 
         <div class="card" style="padding: 14px 12px;">
             <div class="scoreboard-list">`;
 
-    currentGame.players.forEach(p => {
+    state.currentGame.players.forEach(p => {
         const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
         
+        let roundCounter = 1;
         html += `
             <div class="scoreboard-row">
                 <div class="scoreboard-player-header">
@@ -558,12 +591,31 @@ function renderGame(isSyncUpdate = false) {
                 <div class="history-scroll" id="scroll_${p.id}" data-len="${p.rounds.length}">
                     ${p.rounds.map((val, i) => {
                         let cls = val > 0 ? 'val-pos' : (val < 0 ? 'val-neg' : '');
-                        let prefix = (currentGame.mode === 'single' && val > 0) ? '+' : '';
-                        let label = currentGame.mode === 'round' ? `<span class="r-num">R${i+1}:</span>` : '';
+                        let prefix = (state.currentGame.mode === 'single' && val > 0) ? '+' : '';
+                        
+                        let isEvent = false;
+                        let displayVal = val;
+                        if (typeof val === 'string' && val.startsWith('EVENT:')) {
+                            isEvent = true;
+                            displayVal = val.replace('EVENT:', '');
+                            cls = Number(displayVal) < 0 ? 'val-neg' : 'val-pos';
+                            prefix = '';
+                        }
+
+                        let label = '';
+                        if (state.currentGame.mode === 'round') {
+                            if (isEvent) {
+                                label = '';
+                            } else {
+                                label = `<span class="r-num">R${roundCounter}:</span>`;
+                                roundCounter++;
+                            }
+                        }
+
                         return `
-                            <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, ${val})">
+                            <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
                                 ${label}
-                                <span class="${cls}">${prefix}${val}</span>
+                                <span class="${cls}">${prefix}${displayVal}</span>
                             </div>`;
                     }).join("")}
                     ${p.rounds.length === 0 ? '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>' : ''}
@@ -573,13 +625,13 @@ function renderGame(isSyncUpdate = false) {
 
     html += `</div></div>`;
 
-    if(currentGame.mode === 'round') {
+    if(state.currentGame.mode === 'round') {
         html += `
             <div class="card" id="inputCardAnchor">
                 <div class="title">➕ Runde eintragen</div>
                 <div class="round-grid" id="roundInputs">`;
 
-        currentGame.players.forEach((p, idx) => {
+        state.currentGame.players.forEach((p, idx) => {
             html += `
                 <div class="round-player-row" style="background:#f8fafc; border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${p.name}</span>
@@ -599,7 +651,7 @@ function renderGame(isSyncUpdate = false) {
                 <div class="title">➕ Einzelpunkte eintragen</div>
                 <div class="round-grid" id="roundInputs">`;
 
-        currentGame.players.forEach((p, idx) => {
+        state.currentGame.players.forEach((p, idx) => {
             html += `
                 <div class="round-player-row" style="display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${p.name}</span>
@@ -618,11 +670,20 @@ function renderGame(isSyncUpdate = false) {
     contentBox.innerHTML = html;
     
     setTimeout(() => {
-        currentGame.players.forEach(p => {
+        state.currentGame.players.forEach(p => {
             let sd = document.getElementById("scroll_" + p.id);
             if(sd) instantScrollToContainerEnd(sd);
         });
     }, 40);
+}
+
+function showGameRulesModal() {
+    if (!state.currentGame || !state.currentGame.rules || !state.currentGame.rules.descriptionLong) return;
+    
+    let body = `<div style="font-size:14px; color:var(--text); line-height:1.5; padding:4px 0;">${state.currentGame.rules.descriptionLong}</div>`;
+    let actions = `<button class="secondary" onclick="closeModal()">Schließen</button>`;
+    
+    openModal(`📜 ${state.currentGame.name} Regeln`, body, actions);
 }
 
 function toggleSign(playerId) {
@@ -636,9 +697,6 @@ function handleRoundEnter(e, index) {
     if(inputs[index + 1]) inputs[index + 1].focus(); else addRoundRow();
 }
 
-// ===============================
-// ACTION LOGIC
-// ===============================
 function handleSingleEnter(e, playerId) {
     if(e.key !== "Enter") return;
     e.preventDefault();
@@ -654,8 +712,37 @@ function resetSignButton(playerId) {
     }
 }
 
+// ===============================
+// RULES & GAME END AUTOMATION
+// ===============================
+function checkGameRulesAndLimits() {
+    if (!state.currentGame || !state.currentGame.rules) return;
+    
+    const rules = state.currentGame.rules;
+    let limitReached = false;
+
+    state.currentGame.players.forEach(p => {
+        if (rules.exactMatchRule && p.total === rules.exactMatchRule.target) {
+            const pointsToDeduct = rules.exactMatchRule.target - rules.exactMatchRule.resetTo;
+            
+            p.total = rules.exactMatchRule.resetTo;
+            p.rounds.push(`EVENT:-${pointsToDeduct}`);
+        }
+
+        if (rules.endTriggerPoints !== null && p.total >= rules.endTriggerPoints) {
+            limitReached = true;
+        }
+    });
+
+    if (limitReached) {
+        setTimeout(() => {
+            finishGame();
+        }, 100);
+    }
+}
+
 async function addRoundRow() {
-    currentGame.players.forEach(p => {
+    state.currentGame.players.forEach(p => {
         let input = document.getElementById("inp_" + p.id);
         let signBtn = document.getElementById("sign_" + p.id);
         
@@ -674,7 +761,8 @@ async function addRoundRow() {
         resetSignButton(p.id);
     });
     
-    await apiSave('currentGame', currentGame);
+    checkGameRulesAndLimits();
+    await apiSave('currentGame', state.currentGame);
     renderGame(true); 
 }
 
@@ -691,10 +779,11 @@ async function addSingleScore(playerId) {
         val = -Math.abs(val);
     }
 
-    let p = currentGame.players.find(x => x.id === playerId);
+    let p = state.currentGame.players.find(x => x.id === playerId);
     if(p) { p.rounds.push(val); p.total += val; }
     
-    await apiSave('currentGame', currentGame);
+    checkGameRulesAndLimits();
+    await apiSave('currentGame', state.currentGame);
     renderGame(true); 
     
     let nextInp = document.getElementById("inp_" + playerId);
@@ -705,16 +794,20 @@ async function addSingleScore(playerId) {
     resetSignButton(playerId);
 }
 
-// LIVE-RUNDEN BEARBEITUNG
 let activeEditRoundData = null;
 
 function triggerEditRound(playerId, roundIndex, currentVal) {
-    let p = currentGame.players.find(x => x.id === playerId);
+    let p = state.currentGame.players.find(x => x.id === playerId);
     activeEditRoundData = { playerId, roundIndex };
-    let labelText = currentGame.mode === 'round' ? `Runde ${roundIndex + 1}` : `Eintrag ${roundIndex + 1}`;
+    let labelText = state.currentGame.mode === 'round' ? `Runde ${roundIndex + 1}` : `Eintrag ${roundIndex + 1}`;
     
-    let absoluteValue = Math.abs(currentVal);
-    let isNegative = currentVal < 0;
+    let displayVal = currentVal;
+    if (typeof currentVal === 'string' && currentVal.startsWith('EVENT:')) {
+        displayVal = currentVal.replace('EVENT:', '');
+    }
+
+    let absoluteValue = Math.abs(Number(displayVal));
+    let isNegative = Number(displayVal) < 0;
 
     let body = `
         <p style="color:var(--muted); margin-bottom:10px; font-size:14px;">Korrigiere die Punktzahl für <strong>${p.name}</strong> (${labelText}):</p>
@@ -747,15 +840,23 @@ async function submitEditRound() {
     }
     
     if(activeEditRoundData) {
-        let p = currentGame.players.find(x => x.id === activeEditRoundData.playerId);
+        let p = state.currentGame.players.find(x => x.id === activeEditRoundData.playerId);
         if(p) {
-            p.rounds[activeEditRoundData.roundIndex] = num;
-            p.total = p.rounds.reduce((a, b) => a + b, 0);
+            // Falls der alte Wert ein EVENT war, überschreiben wir ihn als EVENT-String, andernfalls als normale Nummer
+            let wasEvent = typeof p.rounds[activeEditRoundData.roundIndex] === 'string' && p.rounds[activeEditRoundData.roundIndex].startsWith('EVENT:');
+            p.rounds[activeEditRoundData.roundIndex] = wasEvent ? `EVENT:${num}` : num;
+            
+            p.total = p.rounds.reduce((a, b) => {
+                let cleanVal = (typeof b === 'string' && b.startsWith('EVENT:')) ? b.replace('EVENT:', '') : b;
+                let n = Number(cleanVal);
+                return a + (isNaN(n) ? 0 : n);
+            }, 0);
             
             let scrollBox = document.getElementById(`scroll_${p.id}`);
             if (scrollBox) scrollBox.dataset.len = -1;
             
-            await apiSave('currentGame', currentGame);
+            checkGameRulesAndLimits();
+            await apiSave('currentGame', state.currentGame);
             renderGame(true); 
         }
     }
@@ -763,22 +864,22 @@ async function submitEditRound() {
 }
 
 async function pauseCurrentGame() {
-    if(!currentGame) return;
-    activeGames = activeGames.filter(x => x.id !== currentGame.id);
-    activeGames.push(currentGame);
-    currentGame = null;
-    await apiSave('activeGames', activeGames);
+    if(!state.currentGame) return;
+    state.activeGames = state.activeGames.filter(x => x.id !== state.currentGame.id);
+    state.activeGames.push(state.currentGame);
+    state.currentGame = null;
+    await apiSave('activeGames', state.activeGames);
     await apiSave('currentGame', {});
     renderGame();
 }
 
 async function resumeGame(gameId) {
-    let ag = activeGames.find(x => x.id === gameId);
+    let ag = state.activeGames.find(x => x.id === gameId);
     if(ag) {
-        currentGame = ag;
-        activeGames = activeGames.filter(x => x.id !== gameId);
-        await apiSave('activeGames', activeGames);
-        await apiSave('currentGame', currentGame);
+        state.currentGame = ag;
+        state.activeGames = state.activeGames.filter(x => x.id !== gameId);
+        await apiSave('activeGames', state.activeGames);
+        await apiSave('currentGame', state.currentGame);
         renderGame();
     }
 }
@@ -786,7 +887,7 @@ async function resumeGame(gameId) {
 let activeDeleteActiveGameId = null;
 function triggerDeleteActiveGame(gameId) {
     activeDeleteActiveGameId = gameId;
-    let ag = activeGames.find(x => x.id === gameId);
+    let ag = state.activeGames.find(x => x.id === gameId);
     let body = `<p style="color:var(--muted)">Möchtest du das pausierte Spiel <strong>${ag.name}</strong> wirklich unwiderruflich verwerfen?</p>`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteActiveGame()">Löschen</button>`;
     openModal("🗑️ Spielstand verwerfen?", body, actions);
@@ -794,19 +895,26 @@ function triggerDeleteActiveGame(gameId) {
 
 async function submitDeleteActiveGame() {
     if(activeDeleteActiveGameId) {
-        activeGames = activeGames.filter(x => x.id !== activeDeleteActiveGameId);
-        await apiSave('activeGames', activeGames);
+        state.activeGames = state.activeGames.filter(x => x.id !== activeDeleteActiveGameId);
+        await apiSave('activeGames', state.activeGames);
         renderGame();
     }
     closeModal();
 }
 
 // ===============================
-// FINISH GAME
+// FINISH GAME & SMART WINNER SUGGESTION
 // ===============================
 function finishGame() {
-    isSettingUpGame = true; 
-    let highestScore = Math.max(...currentGame.players.map(p => p.total));
+    state.isSettingUpGame = true; 
+    
+    const rules = state.currentGame.rules || { winCondition: "highest" };
+    const isLowestWins = rules.winCondition === "lowest";
+
+    let bestScore = isLowestWins 
+        ? Math.min(...state.currentGame.players.map(p => p.total))
+        : Math.max(...state.currentGame.players.map(p => p.total));
+
     let html = `
         <div class="card">
             <div class="title">🏆 Wer hat gewonnen?</div>
@@ -815,14 +923,14 @@ function finishGame() {
                     <div class="player-left">🤝 <strong>Unentschieden</strong></div>
                 </div>`;
 
-    currentGame.players.forEach(p => {
-        const isHighest = p.total === highestScore;
+    state.currentGame.players.forEach(p => {
+        const isBest = p.total === bestScore;
         html += `
-            <div class="winner-select-card ${isHighest ? 'selected' : ''}" data-id="${p.id}" onclick="selectWinnerCard(this)">
+            <div class="winner-select-card ${isBest ? 'selected' : ''}" data-id="${p.id}" onclick="selectWinnerCard(this)">
                 <div class="player-left" style="flex: 1; min-width: 0;">
                     <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
                     <strong class="player-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</strong>
-                    ${isHighest ? '<span class="rec-tag" style="margin-left:8px; flex-shrink:0;">Führung</span>' : ''}
+                    ${isBest ? '<span class="rec-tag" style="margin-left:8px; flex-shrink:0;">Empfehlung</span>' : ''}
                 </div>
                 <div style="margin-left:auto; padding-left:12px; font-weight:700; font-size:14px; white-space:nowrap; text-align:right; flex-shrink:0;">
                     ${p.total} Pkt
@@ -839,61 +947,109 @@ function finishGame() {
 }
 
 function selectWinnerCard(element) {
-    document.querySelectorAll(".winner-select-card").forEach(c => c.classList.remove("selected"));
-    element.classList.add("selected");
+    const isDrawCard = element.getAttribute("data-id") === "Unentschieden";
+    
+    if (isDrawCard) {
+        // Wenn "Unentschieden" geklickt wird, alle anderen Auswahlen löschen
+        document.querySelectorAll(".winner-select-card").forEach(c => c.classList.remove("selected"));
+        element.classList.add("selected");
+    } else {
+        // Wenn ein Spieler geklickt wird, "Unentschieden" abwählen
+        const drawCard = document.querySelector('.winner-select-card[data-id="Unentschieden"]');
+        if (drawCard) drawCard.classList.remove("selected");
+        
+        // Die Auswahl dieses Spielers umschalten (Multi-Select)
+        element.classList.toggle("selected");
+        
+        // Falls danach gar kein Spieler mehr ausgewählt ist, automatisch wieder Unentschieden wählen
+        const selectedCount = document.querySelectorAll(".winner-select-card.selected").length;
+        if (selectedCount === 0 && drawCard) {
+            drawCard.classList.add("selected");
+        }
+    }
 }
 
 async function saveGame() {
-    let selectedClass = document.querySelector(".winner-select-card.selected");
-    let winnerVal = selectedClass ? selectedClass.getAttribute("data-id") : "Unentschieden";
-    let winnerName = "Unentschieden";
+    let selectedCards = [...document.querySelectorAll(".winner-select-card.selected")];
     
-    let pId = winnerVal !== "Unentschieden" ? Number(winnerVal) : null;
-    if(pId !== null) {
-        let wObj = currentGame.players.find(x => x.id === pId);
-        if(wObj) winnerName = wObj.name;
+    let winnerName = "Unentschieden";
+    let winnerIds = [];
+
+    if (selectedCards.length > 0 && selectedCards[0].getAttribute("data-id") !== "Unentschieden") {
+        winnerIds = selectedCards.map(c => Number(c.getAttribute("data-id")));
+        let winnerObjects = winnerIds.map(id => state.currentGame.players.find(x => x.id === id)).filter(Boolean);
+        winnerName = winnerObjects.map(w => w.name).join(" + ");
     }
 
-    currentGame.winner = winnerName;
-    currentGame.date = new Date().toLocaleDateString("de-DE");
+    state.currentGame.winner = winnerName;
+    state.currentGame.date = new Date().toLocaleDateString("de-DE");
 
-    if (currentGame.rated !== false) {
-        if(pId !== null) {
-            players.forEach(p => { if(p.id === pId) p.wins++; });
+    if (state.currentGame.rated !== false) {
+        if (winnerIds.length > 0) {
+            state.players.forEach(p => {
+                if (winnerIds.includes(p.id)) p.wins++;
+            });
         }
-        currentGame.players.forEach(cp => {
-            let p = players.find(x => x.id === cp.id);
-            if(p) { p.games++; p.points += cp.total; }
+        
+        state.currentGame.players.forEach(cp => {
+            let p = state.players.find(x => x.id === cp.id);
+            if(p) { p.games++; p.points += (typeof cp.total === 'number' ? cp.total : 0); }
         });
     }
 
-    activeGames = activeGames.filter(x => x.id !== currentGame.id);
-    games.push(currentGame);
+    state.activeGames = state.activeGames.filter(x => x.id !== state.currentGame.id);
+    state.games.push(state.currentGame);
     
-    await apiSave('players', players);
-    await apiSave('activeGames', activeGames);
-    await apiSave('games', games);
-    
-    showResult();
+    // BEHOBEN: Wir leeren das aktuelle Spiel lokal SOFORT vor dem Senden an die API/den Speicher,
+    // damit der Live-Sync beim Tab-Wechsel nicht in eine Zeitschleife läuft!
+    const finishedGameCopy = state.currentGame;
+    state.currentGame = null; 
+    state.lastRenderedGameId = null;
+
+    // Wir speichern die aktualisierten Daten (wobei currentGame jetzt leer {} ist)
+    await apiSave('players', state.players);
+    await apiSave('activeGames', state.activeGames);
+    await apiSave('games', state.games);
+    await apiSave('currentGame', {}); // Leert das Spiel auf dem NAS/Speicher
+
+    // Wir übergeben der showResult-Funktion eine Kopie, damit sie das Resultat trotzdem rendern kann
+    showResult(finishedGameCopy);
 }
 
-function showResult() {
-    let textModeInfo = currentGame.rated === false ? ' (Freundschaftsspiel)' : '';
+// Akzeptiert jetzt das beendete Spiel als Parameter
+function showResult(gameData) {
+    // Falls aus irgendeinem Grund kein gameData übergeben wurde, Fallback auf state
+    const game = gameData || state.currentGame; 
+    if (!game) return;
+
+    let textModeInfo = game.rated === false ? ' (Freundschaftsspiel)' : '';
     let html = `
         <div class="card" style="text-align:center; padding:24px 16px;">
             <div style="font-size:48px; margin-bottom:4px;">👑</div>
-            <div style="font-size:22px; font-weight:850; color:var(--success);">${currentGame.winner}</div>
-            <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">🎲 ${currentGame.name}${textModeInfo} · 📅 ${currentGame.date}</p>
+            <div style="font-size:22px; font-weight:850; color:var(--success);">${game.winner}</div>
+            <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">🎲 ${game.name}${textModeInfo} · 📅 ${game.date}</p>
         </div>
 
         <div class="card">
             <div class="title">📊 Endresultat</div>`;
 
-    let sortedFinal = [...currentGame.players].sort((a,b) => b.total - a.total);
+    const rules = game.rules || { winCondition: "highest" };
+    
+    let sortedFinal = [...game.players].sort((a,b) => {
+        return rules.winCondition === "lowest" ? a.total - b.total : b.total - a.total;
+    });
+
+    let currentRank = 1;
     sortedFinal.forEach((p, idx) => {
+        if (idx > 0 && p.total === sortedFinal[idx - 1].total) {
+            // Bleibt gleich bei Gleichstand
+        } else {
+            currentRank = idx + 1;
+        }
+
         html += `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border)">
-                <span style="font-weight:600; font-size:14px;">${idx+1}. ${p.name}</span>
+                <span style="font-weight:600; font-size:14px;">${currentRank}. ${p.name}</span>
                 <strong style="color:var(--primary); font-size:15px;">${p.total} Pkt</strong>
             </div>`;
     });
@@ -903,8 +1059,8 @@ function showResult() {
 }
 
 async function newGame() {
-    currentGame = null;
-    isSettingUpGame = false;
+    state.currentGame = null;
+    state.isSettingUpGame = false;
     await apiSave('currentGame', {});
     renderGame();
 }
@@ -916,12 +1072,12 @@ function renderRanking() {
     let box = document.getElementById("ranking");
     if(!box) return; box.innerHTML = "";
 
-    if(players.length === 0) {
+    if(state.players.length === 0) {
         box.innerHTML = `<p style="color:var(--muted); text-align:center; padding:10px;">Keine Daten verfügbar.</p>`;
         return;
     }
 
-    let sorted = [...players].sort((a, b) => b.wins - a.wins);
+    let sorted = [...state.players].sort((a, b) => b.wins - a.wins);
     sorted.forEach((p, i) => {
         let winRate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
         let badge = ["🥇", "🥈", "🥉"][i] || "🏅";
@@ -945,16 +1101,17 @@ function renderHistory() {
     let box = document.getElementById("history");
     if(!box) return; box.innerHTML = "";
 
-    if(!games || games.length === 0) {
+    if(!state.games || state.games.length === 0) {
         box.innerHTML = `<p style="text-align:center; color:var(--muted); padding:10px;">Keine Spiele aufgezeichnet.</p>`;
         return;
     }
 
-    let reversedGames = [...games].reverse();
-    let gamesToRender = showAllHistory ? reversedGames : reversedGames.slice(0, 5);
+    let reversedGames = [...state.games].reverse();
+    let gamesToRender = state.showAllHistory ? reversedGames : reversedGames.slice(0, 5);
 
     gamesToRender.forEach(g => {
         let unratedTag = g.rated === false ? ' <span style="font-size:10px; background:#f1f5f9; color:#64748b; padding:2px 6px; border-radius:6px; font-weight:bold;">Freundschaft</span>' : '';
+        let roundCounter = 1;
         box.innerHTML += `
             <div class="history-card" onclick="viewGameDetails(${g.id})">
                 <div class="history-card-top">
@@ -973,24 +1130,21 @@ function renderHistory() {
             </div>`;
     });
 
-    if (games.length > 5 && !showAllHistory) {
+    if (state.games.length > 5 && !state.showAllHistory) {
         box.innerHTML += `
             <button class="secondary" style="margin-top: 10px; height: 40px; font-size: 14px;" onclick="triggerShowAllHistory()">
-                📜 Alle anzeigen (${games.length} Spiele)
+                📜 Alle anzeigen (${state.games.length} Spiele)
             </button>`;
     }
 }
 
 function triggerShowAllHistory() {
-    showAllHistory = true;
+    state.showAllHistory = true;
     renderHistory();
 }
 
-// ===============================
-// HISTORY-MODAL VIEW & DELETION SYSTEM
-// ===============================
 function viewGameDetails(gameId) {
-    let g = games.find(x => x.id === gameId);
+    let g = state.games.find(x => x.id === gameId);
     if(!g) return;
 
     let highestScore = Math.max(...g.players.map(p => p.total));
@@ -1006,6 +1160,7 @@ function viewGameDetails(gameId) {
     g.players.forEach(p => {
         const isWinner = p.name === g.winner || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
         
+        let roundCounter = 1;
         html += `
             <div class="modal-player-card">
                 <div class="modal-player-header">
@@ -1020,11 +1175,30 @@ function viewGameDetails(gameId) {
                     ${p.rounds.map((val, i) => {
                         let cls = val > 0 ? 'val-pos' : (val < 0 ? 'val-neg' : '');
                         let prefix = (g.mode === 'single' && val > 0) ? '+' : '';
-                        let label = g.mode === 'round' ? `<span class="r-num">R${i+1}:</span>` : '';
+                        
+                        let isEvent = false;
+                        let displayVal = val;
+                        if (typeof val === 'string' && val.startsWith('EVENT:')) {
+                            isEvent = true;
+                            displayVal = val.replace('EVENT:', '');
+                            cls = Number(displayVal) < 0 ? 'val-neg' : 'val-pos';
+                            prefix = '';
+                        }
+
+                        let label = '';
+                        if (g.mode === 'round') {
+                            if (isEvent) {
+                                label = '';
+                            } else {
+                                label = `<span class="r-num">R${roundCounter}:</span>`;
+                                roundCounter++;
+                            }
+                        }
+
                         return `
                             <div class="round-pill">
                                 ${label}
-                                <span class="${cls}">${prefix}${val}</span>
+                                <span class="${cls}">${prefix}${displayVal}</span>
                             </div>`;
                     }).join("")}
                     ${p.rounds.length === 0 ? '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>' : ''}
@@ -1051,7 +1225,7 @@ function viewGameDetails(gameId) {
 let activeHistoryDeleteId = null;
 function triggerDeleteHistoryGame(gameId) {
     activeHistoryDeleteId = gameId;
-    let g = games.find(x => x.id === gameId);
+    let g = state.games.find(x => x.id === gameId);
     closeModal();
     
     setTimeout(() => {
@@ -1063,24 +1237,24 @@ function triggerDeleteHistoryGame(gameId) {
 
 async function submitDeleteHistoryGame() {
     if(activeHistoryDeleteId) {
-        let g = games.find(x => x.id === activeHistoryDeleteId);
+        let g = state.games.find(x => x.id === activeHistoryDeleteId);
         if(g) {
             if (g.rated !== false) {
                 g.players.forEach(cp => {
-                    let p = players.find(x => x.id === cp.id);
+                    let p = state.players.find(x => x.id === cp.id);
                     if(p) {
                         p.games = Math.max(0, p.games - 1);
-                        p.points = Math.max(0, p.points - cp.total);
+                        p.points = Math.max(0, p.points - (typeof cp.total === 'number' ? cp.total : 0));
                         if(p.name === g.winner) {
                             p.wins = Math.max(0, p.wins - 1);
                         }
                     }
                 });
             }
-            games = games.filter(x => x.id !== activeHistoryDeleteId);
+            state.games = state.games.filter(x => x.id !== activeHistoryDeleteId);
             
-            await apiSave('players', players);
-            await apiSave('games', games);
+            await apiSave('players', state.players);
+            await apiSave('games', state.games);
             
             renderRanking();
             renderHistory();
@@ -1095,4 +1269,42 @@ async function initApp() {
     startLiveSync(); 
 }
 
+// Global registrieren für HTML-Onclick Events
+window.navigate = navigate;
+window.removeSyncBlockAndNavigate = removeSyncBlockAndNavigate;
+window.addPlayer = addPlayer;
+window.toggleFav = toggleFav;
+window.triggerRename = triggerRename;
+window.submitRename = submitRename;
+window.triggerDelete = triggerDelete;
+window.submitDelete = submitDelete;
+window.closeModal = closeModal;
+window.startSetup = startSetup;
+window.handleGameSelectionChange = handleGameSelectionChange;
+window.setRated = setRated;
+window.cancelSetup = cancelSetup;
+window.toggleSelectCard = toggleSelectCard;
+window.selectGameMode = selectGameMode;
+window.createGame = createGame;
+window.pauseCurrentGame = pauseCurrentGame;
+window.resumeGame = resumeGame;
+window.triggerDeleteActiveGame = triggerDeleteActiveGame;
+window.submitDeleteActiveGame = submitDeleteActiveGame;
+window.toggleSign = toggleSign;
+window.handleRoundEnter = handleRoundEnter;
+window.addRoundRow = addRoundRow;
+window.finishGame = finishGame;
+window.handleSingleEnter = handleSingleEnter;
+window.addSingleScore = addSingleScore;
+window.triggerEditRound = triggerEditRound;
+window.submitEditRound = submitEditRound;
+window.selectWinnerCard = selectWinnerCard;
+window.saveGame = saveGame;
+window.newGame = newGame;
+window.triggerShowAllHistory = triggerShowAllHistory;
+window.viewGameDetails = viewGameDetails;
+window.triggerDeleteHistoryGame = triggerDeleteHistoryGame;
+window.submitDeleteHistoryGame = submitDeleteHistoryGame;
+window.toggleSignElement = toggleSignElement;
+window.showGameRulesModal = showGameRulesModal;
 initApp();
