@@ -41,13 +41,16 @@ async function navigate(pageId, element) {
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     element.classList.add("active");
 
-    const titles = { gamePage: "🎲 ScoreBuddy", playersPage: "👥 Spieler", statsPage: "🏆 Statistik" };
+    // Hier 'rulesPage' ergänzt:
+    const titles = { gamePage: "🎲 ScoreBuddy", playersPage: "👥 Spieler", statsPage: "🏆 Statistik", rulesPage: "📚 Spielesammlung" };
     document.getElementById("headerTitle").innerText = titles[pageId];
 
     await loadAllFromDb();
     if(pageId === 'playersPage') renderPlayers();
     if(pageId === 'statsPage') { state.showAllHistory = false; renderRanking(); renderHistory(); }
     if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
+    // Hier neu:
+    if(pageId === 'rulesPage') renderRulesPage();
 }
 
 // ===============================
@@ -120,7 +123,7 @@ async function submitRename() {
 function triggerDelete(id) {
     state.activeEditPlayerId = id;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDelete()">Löschen</button>`;
-    openModal("🗑️ Spieler löschen?", "<p style='color:var(--muted)'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
+    openModal("🗑️ Spieler l&ouml;schen?", "<p style='color:var(--muted)'>M&ouml;chtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
 }
 
 async function submitDelete() {
@@ -173,55 +176,60 @@ function startSetup() {
     
     state.isSettingUpGame = true;
     state.ratedMode = true;
+    state.tempTeams = []; 
 
-    // Wir prüfen direkt, welches Spiel als erstes in der PREDEFINED_GAMES Liste steht (sollte 'custom' sein)
-    const firstGame = PREDEFINED_GAMES[0];
+    // --- BEHOBEN: Custom bleibt immer auf Platz 1, Rest wird alphabetisch sortiert ---
+    const selectableGames = PREDEFINED_GAMES
+        .filter(g => !g.hideFromSelection)
+        .sort((a, b) => {
+            if (a.id === "custom") return -1; // Custom immer nach ganz oben
+            if (b.id === "custom") return 1;
+            return a.name.localeCompare(b.name); // Rest alphabetisch
+        });
+    
+    const firstGame = selectableGames[0] || PREDEFINED_GAMES[0];
     const isCustomActive = firstGame.id === "custom";
 
     let html = `
         <div class="card">
             <div class="title">🎯 0. Spiel auswählen</div>
             <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
-                ${PREDEFINED_GAMES.map(g => `<option value="${g.id}">${g.name}</option>`).join("")}
+                <!-- --- NEU: Nur die filterten Spiele als Option rendern --- -->
+                ${selectableGames.map(g => `<option value="${g.id}">${g.name}</option>`).join("")}
             </select>
             <p id="gameDescriptionText" style="font-size:13px; color:var(--muted); margin-top:-8px; margin-bottom:20px; line-height:1.4; padding:0 4px;">
                 ${firstGame.description}
             </p>
 
-            <!-- NEUE POSITION: Name des Spiels (wird dynamisch ein-/ausgeblendet) -->
             <div id="customGameNameContainer" style="display: ${isCustomActive ? 'block' : 'none'}; margin-bottom: 20px;">
                 <div class="title">📝 3. Name des Spiels</div>
                 <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <div class="title" style="margin:0;">🎮 1. Spieler wählen</div>
+                <div class="title" style="margin:0;">🎮 1. Teilnehmer wählen</div>
                 <div class="toggle-container">
                     <button class="toggle-btn active" id="toggleRated" onclick="setRated(true)">Gewertet</button>
                     <button class="toggle-btn" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
                 </div>
             </div>
+            
+            <div style="margin-bottom: 14px;">
+                <button class="secondary" style="height: 44px; font-size: 14px; background: var(--primary-light); color: var(--primary); border-color: rgba(79, 70, 229, 0.2); font-weight:700;" onclick="openTeamBuilderModal()">👥 + Neues Team erstellen</button>
+            </div>
+
             <div id="selectList" style="margin-bottom: 20px;">`;
             
-    state.players.forEach(p => {
-        html += `
-            <div class="select-card" onclick="toggleSelectCard(event, this)">
-                <div class="player-left">
-                    <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
-                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
-                    <strong>${p.name}</strong>
-                </div>
-            </div>`;
-    });
+    // Rendert alle Spieler und Teams (wird ausgelagert, damit wir es dynamisch neu bauen können)
+    html += renderSetupPoolHtml();
 
     html += `
         </div>
         <div class="title">↕️ 2. Reihenfolge anpassen (ziehen)</div>
         <div id="dragOrderList" style="margin-bottom:20px; background:#f8fafc; border:1px solid var(--border); padding:10px; border-radius:var(--radius-md); min-height:50px;">
-            <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Spieler aus, um deren Reihenfolge festzulegen.</p>
+            <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Teilnehmer aus, um deren Reihenfolge festzulegen.</p>
         </div>
         
-        <!-- Eingabe-Modus wählen (wird dynamisch ein-/ausgeblendet) -->
         <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">
             <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
             <div style="display:grid; gap:10px; margin-bottom:20px;">
@@ -250,6 +258,127 @@ function startSetup() {
     document.getElementById("gameContent").innerHTML = html;
 }
 
+// Generiert den Inhalt der Auswahlliste (filtert vergebene Spieler aus)
+function renderSetupPoolHtml() {
+    let html = "";
+    
+    // Ermittle alle Spieler, die bereits in IRGENDEINEM Team vergeben sind
+    let assignedPlayerIds = [];
+    if(state.tempTeams) {
+        state.tempTeams.forEach(t => assignedPlayerIds.push(...t.playerIds));
+    }
+
+    // 1. Teams rendern
+    if(state.tempTeams && state.tempTeams.length > 0) {
+        state.tempTeams.forEach(t => {
+            html += `
+                <div class="select-card" data-type="team" data-id="${t.id}" onclick="toggleSelectCard(event, this)">
+                    <div class="player-left" style="flex:1; min-width:0;">
+                        <input type="checkbox" value="${t.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                        <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; background: var(--success-light); color: var(--success);">👥</div>
+                        <strong style="word-break: break-all; overflow:hidden; text-overflow:ellipsis;">${t.name}</strong>
+                    </div>
+                    <button class="icon-btn delete-btn" style="width:32px; height:32px; font-size:12px; flex-shrink:0; margin-left:8px;" onclick="event.stopPropagation(); removeSingleTeam(${t.id})">✕</button>
+                </div>`;
+        });
+    }
+
+    // 2. Einzelspieler rendern (nur wenn sie NICHT in einem Team sind)
+    state.players.forEach(p => {
+        if (!assignedPlayerIds.includes(p.id)) {
+            html += `
+                <div class="select-card" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
+                    <div class="player-left">
+                        <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                        <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
+                        <strong>${p.name}</strong>
+                    </div>
+                </div>`;
+        }
+    });
+
+    return html;
+}
+
+// ÖFFNET DAS NEUE MODAL ZUR TEAM-ERSTELLUNG
+function openTeamBuilderModal() {
+    // Finde Spieler heraus, die noch keinem Team angehören
+    let assignedPlayerIds = [];
+    if(state.tempTeams) {
+        state.tempTeams.forEach(t => assignedPlayerIds.push(...t.playerIds));
+    }
+    let availablePlayers = state.players.filter(p => !assignedPlayerIds.includes(p.id));
+
+    if (availablePlayers.length < 2) {
+        alert("Es gibt nicht genügend freie Einzelspieler, um ein neues Team zu bilden!");
+        return;
+    }
+
+    let bodyHtml = `
+        <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Wähle die Spieler aus, die zusammen ein Team bilden sollen:</p>
+        <div id="modalTeamPlayersList" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding:2px;">`;
+
+    availablePlayers.forEach(p => {
+        bodyHtml += `
+            <div class="select-card" style="margin-bottom:0; padding:10px;" onclick="this.querySelector('input').click(); this.classList.toggle('selected', this.querySelector('input').checked)">
+                <div class="player-left">
+                    <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); this.closest('.select-card').classList.toggle('selected', this.checked)">
+                    <div class="avatar" style="width:28px; height:28px; font-size:10px;">${p.name.substring(0,2).toUpperCase()}</div>
+                    <span style="font-weight:600; font-size:14px;">${p.name}</span>
+                </div>
+            </div>`;
+    });
+
+    bodyHtml += `</div>`;
+
+    let actionsHtml = `
+        <button class="secondary" onclick="closeModal()">Abbrechen</button>
+        <button onclick="submitTeamBuilderModal()">Team erstellen ✓</button>
+    `;
+
+    openModal("👥 Neues Team gründen", bodyHtml, actionsHtml);
+}
+
+function submitTeamBuilderModal() {
+    const checkedBoxes = [...document.querySelectorAll("#modalTeamPlayersList input:checked")];
+    if (checkedBoxes.length < 2) {
+        alert("Ein Team muss aus mindestens 2 Spielern bestehen!");
+        return;
+    }
+
+    const playerIds = checkedBoxes.map(b => Number(b.value));
+    const teamPlayers = state.players.filter(p => playerIds.includes(p.id));
+    const teamName = teamPlayers.map(p => p.name).join(" / ");
+    const teamId = Date.now();
+
+    if(!state.tempTeams) state.tempTeams = [];
+    state.tempTeams.push({
+        id: teamId,
+        name: teamName,
+        playerIds: playerIds
+    });
+
+    closeModal();
+
+    // Pool im DOM refreshen
+    const selectList = document.getElementById("selectList");
+    if (selectList) {
+        selectList.innerHTML = renderSetupPoolHtml();
+    }
+    updateDragOrderList();
+}
+
+function removeSingleTeam(teamId) {
+    state.tempTeams = state.tempTeams.filter(x => x.id !== teamId);
+    
+    // Pool im DOM refreshen, um gelöschte Spieler wieder anzuzeigen
+    const selectList = document.getElementById("selectList");
+    if (selectList) {
+        selectList.innerHTML = renderSetupPoolHtml();
+    }
+    updateDragOrderList();
+}
+
 function handleGameSelectionChange(gameId) {
     const gameConfig = PREDEFINED_GAMES.find(g => g.id === gameId);
     if (!gameConfig) return;
@@ -260,16 +389,13 @@ function handleGameSelectionChange(gameId) {
     const modeContainer = document.getElementById("customGameModeContainer");
 
     if (gameId === "custom") {
-        // Blendet die Felder ein, wenn Custom gewählt ist
         if (nameContainer) nameContainer.style.display = "block";
         if (modeContainer) modeContainer.style.display = "block";
         selectGameMode('round', document.getElementById("modeCardRound"));
     } else {
-        // Blendet die Felder komplett aus, wenn Cabo oder andere feste Spiele gewählt sind
         if (nameContainer) nameContainer.style.display = "none";
         if (modeContainer) modeContainer.style.display = "none";
         
-        // Trotz Ausblendung den vom Spiel vorgegebenen Standardmodus im Hintergrund setzen
         if (gameConfig.defaultMode === 'single') {
             selectGameMode('single', document.getElementById("modeCardSingle"));
         } else {
@@ -310,27 +436,46 @@ function updateDragOrderList() {
     
     if(placeholder) placeholder.remove();
     
+    let selectedItems = checkedBoxes.map(b => {
+        const card = b.closest(".select-card");
+        return { id: Number(b.value), type: card.dataset.type };
+    });
+
     const currentOrderIds = [...dragBox.querySelectorAll(".drag-card")].map(c => Number(c.dataset.id));
-    const selectedIds = checkedBoxes.map(b => Number(b.value));
     
     dragBox.innerHTML = "";
     
-    const finalIds = currentOrderIds.filter(id => selectedIds.includes(id));
-    selectedIds.forEach(id => { if(!finalIds.includes(id)) finalIds.push(id); });
+    const finalItems = currentOrderIds.map(id => {
+        return selectedItems.find(item => item.id === id);
+    }).filter(Boolean);
+
+    selectedItems.forEach(item => {
+        if(!finalItems.some(f => f.id === item.id)) finalItems.push(item);
+    });
     
-    finalIds.forEach(id => {
-        let p = state.players.find(x => x.id === id);
-        if(!p) return;
+    finalItems.forEach(item => {
+        let displayName = "";
+        let isTeam = item.type === "team";
+
+        if (isTeam) {
+            let t = state.tempTeams.find(x => x.id === item.id);
+            displayName = t ? t.name : "Team";
+        } else {
+            let p = state.players.find(x => x.id === item.id);
+            if(!p) return;
+            displayName = p.name;
+        }
         
         let card = document.createElement("div");
         card.className = "drag-card";
         card.draggable = true;
-        card.dataset.id = p.id;
+        card.dataset.id = item.id;
+        card.dataset.type = item.type;
         card.innerHTML = `
             <div class="player-left">
                 <span style="color:var(--muted); font-size:14px; margin-right:4px;">↕️</span>
-                <div class="avatar" style="width:28px; height:28px; font-size:10px;">${p.name.substring(0,2).toUpperCase()}</div>
-                <strong>${p.name}</strong>
+                <div class="avatar" style="width:28px; height:28px; font-size:10px; ${isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${isTeam ? '👥' : displayName.substring(0,2).toUpperCase()}</div>
+                <strong>${displayName}</strong>
             </div>`;
             
         card.addEventListener('dragstart', () => card.classList.add('dragging'));
@@ -402,14 +547,13 @@ function selectGameMode(mode, element) {
 }
 
 async function createGame() {
-    let selectedOrder = [...document.querySelectorAll("#dragOrderList .drag-card")].map(c => Number(c.dataset.id));
-    if(selectedOrder.length < 2){ alert("Wähle mindestens 2 Spieler aus!"); return; }
+    let dragCards = [...document.querySelectorAll("#dragOrderList .drag-card")];
+    if(dragCards.length < 2){ alert("Wähle mindestens 2 Parteien aus!"); return; }
 
     let selectedMode = document.querySelector('input[name="gameMode"]:checked').value;
     let selectedGameId = document.getElementById("predefinedGameSelect").value;
     const gameConfig = PREDEFINED_GAMES.find(g => g.id === selectedGameId);
 
-    // Wenn es custom ist, nehmen wir den getippten Namen (oder Fallback). Wenn nicht, IMMER den festen Spielnamen.
     let gameName = gameConfig.name;
     if (selectedGameId === "custom") {
         let typedName = document.getElementById("gameNameInput").value.trim();
@@ -424,9 +568,16 @@ async function createGame() {
         rated: state.ratedMode,
         date: new Date().toLocaleDateString("de-DE"),
         rules: gameConfig.rules,
-        players: selectedOrder.map(id => {
-            let p = state.players.find(x => x.id === id);
-            return { id: p.id, name: p.name, rounds: [], total: 0 };
+        players: dragCards.map(card => {
+            let id = Number(card.dataset.id);
+            let type = card.dataset.type;
+            if (type === "team") {
+                let t = state.tempTeams.find(x => x.id === id);
+                return { id: t.id, name: t.name, isTeam: true, playerIds: t.playerIds, rounds: [], total: 0 };
+            } else {
+                let p = state.players.find(x => x.id === id);
+                return { id: p.id, name: p.name, isTeam: false, playerIds: [p.id], rounds: [], total: 0 };
+            }
         })
     };
     
@@ -436,6 +587,9 @@ async function createGame() {
     renderGame();
 }
 
+// ===============================
+// CORE MATCH ENGINE & RENDERING
+// ===============================
 // ===============================
 // CORE MATCH ENGINE & RENDERING
 // ===============================
@@ -496,6 +650,16 @@ function renderGame(isSyncUpdate = false) {
     let modeTextInfo = state.currentGame.rated === false ? ' (Ungewertet)' : '';
     let statusText = state.currentGame.mode === 'round' ? `${state.currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${state.currentGame.name}${modeTextInfo}`;
 
+    // HILFSFUNKTION FÜR CANASTA-PILLEN
+    const getCanastaPill = (totalPoints) => {
+        if (state.currentGame.gameTypeId !== "canasta") return "";
+        let req = 50;
+        if (totalPoints < 0) req = 15;
+        else if (totalPoints >= 1500 && totalPoints < 3000) req = 90;
+        else if (totalPoints >= 3000) req = 120;
+        return `<span style="font-size: 11px; font-weight: 700; background: #eedffc; color: #7c3aed; padding: 2px 6px; border-radius: 6px; margin-left: 6px; border: 1px solid rgba(124, 58, 237, 0.2);">📋 Min: ${req}</span>`;
+    };
+
     if (state.lastRenderedGameId === state.currentGame.id && document.getElementById("gameStatusLabel")) {
         document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
         
@@ -504,7 +668,7 @@ function renderGame(isSyncUpdate = false) {
             
             let metaBox = document.getElementById(`meta_${p.id}`);
             if (metaBox) {
-                metaBox.innerHTML = `<span>${p.name}</span>${isLeading ? '<span>👑</span>' : ''}`;
+                metaBox.innerHTML = `<span>${p.name}</span>${getCanastaPill(p.total)}${isLeading ? '<span>👑</span>' : ''}`;
             }
             
             let totalBadge = document.getElementById(`total_${p.id}`);
@@ -556,7 +720,6 @@ function renderGame(isSyncUpdate = false) {
 
     state.lastRenderedGameId = state.currentGame.id;
 
-    // Prüfen, ob das aktuelle Spiel lange Regeln hinterlegt hat
     const hasLongRules = state.currentGame.rules && state.currentGame.rules.descriptionLong;
     let rulesBtnHtml = hasLongRules 
         ? `<button class="secondary" style="width:auto; height:32px; font-size:13px; padding:0 10px; border-radius:8px; flex-shrink:0; font-weight:700;" onclick="showGameRulesModal()">📜 Regeln</button>`
@@ -583,6 +746,7 @@ function renderGame(isSyncUpdate = false) {
                 <div class="scoreboard-player-header">
                     <div class="player-meta" id="meta_${p.id}">
                         <span>${p.name}</span>
+                        ${getCanastaPill(p.total)}
                         ${isLeading ? '<span>👑</span>' : ''}
                     </div>
                     <div class="total-badge" id="total_${p.id}">${p.total} Pkt</div>
@@ -841,7 +1005,6 @@ async function submitEditRound() {
     if(activeEditRoundData) {
         let p = state.currentGame.players.find(x => x.id === activeEditRoundData.playerId);
         if(p) {
-            // Falls der alte Wert ein EVENT war, überschreiben wir ihn als EVENT-String, andernfalls als normale Nummer
             let wasEvent = typeof p.rounds[activeEditRoundData.roundIndex] === 'string' && p.rounds[activeEditRoundData.roundIndex].startsWith('EVENT:');
             p.rounds[activeEditRoundData.roundIndex] = wasEvent ? `EVENT:${num}` : num;
             
@@ -927,7 +1090,7 @@ function finishGame() {
         html += `
             <div class="winner-select-card ${isBest ? 'selected' : ''}" data-id="${p.id}" onclick="selectWinnerCard(this)">
                 <div class="player-left" style="flex: 1; min-width: 0;">
-                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
+                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; ${p.isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${p.isTeam ? '👥' : p.name.substring(0,2).toUpperCase()}</div>
                     <strong class="player-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</strong>
                     ${isBest ? '<span class="rec-tag" style="margin-left:8px; flex-shrink:0;">Empfehlung</span>' : ''}
                 </div>
@@ -949,18 +1112,13 @@ function selectWinnerCard(element) {
     const isDrawCard = element.getAttribute("data-id") === "Unentschieden";
     
     if (isDrawCard) {
-        // Wenn "Unentschieden" geklickt wird, alle anderen Auswahlen löschen
         document.querySelectorAll(".winner-select-card").forEach(c => c.classList.remove("selected"));
         element.classList.add("selected");
     } else {
-        // Wenn ein Spieler geklickt wird, "Unentschieden" abwählen
         const drawCard = document.querySelector('.winner-select-card[data-id="Unentschieden"]');
         if (drawCard) drawCard.classList.remove("selected");
-        
-        // Die Auswahl dieses Spielers umschalten (Multi-Select)
         element.classList.toggle("selected");
         
-        // Falls danach gar kein Spieler mehr ausgewählt ist, automatisch wieder Unentschieden wählen
         const selectedCount = document.querySelectorAll(".winner-select-card.selected").length;
         if (selectedCount === 0 && drawCard) {
             drawCard.classList.add("selected");
@@ -972,11 +1130,11 @@ async function saveGame() {
     let selectedCards = [...document.querySelectorAll(".winner-select-card.selected")];
     
     let winnerName = "Unentschieden";
-    let winnerIds = [];
+    let winnerPartyIds = [];
 
     if (selectedCards.length > 0 && selectedCards[0].getAttribute("data-id") !== "Unentschieden") {
-        winnerIds = selectedCards.map(c => Number(c.getAttribute("data-id")));
-        let winnerObjects = winnerIds.map(id => state.currentGame.players.find(x => x.id === id)).filter(Boolean);
+        winnerPartyIds = selectedCards.map(c => Number(c.getAttribute("data-id")));
+        let winnerObjects = winnerPartyIds.map(id => state.currentGame.players.find(x => x.id === id)).filter(Boolean);
         winnerName = winnerObjects.map(w => w.name).join(" + ");
     }
 
@@ -984,40 +1142,48 @@ async function saveGame() {
     state.currentGame.date = new Date().toLocaleDateString("de-DE");
 
     if (state.currentGame.rated !== false) {
-        if (winnerIds.length > 0) {
-            state.players.forEach(p => {
-                if (winnerIds.includes(p.id)) p.wins++;
+        let individualWinnerPlayerIds = [];
+        if (winnerPartyIds.length > 0) {
+            state.currentGame.players.forEach(cp => {
+                if (winnerPartyIds.includes(cp.id)) {
+                    individualWinnerPlayerIds.push(...cp.playerIds);
+                }
             });
         }
+
+        state.players.forEach(p => {
+            if (individualWinnerPlayerIds.includes(p.id)) {
+                p.wins++;
+            }
+        });
         
         state.currentGame.players.forEach(cp => {
-            let p = state.players.find(x => x.id === cp.id);
-            if(p) { p.games++; p.points += (typeof cp.total === 'number' ? cp.total : 0); }
+            cp.playerIds.forEach(pId => {
+                let p = state.players.find(x => x.id === pId);
+                if(p) { 
+                    p.games++; 
+                    p.points += (typeof cp.total === 'number' ? cp.total : 0); 
+                }
+            });
         });
     }
 
     state.activeGames = state.activeGames.filter(x => x.id !== state.currentGame.id);
     state.games.push(state.currentGame);
     
-    // BEHOBEN: Wir leeren das aktuelle Spiel lokal SOFORT vor dem Senden an die API/den Speicher,
-    // damit der Live-Sync beim Tab-Wechsel nicht in eine Zeitschleife läuft!
     const finishedGameCopy = state.currentGame;
     state.currentGame = null; 
     state.lastRenderedGameId = null;
 
-    // Wir speichern die aktualisierten Daten (wobei currentGame jetzt leer {} ist)
     await apiSave('players', state.players);
     await apiSave('activeGames', state.activeGames);
     await apiSave('games', state.games);
-    await apiSave('currentGame', {}); // Leert das Spiel auf dem NAS/Speicher
+    await apiSave('currentGame', {}); 
 
-    // Wir übergeben der showResult-Funktion eine Kopie, damit sie das Resultat trotzdem rendern kann
     showResult(finishedGameCopy);
 }
 
-// Akzeptiert jetzt das beendete Spiel als Parameter
 function showResult(gameData) {
-    // Falls aus irgendeinem Grund kein gameData übergeben wurde, Fallback auf state
     const game = gameData || state.currentGame; 
     if (!game) return;
 
@@ -1041,7 +1207,7 @@ function showResult(gameData) {
     let currentRank = 1;
     sortedFinal.forEach((p, idx) => {
         if (idx > 0 && p.total === sortedFinal[idx - 1].total) {
-            // Bleibt gleich bei Gleichstand
+            // bleibt gleich
         } else {
             currentRank = idx + 1;
         }
@@ -1110,7 +1276,6 @@ function renderHistory() {
 
     gamesToRender.forEach(g => {
         let unratedTag = g.rated === false ? ' <span style="font-size:10px; background:#f1f5f9; color:#64748b; padding:2px 6px; border-radius:6px; font-weight:bold;">Freundschaft</span>' : '';
-        let roundCounter = 1;
         box.innerHTML += `
             <div class="history-card" onclick="viewGameDetails(${g.id})">
                 <div class="history-card-top">
@@ -1122,7 +1287,7 @@ function renderHistory() {
                 </div>
                 <div class="history-card-scores">
                     ${g.players.map(p => {
-                        const isWinner = p.name === g.winner;
+                        const isWinner = g.winner.includes(p.name);
                         return `<span class="history-player-score ${isWinner ? 'is-winner' : ''}">${p.name}: <strong>${p.total}</strong></span>`;
                     }).join("")}
                 </div>
@@ -1157,7 +1322,7 @@ function viewGameDetails(gameId) {
         <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
 
     g.players.forEach(p => {
-        const isWinner = p.name === g.winner || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
+        const isWinner = g.winner.includes(p.name) || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
         
         let roundCounter = 1;
         html += `
@@ -1221,33 +1386,22 @@ function viewGameDetails(gameId) {
     }, 50);
 }
 
-let activeHistoryDeleteId = null;
-function triggerDeleteHistoryGame(gameId) {
-    activeHistoryDeleteId = gameId;
-    let g = state.games.find(x => x.id === gameId);
-    closeModal();
-    
-    setTimeout(() => {
-        let body = `<p style="color:var(--muted)">Möchtest du das spiel <strong>${g.name}</strong> wirklich löschen? Alle Siege und Punkte werden restlos aus der Bestenliste abgezogen!</p>`;
-        let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteHistoryGame()">Definitiv löschen</button>`;
-        openModal("⚠️ Spiel unwiderruflich löschen?", body, actions);
-    }, 300);
-}
-
 async function submitDeleteHistoryGame() {
     if(activeHistoryDeleteId) {
         let g = state.games.find(x => x.id === activeHistoryDeleteId);
         if(g) {
             if (g.rated !== false) {
                 g.players.forEach(cp => {
-                    let p = state.players.find(x => x.id === cp.id);
-                    if(p) {
-                        p.games = Math.max(0, p.games - 1);
-                        p.points = Math.max(0, p.points - (typeof cp.total === 'number' ? cp.total : 0));
-                        if(p.name === g.winner) {
-                            p.wins = Math.max(0, p.wins - 1);
+                    cp.playerIds.forEach(pId => {
+                        let p = state.players.find(x => x.id === pId);
+                        if(p) {
+                            p.games = Math.max(0, p.games - 1);
+                            p.points = Math.max(0, p.points - (typeof cp.total === 'number' ? cp.total : 0));
+                            if(g.winner.includes(cp.name)) {
+                                p.wins = Math.max(0, p.wins - 1);
+                            }
                         }
-                    }
+                    });
                 });
             }
             state.games = state.games.filter(x => x.id !== activeHistoryDeleteId);
@@ -1262,13 +1416,113 @@ async function submitDeleteHistoryGame() {
     closeModal();
 }
 
+let activeHistoryDeleteId = null;
+function triggerDeleteHistoryGame(gameId) {
+    activeHistoryDeleteId = gameId;
+    let g = state.games.find(x => x.id === gameId);
+    closeModal();
+    
+    setTimeout(() => {
+        let body = `<p style="color:var(--muted)">Möchtest du das spiel <strong>${g.name}</strong> wirklich löschen? Alle Siege und Punkte werden restlos aus der Bestenliste abgezogen!</p>`;
+        let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteHistoryGame()">Definitiv löschen</button>`;
+        openModal("⚠️ Spiel unwiderruflich löschen?", body, actions);
+    }, 300);
+}
+
 async function initApp() {
     await loadAllFromDb();
     renderGame();
     startLiveSync(); 
 }
+// ===============================
+// RULES COLLECTION SCREEN
+// ===============================
+// ===============================
+// RULES COLLECTION SCREEN
+// ===============================
+function renderRulesPage() {
+    let box = document.getElementById("rulesGameList");
+    if(!box) return; box.innerHTML = "";
 
-// Global registrieren für HTML-Onclick Events
+    const gamesWithRules = PREDEFINED_GAMES
+        .filter(g => g.id !== "custom")
+        .sort((a, b) => a.name.localeCompare(b.name));
+
+    gamesWithRules.forEach(g => {
+        let pureRulesBadge = g.hideFromSelection 
+            ? `<span style="font-size:11px; font-weight:700; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:6px; margin-left:8px; border:1px solid var(--border); vertical-align:middle;">📖 Nur Regeln</span>`
+            : '';
+
+        // --- NEU: Play-Button generieren, wenn es kein reines Regel-Spiel ist ---
+        let playBtnHtml = !g.hideFromSelection
+            ? `<button class="icon-btn edit-btn" style="width:34px; height:34px; font-size:14px; background:var(--primary-light); color:var(--primary); margin-left:auto; flex-shrink:0;" 
+                title="Spiel starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">▶</button>`
+            : '';
+
+        box.innerHTML += `
+            <div class="history-card" style="cursor: default;">
+                <div class="history-card-top" style="border-bottom: none; padding-bottom: 0; display:flex; align-items:center; justify-content:space-between; gap:10px;">
+                    <div class="history-card-info" style="flex:1; min-width:0;">
+                        <div class="history-card-date" style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                            🎲 ${g.name} ${pureRulesBadge}
+                        </div>
+                    </div>
+                    ${playBtnHtml}
+                </div>
+                <div class="history-card-sub" style="margin-top: 6px; line-height: 1.4; color:var(--muted); font-size:12px; font-weight:600;">${g.description}</div>
+                ${g.rules && g.rules.descriptionLong ? `
+                    <button class="secondary" style="margin-top: 10px; height: 36px; font-size: 13px; font-weight: 700;" 
+                        onclick="openCollectionRulesModal('${g.id}')">
+                        📜 Regelbuch öffnen
+                    </button>
+                ` : ''}
+            </div>`;
+    });
+}
+
+// --- OPTIMIERT: Direkt-Start-Funktion mit automatischer Pausen-Sicherung ---
+async function quickStartGame(gameId) {
+    // 1. Sicherheitsschranke: Falls aktuell ein Spiel läuft, pausiere es automatisch zuerst
+    if (state.currentGame && state.currentGame.id) {
+        await pauseCurrentGame(); // Sichert das Spiel fehlerfrei auf dem NAS / im Speicher
+    }
+
+    // 2. Simuliere den Klick auf den "Spiel"-Reiter in der Navigationsleiste unten
+    const gameTab = document.querySelector(".bottom-nav .nav-item:first-child");
+    
+    // 3. Rufe das Setup auf
+    startSetup();
+    
+    // 4. Setze das Dropdown auf das gewählte Spiel
+    const selectEl = document.getElementById("predefinedGameSelect");
+    if (selectEl) {
+        selectEl.value = gameId;
+        // Triggere das Onchange-Event für Beschreibungen und Modi im Hintergrund
+        handleGameSelectionChange(gameId);
+    }
+    
+    // 5. Navigation visuell abschließen
+    if (gameTab) {
+        navigate('gamePage', gameTab);
+    }
+}
+
+
+// Hilfsfunktion, um das Modal aus der Sammlung heraus zu öffnen
+function openCollectionRulesModal(gameId) {
+    const game = PREDEFINED_GAMES.find(g => g.id === gameId);
+    if (!game || !game.rules || !game.rules.descriptionLong) return;
+    
+    let body = `<div style="font-size:14px; color:var(--text); line-height:1.5; padding:4px 0;">${game.rules.descriptionLong}</div>`;
+    let actions = `<button class="secondary" onclick="closeModal()">Schließen</button>`;
+    
+    openModal(`📜 ${game.name} Regeln`, body, actions);
+}
+
+// Vergiss nicht, die neuen Funktionen ganz unten global zu registrieren:
+window.quickStartGame = quickStartGame;
+window.renderRulesPage = renderRulesPage;
+window.openCollectionRulesModal = openCollectionRulesModal;
 window.navigate = navigate;
 window.removeSyncBlockAndNavigate = removeSyncBlockAndNavigate;
 window.addPlayer = addPlayer;
@@ -1306,4 +1560,7 @@ window.triggerDeleteHistoryGame = triggerDeleteHistoryGame;
 window.submitDeleteHistoryGame = submitDeleteHistoryGame;
 window.toggleSignElement = toggleSignElement;
 window.showGameRulesModal = showGameRulesModal;
+window.openTeamBuilderModal = openTeamBuilderModal;
+window.submitTeamBuilderModal = submitTeamBuilderModal;
+window.removeSingleTeam = removeSingleTeam;
 initApp();

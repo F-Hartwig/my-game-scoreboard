@@ -157,5 +157,82 @@ export const PREDEFINED_GAMES = [
                 </div>
             `
         }
+    },
+    {
+        id: "canasta",
+        name: "Canasta",
+        description: "Taktisches Kartenspiel für 2 bis 4 Spieler (im Team oder Solo). Ziel ist es, durch Meldungen und Canastas (7 Karten) als erstes 5000 Punkte zu erreichen.",
+        defaultMode: "round",
+        rules: {
+            winCondition: "highest",
+            endTriggerPoints: 5000,
+            exactMatchRule: null,
+            descriptionLong: `
+                <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">👥 Team vs. 👤 Solo-Modus</strong>
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li><strong>Teamspiel (4 Spieler):</strong> Partner teilen sich die Punkte im Scorebuddy. Jedes Teammitglied erhält 11 Handkarten.</li>
+                        <li><strong>Solo-Modus (2 oder 3 Spieler):</strong> Jeder kämpft für sich allein! Beim Spiel zu zweit erhält jeder stolze <strong>15 Handkarten</strong>.</li>
+                    </ul>
+
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">📦 Karten & Basiswerte (108 Karten)</strong>
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li><strong>Joker:</strong> 50 Punkte · <strong>Asse und 2er:</strong> 20 Punkte (2er sind ebenfalls Wilde Karten).</li>
+                        <li><strong>Könige, Damen, Buben, 10, 9, 8:</strong> 10 Punkte.</li>
+                        <li><strong>7, 6, 5, 4 und schwarze 3er:</strong> 5 Punkte.</li>
+                    </ul>
+
+                    <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">🔥 Das Herzstück: Canasta-Wertung (Hausregeln)</strong>
+                    <ul style="margin-left: 16px; margin-bottom: 6px; padding-left: 0;">
+                        <li><strong>Reiner Canasta (Rot):</strong> 7 natürliche Karten ohne Joker/2er.</li>
+                        <ul style="margin-left: 16px; padding-left: 0;">
+                            <li>🚀 Mit einmal ausgelegt: <strong>+600 Bonuspunkte</strong></li>
+                            <li>⏳ In mehreren Runden aufgebaut: <strong>+500 Bonuspunkte</strong></li>
+                        </ul>
+                        <li style="margin-top: 6px;"><strong>Unreiner Canasta (Schwarz):</strong> 7 Karten, gemischt mit Wilden Karten.</li>
+                        <ul style="margin-left: 16px; padding-left: 0;">
+                            <li>🚀 Mit einmal ausgelegt: <strong>+400 Bonuspunkte</strong></li>
+                            <li>⏳ In mehreren Zügen aufgebaut: <strong>+300 Bonuspunkte</strong></li>
+                        </ul>
+                    </ul>
+
+                    <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🛡️ Das erste Auslegen (Erstmeldung)</strong>
+                    Basierend auf dem Kontostand gilt ein Mindestwert für das erste Auslegen einer Runde:
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li>Bei Minus-Gesamtpunkten: <strong>15 Punkte</strong> · 0 bis 1495 Punkte: <strong>50 Punkte</strong>.</li>
+                        <li>1500 bis 2995 Punkte: <strong>90 Punkte</strong> · 3000 bis 4995 Punkte: <strong>120 Punkte</strong>.</li>
+                    </ul>
+
+                    <strong style="color: var(--danger); font-size: 15px; display: block; margin-bottom: 6px;">⚡ Rundenende & Handspiel</strong>
+                    Eine Runde endet, wenn ein Spieler alle Karten ablegt.
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li><strong>Normales Ausmachen:</strong> Das Team hat bereits Meldungen ausliegen. Bonus: <strong>+100 Punkte</strong>.</li>
+                        <li><strong>Handspiel (Verdeckt ausmachen):</strong> Ein Spieler legt seine komplette Hand auf einen Schlag verdeckt ab und macht aus, ohne dass sein Team vorher ausgelegt hatte. Bonus: phänomenale <strong>+1500 Punkte</strong> (die reguläre Canasta-Wertung fällt hierbei extra weg!).</li>
+                    </ul>
+                    Nach dem Ausmachen zählen alle Parteien die Kartenwerte auf dem Tisch zusammen, während verbleibende Handkarten als Minuspunkte abgezogen werden.
+                </div>
+            `
+        }
+    },
+    {
+        id: "codenames",
+        name: "Codenames",
+        description: "Ein Teamspiel, bei dem Geheimagenten anhand von Hinweisen gefunden werden müssen. Benötigt keine Punkteerfassung.",
+        hideFromSelection: true, // HIERMIT WIRD ES BEIM STARTEN VERSTECKT
+        defaultMode: "single",
+        rules: {
+            winCondition: "highest",
+            endTriggerPoints: null,
+            exactMatchRule: null,
+            descriptionLong: `
+                <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🕵️‍♂️ Ablauf & Ziel</strong>
+                    Zwei Teams (Blau vs. Rot) treten gegeneinander an. Jedes Team bestimmt einen Geheimdienstchef. 
+                    Auf dem Tisch liegen 25 Wortkarten aus. Die Chefs geben ihren Teams abwechselnd einen Hinweis, der aus **einem einzigen Wort** und **einer Zahl** besteht (z.B. "Tier: 3").
+                    <br><br>
+                    <strong>Das Ziel:</strong> Das eigene Team muss alle Agenten der eigenen Farbe finden, bevor das gegnerische Team es tut – und ohne jemals den gefährlichen Attentäter aufzudecken, was zum sofortigen Spielverlust führt!
+                </div>
+            `
+        }
     }
 ];

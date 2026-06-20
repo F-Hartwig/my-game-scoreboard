@@ -43,10 +43,21 @@
         </div>
     </div>
 
-    <div class="bottom-nav">
+    <div id="rulesPage" class="page">
+        <div class="card" style="padding: 16px 14px;">
+            <div class="title">📚 Spielesammlung & Regeln</div>
+            <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px; padding: 0 2px;">
+                Hier findest du alle hinterlegten Spielregeln und Limits auf einen Blick, ohne ein Match starten zu müssen.
+            </p>
+            <div id="rulesGameList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+        </div>
+    </div>
+
+    <div class="bottom-nav" style="left: 16px; right: 16px;">
         <div class="nav-item active" onclick="navigate('gamePage', this)"><span>🎮</span>Spiel</div>
         <div class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><span>👥</span>Spieler</div>
         <div class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><span>🏆</span>Statistik</div>
+        <div class="nav-item" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><span>📜</span>Regeln</div>
     </div>
 
     <div class="modal-overlay" id="appModal" onclick="closeModal()">
@@ -57,5 +68,6 @@
         </div>
     </div>
 
-    <script type="module" src="app.js"></script></body>
+    <script type="module" src="app.js"></script>
+</body>
 </html>
