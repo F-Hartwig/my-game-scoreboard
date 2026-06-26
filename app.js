@@ -41,7 +41,6 @@ async function navigate(pageId, element) {
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     element.classList.add("active");
 
-    // Hier 'rulesPage' ergänzt:
     const titles = { gamePage: "🎲 ScoreBuddy", playersPage: "👥 Spieler", statsPage: "🏆 Statistik", rulesPage: "📚 Spielesammlung" };
     document.getElementById("headerTitle").innerText = titles[pageId];
 
@@ -49,7 +48,6 @@ async function navigate(pageId, element) {
     if(pageId === 'playersPage') renderPlayers();
     if(pageId === 'statsPage') { state.showAllHistory = false; renderRanking(); renderHistory(); }
     if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
-    // Hier neu:
     if(pageId === 'rulesPage') renderRulesPage();
 }
 
@@ -123,7 +121,7 @@ async function submitRename() {
 function triggerDelete(id) {
     state.activeEditPlayerId = id;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDelete()">Löschen</button>`;
-    openModal("🗑️ Spieler l&ouml;schen?", "<p style='color:var(--muted)'>M&ouml;chtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
+    openModal("🗑️ Spieler löschen?", "<p style='color:var(--muted)'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
 }
 
 async function submitDelete() {
@@ -178,13 +176,12 @@ function startSetup() {
     state.ratedMode = true;
     state.tempTeams = []; 
 
-    // --- BEHOBEN: Custom bleibt immer auf Platz 1, Rest wird alphabetisch sortiert ---
     const selectableGames = PREDEFINED_GAMES
         .filter(g => !g.hideFromSelection)
         .sort((a, b) => {
-            if (a.id === "custom") return -1; // Custom immer nach ganz oben
+            if (a.id === "custom") return -1; 
             if (b.id === "custom") return 1;
-            return a.name.localeCompare(b.name); // Rest alphabetisch
+            return a.name.localeCompare(b.name); 
         });
     
     const firstGame = selectableGames[0] || PREDEFINED_GAMES[0];
@@ -194,7 +191,6 @@ function startSetup() {
         <div class="card">
             <div class="title">🎯 0. Spiel auswählen</div>
             <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
-                <!-- --- NEU: Nur die filterten Spiele als Option rendern --- -->
                 ${selectableGames.map(g => `<option value="${g.id}">${g.name}</option>`).join("")}
             </select>
             <p id="gameDescriptionText" style="font-size:13px; color:var(--muted); margin-top:-8px; margin-bottom:20px; line-height:1.4; padding:0 4px;">
@@ -220,7 +216,6 @@ function startSetup() {
 
             <div id="selectList" style="margin-bottom: 20px;">`;
             
-    // Rendert alle Spieler und Teams (wird ausgelagert, damit wir es dynamisch neu bauen können)
     html += renderSetupPoolHtml();
 
     html += `
@@ -231,25 +226,29 @@ function startSetup() {
         </div>
         
         <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">
-            <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
-            <div style="display:grid; gap:10px; margin-bottom:20px;">
-                <div class="mode-select-card selected" id="modeCardRound" onclick="selectGameMode('round', this)">
-                    <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
-                        <span>Klassischer Runden-Modus</span>
-                        <input type="radio" name="gameMode" value="round" checked>
-                    </div>
-                    <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
-                </div>
-                
-                <div class="mode-select-card" id="modeCardSingle" onclick="selectGameMode('single', this)">
-                    <div style="display:flex; justify-content:space-between; width:100%; font-weight:700;">
-                        <span>Flexibler Einzel-Modus</span>
-                        <input type="radio" name="gameMode" value="single">
-                    </div>
-                    <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
-                </div>
+    <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
+    <div style="display:grid; gap:10px; margin-bottom:20px;">
+        
+        <!-- Runden-Modus -->
+        <div class="mode-select-card selected" id="modeCardRound" onclick="selectGameMode('round', this)">
+            <input type="radio" name="gameMode" value="round" checked onclick="event.stopPropagation();">
+            <div class="mode-select-card-content">
+                <span style="font-weight:700;">Klassischer Runden-Modus</span>
+                <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
             </div>
         </div>
+        
+        <!-- Einzel-Modus -->
+        <div class="mode-select-card" id="modeCardSingle" onclick="selectGameMode('single', this)">
+            <input type="radio" name="gameMode" value="single" onclick="event.stopPropagation();">
+            <div class="mode-select-card-content">
+                <span style="font-weight:700;">Flexibler Einzel-Modus</span>
+                <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
+            </div>
+        </div>
+
+    </div>
+</div>
 
         <button onclick="createGame()">Spiel starten 🚀</button>
         <button class="secondary" style="margin-top:8px;" onclick="cancelSetup()">Abbrechen</button>
@@ -258,17 +257,13 @@ function startSetup() {
     document.getElementById("gameContent").innerHTML = html;
 }
 
-// Generiert den Inhalt der Auswahlliste (filtert vergebene Spieler aus)
 function renderSetupPoolHtml() {
     let html = "";
-    
-    // Ermittle alle Spieler, die bereits in IRGENDEINEM Team vergeben sind
     let assignedPlayerIds = [];
     if(state.tempTeams) {
         state.tempTeams.forEach(t => assignedPlayerIds.push(...t.playerIds));
     }
 
-    // 1. Teams rendern
     if(state.tempTeams && state.tempTeams.length > 0) {
         state.tempTeams.forEach(t => {
             html += `
@@ -283,7 +278,6 @@ function renderSetupPoolHtml() {
         });
     }
 
-    // 2. Einzelspieler rendern (nur wenn sie NICHT in einem Team sind)
     state.players.forEach(p => {
         if (!assignedPlayerIds.includes(p.id)) {
             html += `
@@ -300,9 +294,7 @@ function renderSetupPoolHtml() {
     return html;
 }
 
-// ÖFFNET DAS NEUE MODAL ZUR TEAM-ERSTELLUNG
 function openTeamBuilderModal() {
-    // Finde Spieler heraus, die noch keinem Team angehören
     let assignedPlayerIds = [];
     if(state.tempTeams) {
         state.tempTeams.forEach(t => assignedPlayerIds.push(...t.playerIds));
@@ -352,15 +344,9 @@ function submitTeamBuilderModal() {
     const teamId = Date.now();
 
     if(!state.tempTeams) state.tempTeams = [];
-    state.tempTeams.push({
-        id: teamId,
-        name: teamName,
-        playerIds: playerIds
-    });
-
+    state.tempTeams.push({ id: teamId, name: teamName, playerIds: playerIds });
     closeModal();
 
-    // Pool im DOM refreshen
     const selectList = document.getElementById("selectList");
     if (selectList) {
         selectList.innerHTML = renderSetupPoolHtml();
@@ -370,8 +356,6 @@ function submitTeamBuilderModal() {
 
 function removeSingleTeam(teamId) {
     state.tempTeams = state.tempTeams.filter(x => x.id !== teamId);
-    
-    // Pool im DOM refreshen, um gelöschte Spieler wieder anzuzeigen
     const selectList = document.getElementById("selectList");
     if (selectList) {
         selectList.innerHTML = renderSetupPoolHtml();
@@ -442,7 +426,6 @@ function updateDragOrderList() {
     });
 
     const currentOrderIds = [...dragBox.querySelectorAll(".drag-card")].map(c => Number(c.dataset.id));
-    
     dragBox.innerHTML = "";
     
     const finalItems = currentOrderIds.map(id => {
@@ -590,9 +573,6 @@ async function createGame() {
 // ===============================
 // CORE MATCH ENGINE & RENDERING
 // ===============================
-// ===============================
-// CORE MATCH ENGINE & RENDERING
-// ===============================
 function renderGame(isSyncUpdate = false) {
     if (state.isSettingUpGame) return; 
 
@@ -650,7 +630,6 @@ function renderGame(isSyncUpdate = false) {
     let modeTextInfo = state.currentGame.rated === false ? ' (Ungewertet)' : '';
     let statusText = state.currentGame.mode === 'round' ? `${state.currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${state.currentGame.name}${modeTextInfo}`;
 
-    // HILFSFUNKTION FÜR CANASTA-PILLEN
     const getCanastaPill = (totalPoints) => {
         if (state.currentGame.gameTypeId !== "canasta") return "";
         let req = 50;
@@ -796,7 +775,7 @@ function renderGame(isSyncUpdate = false) {
 
         state.currentGame.players.forEach((p, idx) => {
             html += `
-                <div class="round-player-row" style="background:#f8fafc; border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
+                <div class="round-player-row" style="background:var(--card); border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${p.name}</span>
                     <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:#e2e8f0; color:#475569; font-size:16px; font-weight:800; padding:0; flex-shrink:0;">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
@@ -1128,7 +1107,6 @@ function selectWinnerCard(element) {
 
 async function saveGame() {
     let selectedCards = [...document.querySelectorAll(".winner-select-card.selected")];
-    
     let winnerName = "Unentschieden";
     let winnerPartyIds = [];
 
@@ -1199,7 +1177,6 @@ function showResult(gameData) {
             <div class="title">📊 Endresultat</div>`;
 
     const rules = game.rules || { winCondition: "highest" };
-    
     let sortedFinal = [...game.players].sort((a,b) => {
         return rules.winCondition === "lowest" ? a.total - b.total : b.total - a.total;
     });
@@ -1247,7 +1224,6 @@ function renderRanking() {
         let winRate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
         let badge = ["🥇", "🥈", "🥉"][i] || "🏅";
 
-        // --- UX-UPDATE: onclick hinzugefügt und Cursor auf Pointer gesetzt ---
         box.innerHTML += `
             <div class="rank-card" style="cursor: pointer; transition: background 0.15s ease;" onclick="openPlayerProfileModal(${p.id})">
                 <div class="rank-card-header" style="justify-content: space-between;">
@@ -1265,6 +1241,7 @@ function renderRanking() {
             </div>`;
     });
 }
+
 function renderHistory() {
     let box = document.getElementById("history");
     if(!box) return; box.innerHTML = "";
@@ -1316,8 +1293,8 @@ function viewGameDetails(gameId) {
 
     let highestScore = Math.max(...g.players.map(p => p.total));
     let anyRoundsPlayed = g.players.some(p => p.rounds && p.rounds.length > 0);
-
     let modeTextInfo = g.rated === false ? 'Freundschaftsspiel' : 'Gewertetes Match';
+    
     let html = `
         <p style="color: var(--muted); font-size:13px; margin-bottom:16px; font-weight:500;">
             📅 Datum: ${g.date} · Typ: ${modeTextInfo}
@@ -1326,8 +1303,8 @@ function viewGameDetails(gameId) {
 
     g.players.forEach(p => {
         const isWinner = g.winner.includes(p.name) || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
-        
         let roundCounter = 1;
+        
         html += `
             <div class="modal-player-card">
                 <div class="modal-player-header">
@@ -1408,10 +1385,8 @@ async function submitDeleteHistoryGame() {
                 });
             }
             state.games = state.games.filter(x => x.id !== activeHistoryDeleteId);
-            
             await apiSave('players', state.players);
             await apiSave('games', state.games);
-            
             renderRanking();
             renderHistory();
         }
@@ -1432,14 +1407,6 @@ function triggerDeleteHistoryGame(gameId) {
     }, 300);
 }
 
-async function initApp() {
-    await loadAllFromDb();
-    renderGame();
-    startLiveSync(); 
-}
-// ===============================
-// RULES COLLECTION SCREEN
-// ===============================
 // ===============================
 // RULES COLLECTION SCREEN
 // ===============================
@@ -1456,7 +1423,6 @@ function renderRulesPage() {
             ? `<span style="font-size:11px; font-weight:700; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:6px; margin-left:8px; border:1px solid var(--border); vertical-align:middle;">📖 Nur Regeln</span>`
             : '';
 
-        // --- NEU: Play-Button generieren, wenn es kein reines Regel-Spiel ist ---
         let playBtnHtml = !g.hideFromSelection
             ? `<button class="icon-btn edit-btn" style="width:34px; height:34px; font-size:14px; background:var(--primary-light); color:var(--primary); margin-left:auto; flex-shrink:0;" 
                 title="Spiel starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">▶</button>`
@@ -1483,35 +1449,23 @@ function renderRulesPage() {
     });
 }
 
-// --- OPTIMIERT: Direkt-Start-Funktion mit automatischer Pausen-Sicherung ---
 async function quickStartGame(gameId) {
-    // 1. Sicherheitsschranke: Falls aktuell ein Spiel läuft, pausiere es automatisch zuerst
     if (state.currentGame && state.currentGame.id) {
-        await pauseCurrentGame(); // Sichert das Spiel fehlerfrei auf dem NAS / im Speicher
+        await pauseCurrentGame(); 
     }
-
-    // 2. Simuliere den Klick auf den "Spiel"-Reiter in der Navigationsleiste unten
     const gameTab = document.querySelector(".bottom-nav .nav-item:first-child");
-    
-    // 3. Rufe das Setup auf
     startSetup();
     
-    // 4. Setze das Dropdown auf das gewählte Spiel
     const selectEl = document.getElementById("predefinedGameSelect");
     if (selectEl) {
         selectEl.value = gameId;
-        // Triggere das Onchange-Event für Beschreibungen und Modi im Hintergrund
         handleGameSelectionChange(gameId);
     }
-    
-    // 5. Navigation visuell abschließen
     if (gameTab) {
         navigate('gamePage', gameTab);
     }
 }
 
-
-// Hilfsfunktion, um das Modal aus der Sammlung heraus zu öffnen
 function openCollectionRulesModal(gameId) {
     const game = PREDEFINED_GAMES.find(g => g.id === gameId);
     if (!game || !game.rules || !game.rules.descriptionLong) return;
@@ -1532,17 +1486,11 @@ function openPlayerProfileModal(playerId) {
     let gameStats = {}; 
     let partnerStats = {}; 
 
-    // Alle historischen Spiele auf dem NAS durchscannen
     state.games.forEach(g => {
-        if (g.rated === false) return; // Ungewertet ignorieren
+        if (g.rated === false) return; 
 
-        // Hat der Spieler an diesem Spiel teilgenommen?[cite: 2]
         const playerInMatch = g.players.find(cp => cp.playerIds && cp.playerIds.includes(playerId));
-        
         if (playerInMatch) {
-            // --- WASSERDICHTER FIX FÜR CUSTOM-SPIELE ---
-            // Wenn die ID "custom" ist oder der Name dem Standard-Custom-Namen entspricht, 
-            // nutzen wir den getippten Namen. Falls der leer ist, das Fallback "Custom-Spiel".
             let matchDisplayName = g.name || "Custom-Spiel";
             if (g.gameTypeId === "custom" || g.id === "custom") {
                 matchDisplayName = g.name || "Custom-Spiel";
@@ -1553,14 +1501,11 @@ function openPlayerProfileModal(playerId) {
             }
             gameStats[matchDisplayName].games++;
             
-            // Ermittle präzise, ob dieser Spieler (oder sein Team) gewonnen hat
-            // Wir prüfen sowohl auf exakten Namen als auch per .includes() zur Sicherheit
             const isWinner = g.winner === playerInMatch.name || g.winner.includes(playerInMatch.name);
             if (isWinner) {
                 gameStats[matchDisplayName].wins++;
             }
 
-            // Team-Partner-Statistik erfassen[cite: 2]
             if (playerInMatch.isTeam && playerInMatch.playerIds.length > 1) {
                 playerInMatch.playerIds.forEach(pId => {
                     if (pId !== playerId) {
@@ -1578,7 +1523,6 @@ function openPlayerProfileModal(playerId) {
         }
     });
 
-    // HTML für die Spiele-Aufschlüsselung bauen[cite: 2]
     let gamesHtml = "";
     const sortedGameNames = Object.keys(gameStats).sort((a, b) => gameStats[b].wins - gameStats[a].wins);
     
@@ -1599,7 +1543,6 @@ function openPlayerProfileModal(playerId) {
         });
     }
 
-    // HTML für die besten Partner bauen[cite: 2]
     let partnerHtml = "";
     const sortedPartners = Object.keys(partnerStats).sort((a, b) => partnerStats[b].wins - partnerStats[a].wins);
     
@@ -1631,16 +1574,42 @@ function openPlayerProfileModal(playerId) {
         <div style="display:flex; flex-direction:column; gap:2px; margin-bottom:10px;">
             ${gamesHtml}
         </div>
-        
         ${partnerHtml}
     `;
 
     let actionsHtml = `<button class="secondary" style="flex:1;" onclick="closeModal()">Schließen</button>`;
-
     openModal(`👤 Spieler-Profil`, bodyHtml, actionsHtml);
 }
 
-// Global für HTML-Onclick registrieren (ganz unten bei den anderen Windows-Registern ablegen)
+// ===============================
+// NEU: DARKMODE ENGINE LOGIC
+// ===============================
+window.toggleTheme = function() {
+    const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+    const newTheme = isDark ? "light" : "dark";
+    document.documentElement.setAttribute("data-theme", newTheme);
+    localStorage.setItem("scorebuddy_theme", newTheme);
+    
+    const btn = document.getElementById("themeToggleBtn");
+    if (btn) btn.innerText = newTheme === "dark" ? "☀️" : "🌙";
+};
+
+async function initApp() {
+    // Theme-Einstellung laden bevor die App rendert
+    const savedTheme = localStorage.getItem("scorebuddy_theme") || "light";
+    document.documentElement.setAttribute("data-theme", savedTheme);
+    setTimeout(() => {
+        const btn = document.getElementById("themeToggleBtn");
+        if (btn) btn.innerText = savedTheme === "dark" ? "☀️" : "🌙";
+    }, 50);
+
+    await loadAllFromDb();
+    renderGame();
+    startLiveSync(); 
+}
+
+// Global für HTML-Onclick registrieren
+window.toggleTheme = toggleTheme;
 window.openPlayerProfileModal = openPlayerProfileModal;
 window.quickStartGame = quickStartGame;
 window.renderRulesPage = renderRulesPage;
@@ -1685,4 +1654,5 @@ window.showGameRulesModal = showGameRulesModal;
 window.openTeamBuilderModal = openTeamBuilderModal;
 window.submitTeamBuilderModal = submitTeamBuilderModal;
 window.removeSingleTeam = removeSingleTeam;
+
 initApp();
