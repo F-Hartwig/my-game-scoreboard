@@ -113,7 +113,7 @@ export const PREDEFINED_GAMES = [
     {
         id: "skyjo_action",
         name: "Skyjo Action",
-        description: "Der taktische Nachfolger mit Aktions- und Sternenkarten. Ziel bleibt die niedrigste Punktzahl. Spiel endet ab 100 Punkten.",
+        description: "Der taktische Nachfolger mit Aktions- und Sternenkarten. Horizontale 4er-Reihen werden gelöscht. Sternenreihen bringen bis zu -15 Punkte!",
         defaultMode: "round",
         rules: {
             winCondition: "lowest",
@@ -121,39 +121,42 @@ export const PREDEFINED_GAMES = [
             exactMatchRule: null,
             descriptionLong: `
                 <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
-                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">📦 Was ist neu? (Zusatzkarten)</strong>
-                    Neben den normalen Zahlenwerten (-2 bis 12) enthält das Spiel zwei mächtige neue Kartentypen:
-                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
-                        <li><strong>Aktionskarten (Orange):</strong> Werden auf der Hand gesammelt und erlauben taktische Sonderzüge (z.B. Karten klauen, öfter ziehen, Spalten verschieben oder Karten von Mitspielern anschauen).</li>
-                        <li><strong>Sternenkarten (Joker):</strong> Können als Sonderwerte im Raster platziert werden und nehmen flexibel den Wert einer beliebigen Karte in ihrer Zeile oder Spalte an, um Drillinge/Viererreihen spielend leicht zu vervollständigen.</li>
-                    </ul>
-
-                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔄 Spielaufbau & Start</strong>
-                    Wie beim Klassiker erhält jeder Spieler 12 verdeckte Karten im <strong>3x4 Raster</strong>. Zusätzlich bekommt jeder Spieler <strong>1 Aktionskarte verdeckt auf die Hand</strong>. 
-                    Zu Beginn deckt jeder wieder 2 Karten in seinem Raster auf. Es beginnt die Person mit der höchsten Augensumme.
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">📦 Spielaufbau & Auslage</strong>
+                    Neben dem normalen Zahlenstapel werden die die Aktionskarten gemischt und 4 Karten offen in der Mitte ausgelegt. 
+                    Wird eine Karte genommen, füllt man sie sofort vom Nachziehstapel auf.
+                    <br>Jeder Spieler legt 12 Karten verdeckt im <strong>3x4 Raster</strong> aus und deckt zu Beginn 2 Karten auf. Die höchste Augensumme beginnt.
                     <br><br>
 
-                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🎮 Erweiterter Spielablauf (Dein Zug)</strong>
-                    Wenn du am Zug bist, darfst du <strong>vor deiner Hauptaktion</strong> genau 1 Aktionskarte von deiner Hand ausspielen, um ihren Effekt zu nutzen. Danach folgt dein regulärer Zug:
-                    <ol style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
-                        <li><strong>Vom Ablagestapel ziehen:</strong> Normaler Tausch gegen eine Rasterkarte.</li>
-                        <li><strong>Vom Nachziehstapel ziehen:</strong> Karte ansehen, tauschen ODER ablegen und eine verdeckte Rasterkarte umdrehen.</li>
-                        <li><strong>NEU: Vom Aktionskartenstapel ziehen:</strong> Du darfst die gezogene Aktionskarte entweder sofort ausspielen ODER sie verdeckt auf die Hand nehmen (maximal 3 Handkarten erlaubt). Dafür musst du jedoch <strong>keine</strong> Karte in deinem Raster verändern!</li>
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🎮 Spielablauf (Dein Zug)</strong>
+                    Wenn du am Zug bist, wählst du genau <strong>eine</strong> der folgenden drei Hauptaktionen:
+                    <ol style="margin-left: 16px; margin-bottom: 12px; padding-left: 0; color: var(--text);">
+                        <li style="margin-bottom: 4px;"><strong>Vom Ablagestapel ziehen:</strong> Offener Tausch gegen eine Rasterkarte.</li>
+                        <li style="margin-bottom: 4px;"><strong>Vom Nachziehstapel ziehen:</strong> Karte ansehen, tauschen ODER ablegen und eine verdeckte Rasterkarte umdrehen.</li>
+                        <li style="margin-bottom: 4px;"><strong>Vom Aktionskartenstapel ziehen ODER aus der Auslage wählen:</strong> Du darfst die Aktionskarte nutzen, um Spezialzüge (Karten klauen, Spalten verschieben etc.) auszuführen. Sie wird danach abgelegt.</li>
                     </ol>
 
-                    <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">💎 Reihen aufräumen (Drillinge & Viererreihen)</strong>
-                    Wie gewohnt wird eine vertikale Spalte komplett gelöscht, wenn 3 identische Werte untereinander liegen. 
-                    <br><strong>NEU: Horizontale Reihen!</strong> Schafft man es, eine komplette waagerechte Reihe aus 4 identischen Werten zu bilden, wird auch diese sofort auf den Ablagestapel geworfen! Sternenkarten (Joker) helfen dir dabei aktiv.
+                    <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">⭐ Die Sternenkarten (Joker) & Runden-Minuspunkte</strong>
+                    Sternenkarten zählen am Rundenende immer <strong>0 Punkte</strong>. Sie helfen beim Vervollständigen von normalen Zahlenreihen.
                     <br><br>
+                    <span style="color: var(--success); font-weight: bold;">💎 Der reine Sternen-Bonus (Wichtig für den ScoreBuddy):</span>
+                    Schaffst du es, Reihen oder Spalten <em>ausschließlich</em> mit Sternenkarten zu füllen, werden diese nicht einfach abgelegt, sondern am Rundenende wie folgt gewertet:
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0; color: var(--text);">
+                        <li style="margin-bottom: 4px;"><strong>Komplette Spalte (3 Sternenkarten untereinander):</strong> Du erhältst sofort <strong>-10 Punkte</strong> für deine Rundenwertung!</li>
+                        <li style="margin-bottom: 4px;"><strong>Komplette Reihe (4 Sternenkarten nebeneinander):</strong> Du erhältst sofort phänomenale <strong>-15 Punkte</strong> für deine Rundenwertung!</li>
+                    </ul>
+
+                    <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">💎 Normales Reihen aufräumen (Zahlenkarten)</strong>
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0; color: var(--text);">
+                        <li style="margin-bottom: 4px;"><strong>Vertikale Spalten:</strong> Wie gewohnt werden 3 identische Werte untereinander komplett gelöscht.</li>
+                        <li style="margin-bottom: 4px;"><strong>Horizontale Reihen:</strong> Schaffst du es, eine komplette waagerechte Reihe aus <strong>4 identischen Werten</strong> zu bilden, wird auch diese komplett abgeräumt!</li>
+                    </ul>
 
                     <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">⚡ Rundenende & Die Verdopplungs-Falle</strong>
-                    Sobald ein Spieler seine letzte verdeckte Karte aufdeckt (Aktionskarten auf der Hand zählen nicht fürs Ende!), haben alle anderen noch genau 1 Zug. Danach wird abgerechnet.
+                    Sobald ein Spieler seine letzte verdeckte Karte aufdeckt, haben alle anderen noch genau 1 Zug. Danach wird abgerechnet.
                     <br><br>
-                    <span style="color: var(--danger); font-weight: bold;">⚠️ Die Beender-Strafe:</span> Wer die Runde beendet, muss auch hier die absolut kleinste Punktzahl erzielen. Hat jemand anderes weniger oder gleich viele Punkte, werden die positiven Punkte des Beenders für diese Runde als Strafe <strong>verdoppelt</strong>. Ungenutzte Aktionskarten auf der Hand zählen am Ende übrigens als <strong>+2 Strafpunkte</strong> pro Karte!
+                    <span style="color: var(--danger); font-weight: bold;">⚠️ Die Beender-Strafe:</span> Wer die Runde beendet, muss die strikt kleinste Punktzahl dieser Runde erzielen (Gleichstand reicht nicht). Hat jemand anderes weniger oder gleich viele Punkte, werden die positiven Punkte des Beenders <strong>verdoppelt</strong>!
                     <br><br>
-
-                    <strong style="color: var(--danger); font-size: 15px; display: block; margin-bottom: 6px;">🏳️ Spielende</strong>
-                    Das Gesamtmatch endet nach der Rundenwertung, bei der ein Spieler <strong>100 Punkte oder mehr</strong> erreicht. Gewonnen hat die Person mit der niedrigsten Gesamtpunktzahl im Scorebuddy.
+                    <span style="color: var(--danger); font-weight: bold;">⚠️ Aktionskarten-Malus:</span> Jede Aktionskarte, die am Rundenende noch ungenutzt offen vor dir liegt, bestraft dich mit satten <strong>+10 Strafpunkten</strong> auf dem Spielblock!
                 </div>
             `
         }
