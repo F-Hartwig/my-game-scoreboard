@@ -794,8 +794,15 @@ function renderGame(isSyncUpdate = false) {
     });
 
     html += `</div></div>`;
-
-    if(state.currentGame.mode === 'round') {
+    if (state.currentGame.gameTypeId === "wizard") {
+        html += `
+            <div class="card">
+                <div class="title">🔮 Wizard Rundenwertung</div>
+                <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Runde ${maxRounds + 1}: Trage die gebotenen und gemachten Stiche ein.</p>
+                <button onclick="openWizardRoundModal()">➕ Runde ${maxRounds + 1} auswerten</button>
+                <button class="green" style="margin-top: 8px;" onclick="finishGame()">🏆 Spiel beenden</button>
+            </div>`;
+    } else if(state.currentGame.mode === 'round') {
         html += `
             <div class="card" id="inputCardAnchor">
                 <div class="title">➕ Runde eintragen</div>
@@ -2173,6 +2180,220 @@ function rollDiceAnimation() {
     shake();
 }
 
+// ===============================
+// WIZARD ENGINE (mit Zwischenspeicher)
+// ===============================
+
+function calculateWizardPoints(bid, actual) {
+    if (bid === actual) {
+        return 20 + (actual * 10);
+    } else {
+        return -10 * Math.abs(bid - actual);
+    }
+}
+
+// Speichert die aktuellen Input-Werte live im state UND in der DB/LocalStorage
+async function saveWizardDraft(playerId) {
+    if (!state.currentGame) return;
+    if (!state.currentGame.wizardDraft) {
+        state.currentGame.wizardDraft = {};
+    }
+
+    const bidInput = document.getElementById(`wiz_bid_${playerId}`);
+    const actInput = document.getElementById(`wiz_act_${playerId}`);
+
+    state.currentGame.wizardDraft[playerId] = {
+        bid: bidInput ? bidInput.value : "",
+        act: actInput ? actInput.value : ""
+    };
+
+    clearWizardErrors(playerId);
+
+    // WICHTIG: Sofort im LocalStorage / Backend sichern!
+    await apiSave('currentGame', state.currentGame);
+}
+
+// Modal zur komfortablen Wizard-Rundeneingabe
+function openWizardRoundModal() {
+    if (!state.currentGame || state.currentGame.gameTypeId !== "wizard") return;
+
+    const maxRounds = Math.max(...state.currentGame.players.map(p => p.rounds.length), 0);
+    const currentRoundNum = maxRounds + 1;
+
+    // Entwurf aus dem State laden
+    const draft = state.currentGame.wizardDraft || {};
+
+    let body = `
+        <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
+            Trage für <strong>Runde ${currentRoundNum}</strong> (${currentRoundNum} Karte/n) Ansage & gemachte Stiche ein:
+        </p>
+
+        <div style="display:flex; flex-direction:column; gap:10px;">
+            ${state.currentGame.players.map(p => {
+                const pDraft = draft[p.id] || { bid: "", act: "" };
+                // Falls undefined oder null, leeren String nutzen
+                const bidVal = (pDraft.bid !== undefined && pDraft.bid !== null) ? pDraft.bid : "";
+                const actVal = (pDraft.act !== undefined && pDraft.act !== null) ? pDraft.act : "";
+
+                return `
+                    <div style="background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:var(--radius-md);" id="wiz_card_${p.id}">
+                        <div style="font-weight:700; margin-bottom:6px;">${p.name}</div>
+                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
+                            <div>
+                                <span style="font-size:11px; color:var(--muted); font-weight:600;">Gefordert (Tipp)</span>
+                                <input type="number" inputmode="numeric" id="wiz_bid_${p.id}" value="${bidVal}" placeholder="0" style="height:38px; text-align:center; font-weight:bold; transition:all 0.2s;" oninput="saveWizardDraft(${p.id})">
+                            </div>
+                            <div>
+                                <span style="font-size:11px; color:var(--muted); font-weight:600;">Gemacht (Stiche)</span>
+                                <input type="number" inputmode="numeric" id="wiz_act_${p.id}" value="${actVal}" placeholder="0" style="height:38px; text-align:center; font-weight:bold; transition:all 0.2s;" oninput="saveWizardDraft(${p.id})">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('')}
+        </div>
+
+        <div id="wizardErrorMsg" style="display:none; color:var(--danger); font-size:12px; font-weight:700; margin-top:12px; text-align:center; padding:8px; background:var(--danger-light); border-radius:var(--radius-sm);"></div>
+    `;
+
+    let actions = `
+        <button class="secondary" onclick="closeModal()">Schließen</button>
+        <button onclick="submitWizardRound()">Runde auswerten ✓</button>
+    `;
+
+    openModal(`🔮 Wizard - Runde ${currentRoundNum}`, body, actions);
+}
+
+// Setzt Fehler-Markierungen zurück
+function clearWizardErrors(playerId) {
+    const bidInput = document.getElementById(`wiz_bid_${playerId}`);
+    const actInput = document.getElementById(`wiz_act_${playerId}`);
+    const errBox = document.getElementById("wizardErrorMsg");
+
+    if (bidInput) {
+        bidInput.style.borderColor = "";
+        bidInput.style.background = "";
+    }
+    if (actInput) {
+        actInput.style.borderColor = "";
+        actInput.style.background = "";
+    }
+    if (errBox) {
+        errBox.style.display = "none";
+    }
+}
+
+async function submitWizardRound() {
+    const maxRounds = Math.max(...state.currentGame.players.map(p => p.rounds.length), 0);
+    const currentRoundNum = maxRounds + 1;
+
+    let totalActualStiche = 0;
+    let hasValidationError = false;
+    let errorText = "";
+
+    const errBox = document.getElementById("wizardErrorMsg");
+
+    state.currentGame.players.forEach(p => clearWizardErrors(p.id));
+
+    // 1. Einzelprüfungen durchführen
+    state.currentGame.players.forEach(p => {
+        let bidInput = document.getElementById(`wiz_bid_${p.id}`);
+        let actInput = document.getElementById(`wiz_act_${p.id}`);
+
+        let bid = Number(bidInput?.value || 0);
+        let act = Number(actInput?.value || 0);
+
+        if (bid < 0 || act < 0) {
+            if (bid < 0 && bidInput) {
+                bidInput.style.borderColor = "var(--danger)";
+                bidInput.style.background = "var(--danger-light)";
+            }
+            if (act < 0 && actInput) {
+                actInput.style.borderColor = "var(--danger)";
+                actInput.style.background = "var(--danger-light)";
+            }
+            hasValidationError = true;
+            errorText = "Negative Stiche sind nicht erlaubt!";
+        }
+
+        if (bid > currentRoundNum || act > currentRoundNum) {
+            if (bid > currentRoundNum && bidInput) {
+                bidInput.style.borderColor = "var(--danger)";
+                bidInput.style.background = "var(--danger-light)";
+            }
+            if (act > currentRoundNum && actInput) {
+                actInput.style.borderColor = "var(--danger)";
+                actInput.style.background = "var(--danger-light)";
+            }
+            hasValidationError = true;
+            errorText = `Maximal ${currentRoundNum} Stich(e) in Runde ${currentRoundNum} erlaubt!`;
+        }
+
+        totalActualStiche += act;
+    });
+
+    // 2. Summenprüfung aller gemachten Stiche
+    if (!hasValidationError && totalActualStiche !== currentRoundNum) {
+        state.currentGame.players.forEach(p => {
+            let actInput = document.getElementById(`wiz_act_${p.id}`);
+            if (actInput) {
+                actInput.style.borderColor = "var(--danger)";
+                actInput.style.background = "var(--danger-light)";
+            }
+        });
+        hasValidationError = true;
+        errorText = `In Runde ${currentRoundNum} müssen insgesamt genau ${currentRoundNum} Stich(e) verteilt werden (Aktuell: ${totalActualStiche}).`;
+    }
+
+    if (hasValidationError) {
+        if (errBox) {
+            errBox.innerText = errorText;
+            errBox.style.display = "block";
+        }
+        if ("vibrate" in navigator) {
+            navigator.vibrate([100, 50, 100]);
+        }
+        return;
+    }
+
+    // 3. Wenn alles valide ist: Punkte auswerten
+    state.currentGame.players.forEach(p => {
+        let bidInput = document.getElementById(`wiz_bid_${p.id}`);
+        let actInput = document.getElementById(`wiz_act_${p.id}`);
+
+        let bid = Number(bidInput?.value || 0);
+        let act = Number(actInput?.value || 0);
+
+        let earnedPoints = calculateWizardPoints(bid, act);
+
+        p.rounds.push(earnedPoints);
+        p.total += earnedPoints;
+    });
+
+    // Zwischenspeicher nach erfolgreichem Auswerten zurücksetzen
+    state.currentGame.wizardDraft = {};
+
+    // Geber weiterdrehen
+    if (typeof state.currentGame.dealerIndex !== "number") {
+        state.currentGame.dealerIndex = 0;
+    }
+    state.currentGame.dealerIndex = (state.currentGame.dealerIndex + 1) % state.currentGame.players.length;
+    updateDealerUI();
+
+    await apiSave('currentGame', state.currentGame);
+    closeModal();
+    renderGame(true);
+}
+
+// Global registrieren
+window.saveWizardDraft = saveWizardDraft;
+window.clearWizardErrors = clearWizardErrors;
+
+
+
+
+
+
 // Global registrieren
 window.openDiceModal = openDiceModal;
 window.setDiceType = setDiceType;
@@ -2253,6 +2474,8 @@ window.startRematch = startRematch;
 window.toggleTimerMenu = toggleTimerMenu;
 window.startTimer = startTimer;
 window.stopTimer = stopTimer;
+window.openWizardRoundModal = openWizardRoundModal;
+window.submitWizardRound = submitWizardRound;
 
 
 initApp();

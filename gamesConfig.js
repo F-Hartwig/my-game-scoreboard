@@ -292,4 +292,38 @@ export const PREDEFINED_GAMES = [
             `
         }
     },
+    {
+    id: "wizard",
+    name: "Wizard",
+    description: "Vorhersagespiel: Schätze deine Stiche exakt ein! Bei Treffer gibt es 20 + 10 pro Stich, sonst 10 Miese pro Abweichung.",
+    defaultMode: "round",
+    rules: {
+        winCondition: "highest",
+        endTriggerPoints: null,
+        exactMatchRule: null,
+        descriptionLong: `
+            <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">📦 Das Deck (60 Karten)</strong>
+                <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                    <li><strong>Zahlenkarten (1 bis 13):</strong> In 4 Farben (Rot, Gelb, Grün, Blau).</li>
+                    <li><strong>4 Zauberer (Wizard):</strong> Höchste Karte im Spiel, gewinnt immer den Stich.</li>
+                    <li><strong>4 Narren (Jester):</strong> Niedrigste Karte im Spiel, verliert immer den Stich.</li>
+                </ul>
+
+                <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔄 Rundenanzahl & Kartenvergabe</strong>
+                In Runde 1 erhält jeder 1 Karte, in Runde 2 erhält jeder 2 Karten ... bis alle 60 Karten aufgebraucht sind (z. B. 20 Runden bei 3 Spielern, 15 Runden bei 4 Spielern, 12 Runden bei 5 Spielern, 10 Runden bei 6 Spielern).
+
+                <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🛡️ Die Geber-Regel (Keine aufgehende Summe)</strong>
+                Die Summe aller gebotenen Stiche in einer Runde darf **niemals genau der Anzahl der Handkarten entsprechen**! Der Geber (letzte Person beim Ansagen) darf daher die Zahl nicht wählen, die die Summe genau aufgeben würde.
+
+                <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">📊 Punktewertung</strong>
+                <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                    <li><strong>Exakt richtig getippt:</strong> <span style="color:var(--success); font-weight:bold;">+20 Punkte</span> Sockel-Bonus + <span style="color:var(--success); font-weight:bold;">+10 Punkte</span> für jeden gemachten Stich.</li>
+                    <li><strong>Falsch getippt:</strong> <span style="color:var(--danger); font-weight:bold;">-10 Punkte</span> für jeden Stich Abweichung (egal ob mehr oder weniger Stiche als angesagt!).</li>
+                </ul>
+            </div>
+        `
+    }
+},
+
 ];
