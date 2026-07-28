@@ -2385,6 +2385,39 @@ async function submitWizardRound() {
     renderGame(true);
 }
 
+// =========================================================
+// ZENTRALE TOOLBAR-STEUERUNG (Vollautomatisch via Observer)
+// =========================================================
+function checkAndToggleInGameTools() {
+    // Weiche: Sind wir aktuell In-Game?
+    // Wir prüfen einfach, ob das Element existiert, das NUR auf dem Spielfeld gerendert wird
+    // (z. B. dein Runden-Eingabebereich oder die Scorecard-ID):
+    const isGameActive = !!(
+        document.getElementById("inputCardAnchor") || 
+        document.getElementById("roundInputs") ||
+        document.querySelector(".round-grid")
+    );
+
+    // Alle Tools mit der Klasse .in-game-only anpassen
+    const inGameTools = document.querySelectorAll(".in-game-only");
+    inGameTools.forEach(tool => {
+        tool.style.display = isGameActive ? "inline-flex" : "none";
+    });
+}
+
+// Beobachtet automatisch alle HTML-Änderungen auf der Seite
+const appObserver = new MutationObserver(() => {
+    checkAndToggleInGameTools();
+});
+
+// Beobachter auf das gesamte Dokument ansetzen (sobald das DOM bereit ist)
+document.addEventListener("DOMContentLoaded", () => {
+    appObserver.observe(document.body, { childList: true, subtree: true });
+    checkAndToggleInGameTools(); // Initialer Check beim Start
+});
+
+
+
 // Global registrieren
 window.saveWizardDraft = saveWizardDraft;
 window.clearWizardErrors = clearWizardErrors;
