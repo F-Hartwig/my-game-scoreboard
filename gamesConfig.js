@@ -237,5 +237,59 @@ export const PREDEFINED_GAMES = [
                 </div>
             `
         }
-    }
+    },
+        {
+        id: "flip7",
+        name: "Flip 7",
+        description: "Push-your-Luck Kartenspiel! Wer 200 Punkte erreicht, gewinnt. Wer doppelte Zahlen zieht, geht in der Runde leer aus.",
+        defaultMode: "round",
+        rules: {
+            winCondition: "highest",
+            endTriggerPoints: 200,
+            exactMatchRule: null,
+            descriptionLong: `
+                <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">📦 Das Kartendeck (94 Karten)</strong>
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li><strong>79 Zahlenkarten (0–12):</strong> Die Zahl bestimmt die Häufigkeit im Deck (die 12 ist 12x vorhanden, die 11 ist 11x vorhanden ... bis zur 1 [1x]). Die <strong>0 ist genau 1-mal</strong> enthalten und 0 Punkte wert.</li>
+                        <li><strong>9 Aktionskarten:</strong> Je 3x <em>Freeze</em>, <em>Second Chance</em> und <em>Flip Three</em>.</li>
+                        <li><strong>6 Bonuskarten:</strong> +2, +4, +6, +8, +10 Punkte sowie 1x der x2-Multiplikator.</li>
+                    </ul>
+
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔄 Spielablauf (Dein Zug)</strong>
+                    Eine Person verteilt reihum offene Karten. Wenn du an der Reihe bist, wählst du:
+                    <ol style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li><strong>NOCH EINE (Karte ziehen):</strong> Du erhältst eine weitere offene Karte.</li>
+                        <li><strong>STOPP (Passen):</strong> Du steigst aus der Runde aus, sicherst deine Karten und wertest sie am Rundenende.</li>
+                    </ol>
+
+                    <strong style="color: var(--danger); font-size: 15px; display: block; margin-bottom: 6px;">💥 Verzockt!</strong>
+                    Erhältst du eine Zahlenkarte, die du bereits vor dir ausliegen hast, hast du dich <strong>verzockt</strong>! Du fliegst sofort raus und bekommst <strong>0 Punkte</strong> für diese Runde.
+
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">⚡ Aktionskarten (Effekte)</strong>
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li><strong>FREEZE:</strong> Zwingt einen aktiven Mitspieler (oder dich selbst), sofort mit den aktuellen Karten auszustiegen (Punkte bleiben gesichert).</li>
+                        <li><strong>SECOND CHANCE:</strong> Schützt dich vor dem nächsten Verzocken (Karte wird dann gemeinsam mit dem Doppelgänger abgeworfen).</li>
+                        <li><strong>FLIP THREE:</strong> Bestimmt eine Person, die sofort die nächsten 3 Karten nacheinander ziehen muss.</li>
+                    </ul>
+
+                    <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">🔥 Der Flip 7 Bonus (+15 Extrapunkte)</strong>
+                    Schaffst du es, <strong>7 verschiedene Zahlenkarten</strong> auszulegen, ohne dich zu verzocken, ist dir ein <strong>Flip 7</strong> gelungen! Die Runde endet sofort für alle. Du erhältst zusätzlich <strong>+15 Extrapunkte</strong>.
+
+                    <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">📊 Abrechnung einer Runde</strong>
+                    <ol style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li>Summe aller deiner Zahlenwerte bilden.</li>
+                        <li>Falls du eine <strong>x2-Karte</strong> hast: Zahlenwerte verdoppeln!</li>
+                        <li>Plus-Bonuskarten (+2 bis +10) hinzurechnen.</li>
+                        <li>Falls Flip 7 gelungen ist: <strong>+15 Extrapunkte</strong> addieren (werden nicht verdoppelt!).</li>
+                    </ol>
+
+                    <strong style="color: var(--danger); font-size: 15px; display: block; margin-bottom: 6px;">🏆 Spielende & Gleichstand</strong>
+                    Das Spiel endet am Ende einer Runde, wenn mindestens eine Person <strong>200 Punkte oder mehr</strong> erreicht hat. Es gewinnt die Person mit den meisten Punkten.
+                    <br><br>
+                    <strong>Gleichstand an der Spitze:</strong> Bei Gleichstand wird solange eine weitere Runde gespielt, bis eine Person eindeutig führt!
+                </div>
+            `
+        }
+    },
 ];

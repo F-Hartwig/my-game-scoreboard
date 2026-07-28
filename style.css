@@ -68,6 +68,67 @@ body {
     color: var(--text);
 }
 
+
+/* Tool-Leiste unter dem Header */
+.toolbar {
+    max-width: 600px;
+    margin: -10px auto 16px auto;
+    padding: 0 4px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.toolbar::-webkit-scrollbar {
+    display: none;
+}
+
+/* Kompakte Buttons ("Chips") für Tools */
+.tool-chip {
+    width: auto;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: var(--radius-sm);
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.2s ease;
+}
+
+.tool-chip:active {
+    transform: scale(0.96);
+}
+
+/* Status-Styles für den Timer */
+.tool-chip.timer-active {
+    background: var(--primary-light);
+    color: var(--primary);
+    border-color: var(--primary);
+    font-weight: 800;
+}
+
+.tool-chip.timer-expired {
+    background: var(--danger-light);
+    color: var(--danger);
+    border-color: var(--danger);
+    animation: pulseTool 0.8s infinite alternate;
+}
+
+@keyframes pulseTool {
+    from { transform: scale(1); }
+    to { transform: scale(1.05); }
+}
+
+
 /* Stil für den Umschalt-Button oben im Header */
 .theme-toggle-btn {
     width: 40px;

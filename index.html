@@ -18,6 +18,25 @@
         <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
     </div>
 
+    <div class="toolbar">
+        <button class="tool-chip" id="startPlayerToolBtn" onclick="openStartPlayerSelectorModal()">
+            🎲 Startspieler
+        </button>
+
+        <button class="tool-chip" id="dealerToolBtn" onclick="rotateDealerManually()">
+            🎴 <span id="dealerLabel">Geber: --</span>
+        </button>
+
+        <button class="tool-chip" id="timerToolBtn" onclick="toggleTimerMenu()">
+            ⏱️ <span id="timerLabel">Timer</span>
+        </button>
+
+        <button class="tool-chip" id="diceToolBtn" onclick="openDiceModal()">
+            🎲 Würfel
+        </button>
+
+    </div>
+
     <div id="gamePage" class="page active">
         <div id="gameContent"></div>
     </div>

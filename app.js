@@ -55,11 +55,12 @@ async function navigate(pageId, element) {
 // MODAL ENGINE
 // ===============================
 function openModal(title, bodyHtml, actionHtml) {
-    document.getElementById("modalTitle").innerText = title;
+    document.getElementById("modalTitle").innerHTML = title;
     document.getElementById("modalBody").innerHTML = bodyHtml;
     document.getElementById("modalActions").innerHTML = actionHtml;
     document.getElementById("appModal").classList.add("open");
 }
+
 
 function toggleSignElement(btn) {
     if (!btn) return;
@@ -630,6 +631,7 @@ function renderGame(isSyncUpdate = false) {
     let modeTextInfo = state.currentGame.rated === false ? ' (Ungewertet)' : '';
     let statusText = state.currentGame.mode === 'round' ? `${state.currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${state.currentGame.name}${modeTextInfo}`;
 
+    // --- LOGIK FÜR CANASTA & FEHLENDE PUNKTE BIS ZUM GOAL/LIMIT ---
     const getCanastaPill = (totalPoints) => {
         if (state.currentGame.gameTypeId !== "canasta") return "";
         let req = 50;
@@ -639,6 +641,31 @@ function renderGame(isSyncUpdate = false) {
         return `<span style="font-size: 11px; font-weight: 700; background: #eedffc; color: #7c3aed; padding: 2px 6px; border-radius: 6px; margin-left: 6px; border: 1px solid rgba(124, 58, 237, 0.2);">📋 Min: ${req}</span>`;
     };
 
+    const getRemainingPointsBadge = (totalPoints) => {
+        const rules = state.currentGame.rules;
+        if (!rules || rules.endTriggerPoints === null) return "";
+
+        const target = rules.endTriggerPoints;
+        const isLowest = rules.winCondition === "lowest";
+
+        if (isLowest) {
+            // z.B. Cabo (101) oder Skyjo (100)
+            const margin = target - totalPoints;
+            if (margin <= 0) {
+                return `<span style="font-size: 10px; font-weight: 700; background: var(--danger-light); color: var(--danger); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">Limit überschritten!</span>`;
+            }
+            return `<span style="font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">${margin} Pkt. bis Limit</span>`;
+        } else {
+            // z.B. Flip 7 (200) oder Canasta (5000)
+            const needed = target - totalPoints;
+            if (needed <= 0) {
+                return `<span style="font-size: 10px; font-weight: 700; background: var(--success-light); color: var(--success); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">Ziel erreicht!</span>`;
+            }
+            return `<span style="font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">noch ${needed} Pkt.</span>`;
+        }
+    };
+
+    // --- PARTIELLES RE-RENDERING BEI FAST-SYNC ---
     if (state.lastRenderedGameId === state.currentGame.id && document.getElementById("gameStatusLabel")) {
         document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
         
@@ -647,7 +674,7 @@ function renderGame(isSyncUpdate = false) {
             
             let metaBox = document.getElementById(`meta_${p.id}`);
             if (metaBox) {
-                metaBox.innerHTML = `<span>${p.name}</span>${getCanastaPill(p.total)}${isLeading ? '<span>👑</span>' : ''}`;
+                metaBox.innerHTML = `<span>${p.name}</span>${getCanastaPill(p.total)}${getRemainingPointsBadge(p.total)}${isLeading ? '<span>👑</span>' : ''}`;
             }
             
             let totalBadge = document.getElementById(`total_${p.id}`);
@@ -726,6 +753,7 @@ function renderGame(isSyncUpdate = false) {
                     <div class="player-meta" id="meta_${p.id}">
                         <span>${p.name}</span>
                         ${getCanastaPill(p.total)}
+                        ${getRemainingPointsBadge(p.total)}
                         ${isLeading ? '<span>👑</span>' : ''}
                     </div>
                     <div class="total-badge" id="total_${p.id}">${p.total} Pkt</div>
@@ -817,7 +845,10 @@ function renderGame(isSyncUpdate = false) {
             if(sd) instantScrollToContainerEnd(sd);
         });
     }, 40);
+
+    updateDealerUI();
 }
+
 
 function showGameRulesModal() {
     if (!state.currentGame || !state.currentGame.rules || !state.currentGame.rules.descriptionLong) return;
@@ -904,9 +935,18 @@ async function addRoundRow() {
     });
     
     checkGameRulesAndLimits();
+    
+    // Geber weiterschalten UND UI sofort updaten:
+    if (typeof state.currentGame.dealerIndex !== "number") {
+        state.currentGame.dealerIndex = 0;
+    }
+    state.currentGame.dealerIndex = (state.currentGame.dealerIndex + 1) % state.currentGame.players.length;
+    updateDealerUI();
+
     await apiSave('currentGame', state.currentGame);
     renderGame(true); 
 }
+
 
 async function addSingleScore(playerId) {
     let input = document.getElementById("inp_" + playerId);
@@ -1196,9 +1236,48 @@ function showResult(gameData) {
             </div>`;
     });
 
-    html += `<button style="margin-top:14px;" onclick="newGame()">Hauptmenü</button></div>`;
+    html += `
+    <button style="margin-top:14px;" onclick="startRematch()">🔄 Revanche starten</button>
+    <button class="secondary" style="margin-top:8px;" onclick="newGame()">Hauptmenü</button>
+    </div>`;
+
     document.getElementById("gameContent").innerHTML = html;
 }
+
+async function startRematch() {
+    // Falls das eben beendete Spiel noch in der Historie ist, nehmen wir das aktuellste
+    const lastGame = state.games[state.games.length - 1];
+    if (!lastGame) {
+        newGame();
+        return;
+    }
+
+    state.isSettingUpGame = false;
+    state.lastRenderedGameId = null;
+
+    // Erstelle ein neues Spiel mit exakt denselben Parametern
+    state.currentGame = {
+        id: Date.now(),
+        gameTypeId: lastGame.gameTypeId,
+        name: lastGame.name,
+        mode: lastGame.mode,
+        rated: lastGame.rated,
+        date: new Date().toLocaleDateString("de-DE"),
+        rules: lastGame.rules,
+        players: lastGame.players.map(p => ({
+            id: p.id,
+            name: p.name,
+            isTeam: p.isTeam || false,
+            playerIds: [...(p.playerIds || [p.id])],
+            rounds: [],
+            total: 0
+        }))
+    };
+
+    await apiSave('currentGame', state.currentGame);
+    renderGame();
+}
+
 
 async function newGame() {
     state.currentGame = null;
@@ -1287,10 +1366,13 @@ function triggerShowAllHistory() {
     renderHistory();
 }
 
+let activeHistoryGameId = null;
+
 function viewGameDetails(gameId) {
     let g = state.games.find(x => x.id === gameId);
     if(!g) return;
 
+    activeHistoryGameId = gameId;
     let highestScore = Math.max(...g.players.map(p => p.total));
     let anyRoundsPlayed = g.players.some(p => p.rounds && p.rounds.length > 0);
     let modeTextInfo = g.rated === false ? 'Freundschaftsspiel' : 'Gewertetes Match';
@@ -1352,11 +1434,14 @@ function viewGameDetails(gameId) {
 
     html += `</div>`;
     
+    // Titel als HTML-String für innerHTML
+    let modalTitle = `<span style="display:flex; align-items:center; gap:8px;">📊 ${g.name} <button class="icon-btn edit-btn" style="width:28px; height:28px; font-size:12px; flex-shrink:0;" onclick="triggerRenameHistoryGame(${g.id})" title="Spielnamen ändern">✏️</button></span>`;
+
     let actions = `
         <button class="secondary" onclick="closeModal()" style="flex:1">Schließen</button>
         <button class="red" onclick="triggerDeleteHistoryGame(${g.id})" style="width:auto; padding:0 14px; background:var(--danger-light); color:var(--danger);">🗑️ Löschen</button>`;
     
-    openModal(`📊 ${g.name}`, html, actions);
+    openModal(modalTitle, html, actions);
 
     setTimeout(() => {
         g.players.forEach(p => {
@@ -1365,6 +1450,45 @@ function viewGameDetails(gameId) {
         });
     }, 50);
 }
+
+function triggerRenameHistoryGame(gameId) {
+    let g = state.games.find(x => x.id === gameId);
+    if (!g) return;
+    
+    activeHistoryGameId = gameId;
+    closeModal();
+
+    setTimeout(() => {
+        let body = `
+            <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Gib einen neuen Namen für das Spiel ein:</p>
+            <input id="historyRenameInput" value="${g.name}" placeholder="z.B. Spieleabend Runde 1...">
+        `;
+        let actions = `
+            <button class="secondary" onclick="viewGameDetails(${gameId})">Abbrechen</button>
+            <button onclick="submitRenameHistoryGame()">Speichern ✓</button>
+        `;
+        openModal("✏️ Spielnamen ändern", body, actions);
+    }, 200);
+}
+
+async function submitRenameHistoryGame() {
+    let inputEl = document.getElementById("historyRenameInput");
+    if (!inputEl) return;
+
+    let newName = inputEl.value.trim();
+    if (newName && activeHistoryGameId) {
+        let g = state.games.find(x => x.id === activeHistoryGameId);
+        if (g) {
+            g.name = newName;
+            await apiSave('games', state.games);
+            renderHistory();
+            viewGameDetails(activeHistoryGameId);
+            return;
+        }
+    }
+    closeModal();
+}
+
 
 async function submitDeleteHistoryGame() {
     if(activeHistoryDeleteId) {
@@ -1608,6 +1732,475 @@ async function initApp() {
     startLiveSync(); 
 }
 
+// ===============================
+// TOOLBAR & TIMER ENGINE
+// ===============================
+let timerInterval = null;
+let timerSecondsLeft = 0;
+let isTimerExpired = false; // Flag um abgelaufenen Zustand zu erkennen
+
+function toggleTimerMenu() {
+    // Wenn der Timer läuft ODER abgelaufen ist: Beim Klick zurücksetzen & beenden
+    if (timerInterval || isTimerExpired) {
+        stopTimer();
+        return;
+    }
+
+    let body = `
+        <p style="color:var(--muted); font-size:14px; margin-bottom:14px;">Wähle die Zeitdauer für den Zug-Timer:</p>
+        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
+            <button class="secondary" onclick="startTimer(30)">30 Sek</button>
+            <button class="secondary" onclick="startTimer(60)">1 Min</button>
+            <button class="secondary" onclick="startTimer(120)">2 Min</button>
+            <button class="secondary" onclick="startTimer(180)">3 Min</button>
+            <button class="secondary" onclick="startTimer(300)">5 Min</button>
+        </div>
+    `;
+    let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button>`;
+    openModal("⏱️ Zug-Timer starten", body, actions);
+}
+
+function startTimer(seconds) {
+    closeModal();
+    stopTimer();
+
+    isTimerExpired = false;
+    timerSecondsLeft = seconds;
+    updateTimerUI();
+
+    timerInterval = setInterval(() => {
+        timerSecondsLeft--;
+        updateTimerUI();
+
+        if (timerSecondsLeft <= 0) {
+            clearInterval(timerInterval);
+            timerInterval = null;
+            onTimerExpired();
+        }
+    }, 1000);
+}
+
+function stopTimer() {
+    if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+    }
+    isTimerExpired = false;
+
+    const btn = document.getElementById("timerToolBtn");
+    const label = document.getElementById("timerLabel");
+    if (btn && label) {
+        label.innerText = "Timer";
+        btn.classList.remove("timer-active", "timer-expired");
+    }
+}
+
+function updateTimerUI() {
+    const btn = document.getElementById("timerToolBtn");
+    const label = document.getElementById("timerLabel");
+    if (!btn || !label) return;
+
+    btn.classList.add("timer-active");
+    btn.classList.remove("timer-expired");
+
+    let mins = Math.floor(timerSecondsLeft / 60);
+    let secs = timerSecondsLeft % 60;
+    let formattedSecs = secs < 10 ? `0${secs}` : secs;
+
+    label.innerText = mins > 0 ? `${mins}:${formattedSecs}` : `${secs}s`;
+}
+
+function onTimerExpired() {
+    isTimerExpired = true; // Markiert, dass der Timer abgelaufen ist
+
+    const btn = document.getElementById("timerToolBtn");
+    const label = document.getElementById("timerLabel");
+    if (btn && label) {
+        label.innerText = "Zeit um!";
+        btn.classList.remove("timer-active");
+        btn.classList.add("timer-expired");
+    }
+
+    // Smartphone Vibration (falls unterstützt)
+    if ("vibrate" in navigator) {
+        navigator.vibrate([200, 100, 200]);
+    }
+
+    // Sanfter Piepton über Web Audio API
+    try {
+        let ctx = new (window.AudioContext || window.webkitAudioContext)();
+        let osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(587.33, ctx.currentTime);
+        osc.connect(ctx.destination);
+        osc.start();
+        osc.stop(ctx.currentTime + 0.4);
+    } catch (e) {
+        console.log("Audio nicht unterstützt:", e);
+    }
+}
+
+// ===============================
+// IN-GAME STARTSPIELER-SELEKTOR
+// ===============================
+
+// 1. Öffnet das Auswahl-Modal mit allen Mitspielern
+function openStartPlayerSelectorModal() {
+    if (!state.currentGame || !state.currentGame.players || state.currentGame.players.length < 2) {
+        alert("Es muss zuerst ein aktives Spiel mit mindestens 2 Spielern laufen!");
+        return;
+    }
+
+    const players = state.currentGame.players;
+
+    let body = `
+        <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Wähle den Startspieler manuell oder starte den Zufallsgenerator:</p>
+        
+        <div id="startPlayerList" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+            ${players.map(p => `
+                <div class="select-card start-player-card" data-id="${p.id}" onclick="selectStartPlayerDirectly(${p.id})" style="margin-bottom:0; padding:12px;">
+                    <div class="player-left">
+                        <div class="avatar" style="width:30px; height:30px; font-size:11px;">${p.isTeam ? '👥' : p.name.substring(0,2).toUpperCase()}</div>
+                        <strong class="start-player-name">${p.name}</strong>
+                    </div>
+                </div>
+            `).join('')}
+        </div>
+    `;
+
+    let actions = `
+        <button class="secondary" onclick="closeModal()">Abbrechen</button>
+        <button id="randomRollBtn" onclick="runStartPlayerAnimation()">🎰 Zufall</button>
+    `;
+
+    openModal("🎲 Startspieler bestimmen", body, actions);
+}
+
+// 2. Direkt-Auswahl per Klick auf einen Namen
+function selectStartPlayerDirectly(playerId) {
+    applyNewStartPlayer(playerId);
+}
+
+// 3. Animation für den Zufalls-Generator (Roulette-Effekt)
+// Animation für den Zufalls-Generator (Roulette-Effekt)
+function runStartPlayerAnimation() {
+    const cards = [...document.querySelectorAll(".start-player-card")];
+    const rollBtn = document.getElementById("randomRollBtn");
+    if (cards.length < 2) return;
+
+    if (rollBtn) rollBtn.disabled = true;
+
+    let currentIdx = 0;
+    let speed = 70;  // Start-Geschwindigkeit in ms
+    let rounds = 0;
+    const totalRounds = 16 + Math.floor(Math.random() * 8); // Anzahl der Sprünge
+
+    function highlightNext() {
+        // Alle abwählen
+        cards.forEach(c => {
+            c.classList.remove("selected");
+            c.style.borderColor = "";
+            c.style.background = "";
+        });
+        
+        // Aktuellen hervorheben
+        cards[currentIdx].classList.add("selected");
+
+        // Kurze Vibration bei jedem "Tick" (falls vom Handy unterstützt)
+        if ("vibrate" in navigator) {
+            navigator.vibrate(20);
+        }
+
+        rounds++;
+        if (rounds < totalRounds) {
+            currentIdx = (currentIdx + 1) % cards.length;
+            speed += 18; // Animation wird am Ende spürbar langsamer
+            setTimeout(highlightNext, speed);
+        } else {
+            // Auslosung beendet -> Gewinner-Karte optisch hervorheben
+            const winnerCard = cards[currentIdx];
+            const winnerId = Number(winnerCard.getAttribute("data-id"));
+
+            winnerCard.classList.remove("selected");
+            winnerCard.style.background = "var(--success-light)";
+            winnerCard.style.borderColor = "var(--success)";
+            
+            // Text des Gewinners leicht betonen
+            const nameEl = winnerCard.querySelector(".start-player-name");
+            if (nameEl) nameEl.innerHTML += " 👑";
+
+            // Erfolgs-Vibration
+            if ("vibrate" in navigator) {
+                navigator.vibrate([100, 50, 100]);
+            }
+
+            // 1,5 Sekunden warten, damit man den Gewinner klar sieht, bevor geschlossen wird
+            setTimeout(() => {
+                applyNewStartPlayer(winnerId);
+            }, 1500);
+        }
+    }
+
+    highlightNext();
+}
+
+// Wendet die neue Reihenfolge an und speichert
+async function applyNewStartPlayer(playerId) {
+    const players = state.currentGame.players;
+    const targetIdx = players.findIndex(p => p.id === playerId);
+    if (targetIdx === -1) return;
+
+    // Reihenfolge der Spieler rotieren (Gewinner nach ganz oben)
+    state.currentGame.players = [
+        ...players.slice(targetIdx),
+        ...players.slice(0, targetIdx)
+    ];
+
+    state.lastRenderedGameId = null; // Erzwingt frisches Re-Rendering der Zeilen
+    await apiSave('currentGame', state.currentGame);
+    renderGame();
+    closeModal();
+}
+
+
+// ===============================
+// GEBER / DEALER ENGINE
+// ===============================
+
+function updateDealerUI() {
+    const label = document.getElementById("dealerLabel");
+    if (!label) return;
+
+    if (!state.currentGame || !state.currentGame.players || state.currentGame.players.length === 0) {
+        label.innerText = "Geber: --";
+        return;
+    }
+
+    if (typeof state.currentGame.dealerIndex !== "number") {
+        state.currentGame.dealerIndex = 0;
+    }
+
+    if (state.currentGame.dealerIndex >= state.currentGame.players.length) {
+        state.currentGame.dealerIndex = 0;
+    }
+
+    const currentDealer = state.currentGame.players[state.currentGame.dealerIndex];
+    if (currentDealer) {
+        label.innerText = `Geber: ${currentDealer.name}`;
+    }
+}
+
+async function advanceDealer() {
+    if (!state.currentGame || !state.currentGame.players || state.currentGame.players.length === 0) return;
+
+    if (typeof state.currentGame.dealerIndex !== "number") {
+        state.currentGame.dealerIndex = 0;
+    }
+
+    state.currentGame.dealerIndex = (state.currentGame.dealerIndex + 1) % state.currentGame.players.length;
+    
+    // Sofort die UI im DOM aktualisieren!
+    updateDealerUI();
+    
+    await apiSave('currentGame', state.currentGame);
+}
+
+async function rotateDealerManually() {
+    if (!state.currentGame || !state.currentGame.players || state.currentGame.players.length === 0) {
+        alert("Es muss zuerst ein aktives Spiel laufen!");
+        return;
+    }
+
+    await advanceDealer();
+
+    if ("vibrate" in navigator) {
+        navigator.vibrate(30);
+    }
+}
+// ===============================
+// WÜRFELBECHER ENGINE
+// ===============================
+let selectedDiceType = 6;  // Standard: W6
+let selectedDiceCount = 1; // Standard: 1 Würfel
+
+function openDiceModal() {
+    let body = `
+        <div style="text-align:center; margin-bottom:16px;">
+            <div id="diceDisplayBox" style="display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; min-height:80px; margin:10px 0;">
+                <!-- Wird dynamisch befüllt -->
+            </div>
+            <div id="diceTotalLabel" style="font-size:14px; font-weight:700; color:var(--muted); height:20px;">Bereit zum Würfeln!</div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+            <span style="font-size:12px; font-weight:700; color:var(--muted); display:block; margin-bottom:6px;">WÜRFELTYP</span>
+            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px;">
+                <button class="secondary" id="dtype_4" onclick="setDiceType(4)" style="height:34px; font-size:12px; padding:0;">W4</button>
+                <button class="secondary" id="dtype_6" onclick="setDiceType(6)" style="height:34px; font-size:12px; padding:0;">W6</button>
+                <button class="secondary" id="dtype_8" onclick="setDiceType(8)" style="height:34px; font-size:12px; padding:0;">W8</button>
+                <button class="secondary" id="dtype_10" onclick="setDiceType(10)" style="height:34px; font-size:12px; padding:0;">W10</button>
+                <button class="secondary" id="dtype_12" onclick="setDiceType(12)" style="height:34px; font-size:12px; padding:0;">W12</button>
+                <button class="secondary" id="dtype_20" onclick="setDiceType(20)" style="height:34px; font-size:12px; padding:0;">W20</button>
+                <button class="secondary" id="dtype_50" onclick="setDiceType(50)" style="height:34px; font-size:12px; padding:0;">W50</button>
+                <button class="secondary" id="dtype_100" onclick="setDiceType(100)" style="height:34px; font-size:12px; padding:0;">W100</button>
+            </div>
+        </div>
+
+        <div style="margin-bottom:16px;">
+            <span style="font-size:12px; font-weight:700; color:var(--muted); display:block; margin-bottom:6px;">ANZAHL (1-5)</span>
+            <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px;">
+                <button class="secondary" id="dcount_1" onclick="setDiceCount(1)" style="height:34px; font-size:12px; padding:0;">1x</button>
+                <button class="secondary" id="dcount_2" onclick="setDiceCount(2)" style="height:34px; font-size:12px; padding:0;">2x</button>
+                <button class="secondary" id="dcount_3" onclick="setDiceCount(3)" style="height:34px; font-size:12px; padding:0;">3x</button>
+                <button class="secondary" id="dcount_4" onclick="setDiceCount(4)" style="height:34px; font-size:12px; padding:0;">4x</button>
+                <button class="secondary" id="dcount_5" onclick="setDiceCount(5)" style="height:34px; font-size:12px; padding:0;">5x</button>
+            </div>
+        </div>
+    `;
+
+    let actions = `
+        <button class="secondary" onclick="closeModal()">Schließen</button>
+        <button id="rollDiceBtn" onclick="rollDiceAnimation()">🎲 Würfeln!</button>
+    `;
+
+    openModal("🎲 Würfelbecher", body, actions);
+
+    // Initial-Darstellung anhand der gewählten Werte rendern
+    setDiceType(selectedDiceType);
+    setDiceCount(selectedDiceCount);
+}
+
+function updateDicePreview() {
+    const displayBox = document.getElementById("diceDisplayBox");
+    const totalLabel = document.getElementById("diceTotalLabel");
+    if (!displayBox) return;
+
+    const boxSize = selectedDiceCount >= 4 ? '52px' : '60px';
+    const fontSize = selectedDiceCount >= 4 ? '26px' : '32px';
+
+    let html = '';
+    for (let i = 0; i < selectedDiceCount; i++) {
+        html += `
+            <div style="font-size:${fontSize}; background:var(--bg); border:2px dashed var(--border); border-radius:var(--radius-md); width:${boxSize}; height:${boxSize}; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--muted);">
+                ?
+            </div>
+        `;
+    }
+
+    displayBox.innerHTML = html;
+    if (totalLabel) {
+        totalLabel.innerText = `Bereit für ${selectedDiceCount}x W${selectedDiceType}!`;
+    }
+}
+
+function setDiceType(type) {
+    selectedDiceType = type;
+    [4, 6, 8, 10, 12, 20, 50, 100].forEach(t => {
+        const btn = document.getElementById(`dtype_${t}`);
+        if (btn) {
+            btn.style.borderColor = t === type ? 'var(--primary)' : 'var(--border)';
+            btn.style.background = t === type ? 'var(--primary-light)' : 'var(--card)';
+            btn.style.color = t === type ? 'var(--primary)' : 'var(--text)';
+        }
+    });
+    updateDicePreview();
+}
+
+function setDiceCount(count) {
+    selectedDiceCount = count;
+    [1, 2, 3, 4, 5].forEach(c => {
+        const btn = document.getElementById(`dcount_${c}`);
+        if (btn) {
+            btn.style.borderColor = c === count ? 'var(--primary)' : 'var(--border)';
+            btn.style.background = c === count ? 'var(--primary-light)' : 'var(--card)';
+            btn.style.color = c === count ? 'var(--primary)' : 'var(--text)';
+        }
+    });
+    updateDicePreview();
+}
+
+function rollDiceAnimation() {
+    const displayBox = document.getElementById("diceDisplayBox");
+    const totalLabel = document.getElementById("diceTotalLabel");
+    const rollBtn = document.getElementById("rollDiceBtn");
+    if (!displayBox) return;
+
+    if (rollBtn) rollBtn.disabled = true;
+
+    let rollsLeft = 12;
+    let speed = 60;
+
+    function shake() {
+        let tempResults = [];
+        let tempSum = 0;
+
+        for (let i = 0; i < selectedDiceCount; i++) {
+            let val = Math.floor(Math.random() * selectedDiceType) + 1;
+            tempResults.push(val);
+            tempSum += val;
+        }
+
+        const fontSize = selectedDiceType >= 100 ? '22px' : (selectedDiceCount >= 4 ? '26px' : '32px');
+        const boxSize = selectedDiceCount >= 4 ? '52px' : '60px';
+
+        displayBox.innerHTML = tempResults.map(v => `
+            <div style="font-size:${fontSize}; background:var(--bg); border:2px solid var(--primary); border-radius:var(--radius-md); width:${boxSize}; height:${boxSize}; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--primary); transform: rotate(${(Math.random() * 16) - 8}deg);">
+                ${v}
+            </div>
+        `).join('');
+
+        if (totalLabel) {
+            totalLabel.innerText = selectedDiceCount > 1 ? `Gesamtsumme: ${tempSum}` : `Ergebnis: ${tempSum}`;
+        }
+
+        if ("vibrate" in navigator) {
+            navigator.vibrate(15);
+        }
+
+        rollsLeft--;
+        if (rollsLeft > 0) {
+            speed += 12;
+            setTimeout(shake, speed);
+        } else {
+            if (rollBtn) rollBtn.disabled = false;
+            
+            if ("vibrate" in navigator) {
+                navigator.vibrate([40, 30, 40]);
+            }
+        }
+    }
+
+    shake();
+}
+
+// Global registrieren
+window.openDiceModal = openDiceModal;
+window.setDiceType = setDiceType;
+window.setDiceCount = setDiceCount;
+window.rollDiceAnimation = rollDiceAnimation;
+
+
+
+// Global registrieren
+window.updateDealerUI = updateDealerUI;
+window.rotateDealerManually = rotateDealerManually;
+window.advanceDealer = advanceDealer;
+
+
+
+// Global registrieren
+window.updateDealerUI = updateDealerUI;
+window.rotateDealerManually = rotateDealerManually;
+
+
+// Global registrieren
+window.openStartPlayerSelectorModal = openStartPlayerSelectorModal;
+window.selectStartPlayerDirectly = selectStartPlayerDirectly;
+window.runStartPlayerAnimation = runStartPlayerAnimation;
+
+
+
+
 // Global für HTML-Onclick registrieren
 window.toggleTheme = toggleTheme;
 window.openPlayerProfileModal = openPlayerProfileModal;
@@ -1654,5 +2247,12 @@ window.showGameRulesModal = showGameRulesModal;
 window.openTeamBuilderModal = openTeamBuilderModal;
 window.submitTeamBuilderModal = submitTeamBuilderModal;
 window.removeSingleTeam = removeSingleTeam;
+window.triggerRenameHistoryGame = triggerRenameHistoryGame;
+window.submitRenameHistoryGame = submitRenameHistoryGame;
+window.startRematch = startRematch;
+window.toggleTimerMenu = toggleTimerMenu;
+window.startTimer = startTimer;
+window.stopTimer = stopTimer;
+
 
 initApp();
