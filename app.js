@@ -2440,13 +2440,6 @@ window.updateDealerUI = updateDealerUI;
 window.rotateDealerManually = rotateDealerManually;
 window.advanceDealer = advanceDealer;
 
-
-
-// Global registrieren
-window.updateDealerUI = updateDealerUI;
-window.rotateDealerManually = rotateDealerManually;
-
-
 // Global registrieren
 window.openStartPlayerSelectorModal = openStartPlayerSelectorModal;
 window.selectStartPlayerDirectly = selectStartPlayerDirectly;

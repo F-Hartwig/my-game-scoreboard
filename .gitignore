@@ -1,0 +1,12 @@
+# Dependencies
+node_modules/
+
+# Runtime data
+scoreboard.db
+scoreboard.db-shm
+scoreboard.db-wal
+data/
+
+# Local tooling and operating-system files
+.DS_Store
+*.log

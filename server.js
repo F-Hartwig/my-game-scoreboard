@@ -1,17 +1,31 @@
 const express = require('express');
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
-const fs = require('fs'); // Hinzugefügt, um Ordnerstrukturen zu prüfen
 const app = express();
-const PORT = 3000;
+const PORT = Number(process.env.PORT) || 3000;
+const HOST = process.env.HOST || '0.0.0.0';
+const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'scoreboard.db');
+const PRIVATE_FILES = new Set([
+    'server.js',
+    path.basename(DB_PATH),
+    `${path.basename(DB_PATH)}-shm`,
+    `${path.basename(DB_PATH)}-wal`
+]);
 
+app.disable('x-powered-by');
 app.use(express.json());
 
-// Liefert HTML, CSS und JS direkt aus dem aktuellen Ordner aus
+// Kompatibel mit dem bestehenden NAS- und lokalen Vorschau-Ablauf.
+app.use((req, res, next) => {
+    if (PRIVATE_FILES.has(path.basename(req.path))) {
+        return res.sendStatus(404);
+    }
+    next();
+});
 app.use(express.static(__dirname));
 
 // DB liegt direkt neben den Skripten
-const db = new sqlite3.Database(path.join(__dirname, 'scoreboard.db'), (err) => {
+const db = new sqlite3.Database(DB_PATH, (err) => {
     if (err) console.error(err.message);
     console.log('Verbunden mit der SQLite-Datenbank.');
 });
@@ -60,6 +74,6 @@ app.post('/api/currentGame', (req, res) => {
 });
 
 // Lauscht auf 0.0.0.0, damit alle Geräte im WLAN/NAS-Netzwerk zugreifen können
-app.listen(PORT, '0.0.0.0', () => {
+app.listen(PORT, HOST, () => {
     console.log(`Scoreboard-Server läuft auf http://localhost:${PORT}`);
 });
