@@ -1,0 +1,47 @@
+name: scorebuddy-staging
+
+services:
+  scoreboard-staging:
+    image: node:18-alpine
+    container_name: game-scoreboard-staging
+    working_dir: /app
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3000
+      DB_PATH: /data/scoreboard.db
+      NODE_ENV: production
+      TZ: Europe/Berlin
+    volumes:
+      - ./app:/app
+      - ./data:/data
+    ports:
+      - "8086:3000"
+    command: >
+      sh -c "
+      apk add --no-cache git &&
+      git config --global --add safe.directory /app &&
+      if [ ! -d /app/.git ]; then
+        echo 'Staging: Klone Branch staging...' &&
+        git clone --branch staging --single-branch https://github.com/F-Hartwig/my-game-scoreboard.git /app;
+      else
+        echo 'Staging: Aktualisiere Branch staging...' &&
+        git -C /app fetch origin staging &&
+        git -C /app reset --hard origin/staging;
+      fi &&
+      if [ ! -d /app/node_modules/express ] || [ ! -d /app/node_modules/sqlite3 ]; then
+        npm install --no-save express sqlite3;
+      fi &&
+      exec node server.js
+      "
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://127.0.0.1:3000/ || exit 1"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 120s
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
