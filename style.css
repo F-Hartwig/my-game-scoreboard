@@ -1306,46 +1306,132 @@ select option {
 .wizard-turn-card {
     margin-bottom: 12px;
     padding: 12px 14px;
-    display: grid;
-    grid-template-columns: 1fr auto;
-    gap: 2px 12px;
+    display: flex;
+    gap: 12px;
     align-items: center;
+    justify-content: space-between;
     color: var(--text);
     background: var(--primary-light);
     border: 1px solid rgba(111, 154, 255, 0.2);
     border-radius: var(--radius-md);
 }
 
-.wizard-turn-card span {
+.wizard-turn-copy {
+    min-width: 0;
+}
+
+.wizard-turn-copy span {
+    display: block;
     color: var(--muted);
     font-size: 11px;
     font-weight: 680;
 }
 
-.wizard-turn-card strong {
-    grid-column: 2;
-    grid-row: 1 / span 2;
+.wizard-turn-copy strong {
+    display: block;
+    margin-top: 2px;
     color: var(--primary);
     font-size: 16px;
     font-weight: 800;
-    text-align: right;
+    overflow-wrap: anywhere;
 }
 
-.wizard-turn-card small {
+.wizard-turn-copy small {
+    display: block;
+    margin-top: 2px;
     color: var(--muted);
     font-size: 10px;
     font-weight: 600;
 }
 
 .wizard-turn-card-modal {
-    margin-bottom: 14px;
+    margin-bottom: 12px;
+    padding: 11px 12px;
+}
+
+.wizard-change-turn-btn {
+    width: auto;
+    min-height: 34px;
+    padding: 0 11px;
+    flex: 0 0 auto;
+    color: var(--primary);
+    background: rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(111, 154, 255, 0.2);
+    border-radius: 11px;
+    box-shadow: none;
+    font-size: 11px;
+    font-weight: 760;
+}
+
+.wizard-modal {
+    max-width: 400px;
+    padding: 18px;
+    border-radius: 24px;
+}
+
+.wizard-modal > .title {
+    margin-bottom: 7px;
+    font-size: 18px;
+}
+
+.wizard-modal-intro {
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: 12px;
+    font-weight: 620;
+    line-height: 1.4;
+}
+
+.wizard-player-list,
+.wizard-starter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.wizard-player-card {
+    padding: 10px 11px;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: 16px;
 }
 
 .wizard-player-heading {
-    margin-bottom: 7px;
+    min-width: 0;
+    margin-bottom: 6px;
     display: flex;
     align-items: center;
     gap: 6px;
+}
+
+.wizard-player-heading > strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.wizard-input-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.wizard-input-field span {
+    display: block;
+    margin: 0 0 4px 2px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 680;
+}
+
+.wizard-input-field input {
+    height: 40px;
+    padding: 0 8px;
+    text-align: center;
+    font-size: 17px;
+    font-weight: 780;
+    transition: border-color 0.2s ease, background 0.2s ease;
 }
 
 .wizard-order-badge {
@@ -1360,6 +1446,70 @@ select option {
 .wizard-order-badge.secondary {
     color: var(--muted);
     background: var(--card-raised);
+}
+
+.wizard-starter-option {
+    width: 100%;
+    min-height: 58px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    color: var(--text);
+    text-align: left;
+    background: var(--surface-soft);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    box-shadow: none;
+}
+
+.wizard-starter-option.selected {
+    background: var(--primary-light);
+    border-color: rgba(111, 154, 255, 0.28);
+}
+
+.wizard-starter-option strong,
+.wizard-starter-option small {
+    display: block;
+}
+
+.wizard-starter-option strong {
+    font-size: 14px;
+}
+
+.wizard-starter-option small {
+    margin-top: 2px;
+    color: var(--muted);
+    font-size: 10px;
+    font-weight: 600;
+}
+
+.wizard-starter-status {
+    flex: 0 0 auto;
+    color: var(--primary);
+    font-size: 10px;
+    font-weight: 760;
+}
+
+.wizard-inline-error {
+    display: none;
+    margin-top: 10px;
+    padding: 9px 10px;
+    color: var(--danger);
+    background: var(--danger-light);
+    border-radius: 11px;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+}
+
+.wizard-modal #modalActions {
+    position: sticky;
+    bottom: -18px;
+    margin-inline: -3px;
+    padding: 12px 3px 3px;
+    background: linear-gradient(180deg, transparent, var(--card-raised) 26%);
 }
 
 .history-card-date {

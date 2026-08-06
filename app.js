@@ -111,10 +111,12 @@ async function navigate(pageId, element) {
 // ===============================
 // MODAL ENGINE
 // ===============================
-function openModal(title, bodyHtml, actionHtml) {
+function openModal(title, bodyHtml, actionHtml, modalClass = "") {
+    const modal = document.querySelector("#appModal .modal");
     document.getElementById("modalTitle").innerHTML = title;
     document.getElementById("modalBody").innerHTML = bodyHtml;
     document.getElementById("modalActions").innerHTML = actionHtml;
+    if (modal) modal.className = `modal ${modalClass}`.trim();
     document.getElementById("appModal").classList.add("open");
 }
 
@@ -899,9 +901,11 @@ function renderGame(isSyncUpdate = false) {
                 <div class="title">Wizard Rundenwertung</div>
                 <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Runde ${wizardRoundInfo.currentRound} von ${wizardRoundInfo.maxRounds}: Trage die gebotenen und gemachten Stiche ein.</p>
                 <div class="wizard-turn-card">
-                    <span>Beginnt diese Runde</span>
-                    <strong>${wizardTurnInfo.starter?.name || "–"}</strong>
-                    <small>Erste Ansage und erster Stich</small>
+                    <div class="wizard-turn-copy">
+                        <span>Beginnt diese Runde</span>
+                        <strong>${wizardTurnInfo.starter?.name || "–"}</strong>
+                        <small>Erste Ansage und erster Stich</small>
+                    </div>
                 </div>
                 <button onclick="openWizardRoundModal()">Runde ${wizardRoundInfo.currentRound} auswerten</button>
                 <button class="green" style="margin-top: 8px;" onclick="finishGame()">Spiel beenden</button>
@@ -2362,17 +2366,20 @@ function openWizardRoundModal() {
     const draft = state.currentGame.wizardDraft || {};
 
     let body = `
-        <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">
-            Trage für <strong>Runde ${currentRoundNum}</strong> (${currentRoundNum} Karte/n) Ansage & gemachte Stiche ein:
+        <p class="wizard-modal-intro">
+            Runde ${currentRoundNum} · ${currentRoundNum} Karte/n pro Person
         </p>
 
         <div class="wizard-turn-card wizard-turn-card-modal">
-            <span>Beginnt diese Runde</span>
-            <strong>${turnInfo.starter?.name || "–"}</strong>
-            <small>Die Liste folgt der Ansagereihenfolge · Geber: ${turnInfo.dealer?.name || "–"}</small>
+            <div class="wizard-turn-copy">
+                <span>Beginnt diese Runde</span>
+                <strong>${turnInfo.starter?.name || "–"}</strong>
+                <small>Geber: ${turnInfo.dealer?.name || "–"}</small>
+            </div>
+            <button class="wizard-change-turn-btn" onclick="openWizardStarterSelector()">Ändern</button>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:10px;">
+        <div class="wizard-player-list">
             ${turnInfo.orderedPlayers.map((p, orderIndex) => {
                 const pDraft = draft[p.id] || { bid: "", act: "" };
                 // Falls undefined oder null, leeren String nutzen
@@ -2380,21 +2387,21 @@ function openWizardRoundModal() {
                 const actVal = (pDraft.act !== undefined && pDraft.act !== null) ? pDraft.act : "";
 
                 return `
-                    <div style="background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:var(--radius-md);" id="wiz_card_${p.id}">
+                    <div class="wizard-player-card" id="wiz_card_${p.id}">
                         <div class="wizard-player-heading">
                             <strong>${p.name}</strong>
                             ${orderIndex === 0 ? '<span class="wizard-order-badge">Beginnt</span>' : ''}
                             ${p.id === turnInfo.dealer?.id ? '<span class="wizard-order-badge secondary">Geber</span>' : ''}
                         </div>
-                        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-                            <div>
-                                <span style="font-size:11px; color:var(--muted); font-weight:600;">Gefordert (Tipp)</span>
-                                <input type="number" inputmode="numeric" id="wiz_bid_${p.id}" value="${bidVal}" placeholder="0" style="height:38px; text-align:center; font-weight:bold; transition:all 0.2s;" oninput="saveWizardDraft(${p.id})">
-                            </div>
-                            <div>
-                                <span style="font-size:11px; color:var(--muted); font-weight:600;">Gemacht (Stiche)</span>
-                                <input type="number" inputmode="numeric" id="wiz_act_${p.id}" value="${actVal}" placeholder="0" style="height:38px; text-align:center; font-weight:bold; transition:all 0.2s;" oninput="saveWizardDraft(${p.id})">
-                            </div>
+                        <div class="wizard-input-grid">
+                            <label class="wizard-input-field">
+                                <span>Ansage</span>
+                                <input type="number" inputmode="numeric" min="0" max="${currentRoundNum}" step="1" id="wiz_bid_${p.id}" value="${bidVal}" placeholder="0" oninput="saveWizardDraft(${p.id})">
+                            </label>
+                            <label class="wizard-input-field">
+                                <span>Stiche</span>
+                                <input type="number" inputmode="numeric" min="0" max="${currentRoundNum}" step="1" id="wiz_act_${p.id}" value="${actVal}" placeholder="0" oninput="saveWizardDraft(${p.id})">
+                            </label>
                         </div>
                     </div>
                 `;
@@ -2409,7 +2416,66 @@ function openWizardRoundModal() {
         <button id="wizardSubmitBtn" onclick="submitWizardRound()">Runde ${currentRoundNum} auswerten</button>
     `;
 
-    openModal(`Wizard · Runde ${currentRoundNum}`, body, actions);
+    openModal(`Wizard · Runde ${currentRoundNum}`, body, actions, "wizard-modal");
+}
+
+function openWizardStarterSelector() {
+    if (!state.currentGame || state.currentGame.gameTypeId !== "wizard") return;
+
+    const players = state.currentGame.players;
+    const turnInfo = getWizardTurnInfo(state.currentGame);
+    const body = `
+        <p class="wizard-modal-intro">Wähle, wer mit der Ansage beginnt und den ersten Stich eröffnet. Der Geber wird passend dazu gesetzt.</p>
+        <div class="wizard-starter-list">
+            ${players.map((starter, starterIndex) => {
+                const dealer = players[(starterIndex - 1 + players.length) % players.length];
+                const isSelected = starter.id === turnInfo.starter?.id;
+                return `
+                    <button class="wizard-starter-option ${isSelected ? 'selected' : ''}" onclick="setWizardStarter(${starter.id})">
+                        <span>
+                            <strong>${starter.name}</strong>
+                            <small>beginnt · ${dealer.name} gibt</small>
+                        </span>
+                        <span class="wizard-starter-status">${isSelected ? 'Aktuell' : 'Wählen'}</span>
+                    </button>`;
+            }).join('')}
+        </div>
+        <div id="wizardStarterError" class="wizard-inline-error"></div>`;
+    const actions = `<button class="secondary" onclick="openWizardRoundModal()">Zurück</button>`;
+
+    openModal("Start & Geber ändern", body, actions, "wizard-modal wizard-selector-modal");
+}
+
+let isChangingWizardStarter = false;
+
+async function setWizardStarter(starterId) {
+    if (isChangingWizardStarter || !state.currentGame || state.currentGame.gameTypeId !== "wizard") return;
+
+    const players = state.currentGame.players;
+    const starterIndex = players.findIndex(player => player.id === starterId);
+    if (starterIndex < 0) return;
+
+    const previousDealerIndex = state.currentGame.dealerIndex;
+    state.currentGame.dealerIndex = (starterIndex - 1 + players.length) % players.length;
+    isChangingWizardStarter = true;
+
+    const saveSucceeded = await apiSave('currentGame', state.currentGame);
+    isChangingWizardStarter = false;
+
+    if (!saveSucceeded) {
+        state.currentGame.dealerIndex = previousDealerIndex;
+        const errorBox = document.getElementById("wizardStarterError");
+        if (errorBox) {
+            errorBox.innerText = "Start und Geber konnten nicht gespeichert werden. Bitte versuche es erneut.";
+            errorBox.style.display = "block";
+        }
+        return;
+    }
+
+    updateDealerUI();
+    state.lastRenderedGameId = null;
+    renderGame();
+    openWizardRoundModal();
 }
 
 // Setzt Fehler-Markierungen zurück
@@ -2704,6 +2770,8 @@ window.startTimer = startTimer;
 window.stopTimer = stopTimer;
 window.openWizardRoundModal = openWizardRoundModal;
 window.submitWizardRound = submitWizardRound;
+window.openWizardStarterSelector = openWizardStarterSelector;
+window.setWizardStarter = setWizardStarter;
 
 
 initApp();
