@@ -1481,14 +1481,18 @@ function renderHistory() {
 
     gamesToRender.forEach(g => {
         let unratedTag = g.rated === false ? ' <span style="font-size:10px; background:var(--card-raised); color:var(--muted); padding:3px 7px; border:1px solid var(--border-strong); border-radius:999px; font-weight:bold;">Freundschaft</span>' : '';
+        const isDraw = g.winner === "Unentschieden";
         box.innerHTML += `
             <div class="history-card" onclick="viewGameDetails(${g.id})">
-                <div class="history-card-top">
+                <div class="history-card-top match-history-header">
                     <div class="history-card-info">
                         <div class="history-card-date">${g.name}${unratedTag}</div>
                         <div class="history-card-sub">${g.date}</div>
                     </div>
-                    <div class="winner-badge">Gewinner: ${g.winner}</div>
+                    <div class="history-winner-summary ${isDraw ? 'is-draw' : ''}">
+                        <span>${isDraw ? 'Ergebnis' : 'Gewinner'}</span>
+                        <strong>${g.winner}</strong>
+                    </div>
                 </div>
                 <div class="history-card-scores">
                     ${g.players.map(p => {
