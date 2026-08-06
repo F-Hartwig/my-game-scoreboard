@@ -62,16 +62,36 @@ function getWizardTurnInfo(game) {
 // ===============================
 // CORE TIMING & LIVE SYNC
 // ===============================
+let isLiveSyncRunning = false;
+
 function startLiveSync() {
     if(state.autoRefreshInterval) clearInterval(state.autoRefreshInterval);
     state.autoRefreshInterval = setInterval(async () => {
-        if (state.isSettingUpGame || document.getElementById("appModal")?.classList.contains("open")) return;
+        const activeElement = document.activeElement;
+        const isEditingField = activeElement?.matches?.("input, textarea, select");
+        const modalIsOpen = document.getElementById("appModal")?.classList.contains("open");
 
-        await loadAllFromDb();
-        const activePage = document.querySelector(".page.active").id;
-        if (activePage === 'gamePage') renderGame(true); 
-        if (activePage === 'playersPage' && document.activeElement.tagName !== 'INPUT') renderPlayers();
-        if (activePage === 'statsPage') { renderRanking(); renderHistory(); }
+        if (document.hidden || isLiveSyncRunning || state.isSettingUpGame || modalIsOpen || isEditingField) return;
+
+        isLiveSyncRunning = true;
+        try {
+            const changes = await loadAllFromDb();
+            if (!changes?.loaded) return;
+
+            const activePage = document.querySelector(".page.active")?.id;
+            if (activePage === 'gamePage' && (changes.currentGameChanged || changes.activeGamesChanged)) {
+                renderGame(true);
+            }
+            if (activePage === 'playersPage' && changes.playersChanged) {
+                renderPlayers();
+            }
+            if (activePage === 'statsPage' && (changes.playersChanged || changes.gamesChanged)) {
+                renderRanking();
+                renderHistory();
+            }
+        } finally {
+            isLiveSyncRunning = false;
+        }
     }, 2000); 
 }
 

@@ -44,6 +44,7 @@ Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die
 - Beim Löschen einer historischen Partie werden auch negative Punkte mathematisch korrekt zurückgerechnet.
 - API-Fehler und beschädigtes JSON werden kontrolliert behandelt; ein fehlgeschlagener Abruf ersetzt den letzten gültigen Frontend-State nicht mehr durch leere Daten.
 - Die vier regelmäßigen Ladevorgänge laufen parallel. Das SQLite-Schema und der Datenbankpfad wurden nicht verändert.
+- Der Live-Abgleich rendert Seiten nur noch bei tatsächlich geänderten Daten, pausiert bei Texteingaben, offenen Modalen und unsichtbaren Browser-Tabs und verhindert überlappende Aktualisierungen. Beginnt während eines Ladevorgangs ein Speichervorgang, wird die möglicherweise veraltete Ladeantwort verworfen.
 
 ## 1. Ziel und Einsatz
 
