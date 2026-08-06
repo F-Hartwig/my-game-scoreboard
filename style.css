@@ -725,18 +725,50 @@ select option {
 }
 
 .drag-card {
-    cursor: grab;
-    touch-action: none;
-}
-
-.drag-card:active {
-    background: var(--primary-light);
+    cursor: default;
+    touch-action: auto;
 }
 
 .drag-card.dragging {
     opacity: 0.55;
     border: 1px dashed var(--primary);
     box-shadow: 0 14px 34px var(--primary-glow);
+}
+
+.reorder-handle {
+    width: 42px;
+    height: 42px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    position: relative;
+    color: var(--muted);
+    border-radius: 13px;
+    cursor: grab;
+    touch-action: none;
+    transition: color 0.16s ease, background 0.16s ease, transform 0.16s ease;
+}
+
+.reorder-handle::before {
+    content: "";
+    width: 19px;
+    height: 2px;
+    background: currentColor;
+    border-radius: 999px;
+    box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor;
+    opacity: 0.72;
+}
+
+.reorder-handle:hover,
+.reorder-handle:focus-visible {
+    color: var(--primary);
+    background: var(--primary-light);
+    outline: none;
+}
+
+.reorder-handle:active {
+    cursor: grabbing;
+    transform: scale(0.94);
 }
 
 #dragOrderList {

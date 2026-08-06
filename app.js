@@ -190,7 +190,7 @@ function startSetup() {
 
     let html = `
         <div class="card">
-            <div class="title">0. Spiel auswählen</div>
+            <div class="title">Spiel auswählen</div>
             <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
                 ${selectableGames.map(g => `<option value="${g.id}">${g.name}</option>`).join("")}
             </select>
@@ -199,12 +199,12 @@ function startSetup() {
             </p>
 
             <div id="customGameNameContainer" style="display: ${isCustomActive ? 'block' : 'none'}; margin-bottom: 20px;">
-                <div class="title">📝 3. Name des Spiels</div>
+                <div class="title">Name des Spiels</div>
                 <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <div class="title" style="margin:0;">1. Teilnehmer wählen</div>
+                <div class="title" style="margin:0;">Teilnehmer wählen</div>
                 <div class="toggle-container">
                     <button class="toggle-btn active" id="toggleRated" onclick="setRated(true)">Gewertet</button>
                     <button class="toggle-btn" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
@@ -221,13 +221,13 @@ function startSetup() {
 
     html += `
         </div>
-        <div class="title">↕️ 2. Reihenfolge anpassen (ziehen)</div>
+        <div class="title">Reihenfolge festlegen</div>
         <div id="dragOrderList" style="margin-bottom:20px; background:var(--card); border:1px solid var(--border); padding:10px; border-radius:var(--radius-md); min-height:50px;">
             <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Teilnehmer aus, um deren Reihenfolge festzulegen.</p>
         </div>
         
         <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">
-    <div class="title">⚙️ 4. Eingabe-Modus wählen</div>
+    <div class="title">Eingabe-Modus wählen</div>
     <div style="display:grid; gap:10px; margin-bottom:20px;">
         
         <!-- Runden-Modus -->
@@ -452,26 +452,53 @@ function updateDragOrderList() {
         
         let card = document.createElement("div");
         card.className = "drag-card";
-        card.draggable = true;
         card.dataset.id = item.id;
         card.dataset.type = item.type;
         card.innerHTML = `
             <div class="player-left">
-                <span style="color:var(--muted); font-size:14px; margin-right:4px;">↕️</span>
                 <div class="avatar" style="width:28px; height:28px; font-size:10px; ${isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${isTeam ? 'T' : displayName.substring(0,2).toUpperCase()}</div>
                 <strong>${displayName}</strong>
-            </div>`;
-            
-        card.addEventListener('dragstart', () => card.classList.add('dragging'));
-        card.addEventListener('dragend', () => card.classList.remove('dragging'));
+            </div>
+            <span class="reorder-handle" draggable="true" role="button" tabindex="0" aria-label="${displayName} verschieben" title="Reihenfolge ändern"></span>`;
+
+        const reorderHandle = card.querySelector('.reorder-handle');
+
+        reorderHandle.addEventListener('dragstart', (e) => {
+            card.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', String(item.id));
+            if (e.dataTransfer.setDragImage) {
+                e.dataTransfer.setDragImage(card, 24, card.offsetHeight / 2);
+            }
+        });
+        reorderHandle.addEventListener('dragend', () => card.classList.remove('dragging'));
+
+        reorderHandle.addEventListener('keydown', (e) => {
+            if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
+            e.preventDefault();
+
+            if (e.key === 'ArrowUp') {
+                const previousCard = card.previousElementSibling;
+                if (previousCard?.classList.contains('drag-card')) {
+                    dragBox.insertBefore(card, previousCard);
+                }
+            } else {
+                const nextCard = card.nextElementSibling;
+                if (nextCard?.classList.contains('drag-card')) {
+                    dragBox.insertBefore(nextCard, card);
+                }
+            }
+
+            reorderHandle.focus();
+        });
         
-        card.addEventListener('touchstart', (e) => {
+        reorderHandle.addEventListener('touchstart', () => {
             card.classList.add('dragging');
             card.style.opacity = '0.5';
             card.style.transform = 'scale(0.98)';
         }, { passive: true });
 
-        card.addEventListener('touchmove', (e) => {
+        reorderHandle.addEventListener('touchmove', (e) => {
             const dragging = document.querySelector('.dragging');
             if (!dragging) return;
             e.preventDefault(); 
@@ -491,11 +518,14 @@ function updateDragOrderList() {
             }
         }, { passive: false });
 
-        card.addEventListener('touchend', () => {
+        const finishTouchDrag = () => {
             card.classList.remove('dragging');
             card.style.opacity = '1';
             card.style.transform = 'none';
-        });
+        };
+
+        reorderHandle.addEventListener('touchend', finishTouchDrag);
+        reorderHandle.addEventListener('touchcancel', finishTouchDrag);
 
         dragBox.appendChild(card);
     });
@@ -1535,7 +1565,7 @@ function triggerDeleteHistoryGame(gameId) {
     setTimeout(() => {
         let body = `<p style="color:var(--muted)">Möchtest du das spiel <strong>${g.name}</strong> wirklich löschen? Alle Siege und Punkte werden restlos aus der Bestenliste abgezogen!</p>`;
         let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteHistoryGame()">Definitiv löschen</button>`;
-        openModal("⚠️ Spiel unwiderruflich löschen?", body, actions);
+        openModal("Spiel unwiderruflich löschen?", body, actions);
     }, 300);
 }
 
@@ -1552,7 +1582,7 @@ function renderRulesPage() {
 
     gamesWithRules.forEach(g => {
         let pureRulesBadge = g.hideFromSelection 
-            ? `<span style="font-size:11px; font-weight:700; background:var(--card-raised); color:var(--muted); padding:3px 8px; border-radius:999px; margin-left:8px; border:1px solid var(--border-strong); vertical-align:middle;">📖 Nur Regeln</span>`
+            ? `<span style="font-size:11px; font-weight:700; background:var(--card-raised); color:var(--muted); padding:3px 8px; border-radius:999px; margin-left:8px; border:1px solid var(--border-strong); vertical-align:middle;">Nur Regeln</span>`
             : '';
 
         let playBtnHtml = !g.hideFromSelection
