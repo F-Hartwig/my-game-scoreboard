@@ -35,6 +35,7 @@ Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die
 ### Fehlerkorrekturen im V2-Stand
 
 - Wizard zeigt nach dem Speichern zuverlässig die nächste Runde an und beendet die Eingabe nach `floor(60 / Spielerzahl)` Runden.
+- Wizard zeigt die Person an, die links vom aktuellen Geber mit der Ansage beginnt und den ersten Stich eröffnet. Das Eingabefenster sortiert die Spieler automatisch in dieser Ansagereihenfolge.
 - Wizard verhindert doppelte Übermittlungen, Dezimal-/Negativwerte und eine falsche Summe der tatsächlich gemachten Stiche. Die Summe der Ansagen darf entsprechend der verwendeten Spielvariante der Rundenzahl entsprechen.
 - Wizard-Entwürfe werden verzögert gespeichert; während eines geöffneten Modals überschreibt der Live-Abgleich keine laufende Eingabe.
 - Spiele mit `winCondition: "lowest"` markieren im laufenden Spiel und in Gleichständen den tatsächlich niedrigsten Wert als besten Spielstand.

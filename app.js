@@ -41,6 +41,24 @@ function getWizardRoundInfo(game) {
     };
 }
 
+function getWizardTurnInfo(game) {
+    const players = game?.players || [];
+    if (players.length === 0) {
+        return { dealer: null, starter: null, orderedPlayers: [] };
+    }
+
+    const rawDealerIndex = Number.isInteger(game.dealerIndex) ? game.dealerIndex : 0;
+    const dealerIndex = ((rawDealerIndex % players.length) + players.length) % players.length;
+    const starterIndex = (dealerIndex + 1) % players.length;
+    const orderedPlayers = players.map((_, offset) => players[(starterIndex + offset) % players.length]);
+
+    return {
+        dealer: players[dealerIndex],
+        starter: players[starterIndex],
+        orderedPlayers
+    };
+}
+
 // ===============================
 // CORE TIMING & LIVE SYNC
 // ===============================
@@ -870,6 +888,7 @@ function renderGame(isSyncUpdate = false) {
 
     html += `</div></div>`;
     if (state.currentGame.gameTypeId === "wizard") {
+        const wizardTurnInfo = getWizardTurnInfo(state.currentGame);
         html += wizardRoundInfo.isComplete ? `
             <div class="card score-entry-card" id="inputCardAnchor">
                 <div class="title">Wizard abgeschlossen</div>
@@ -879,6 +898,11 @@ function renderGame(isSyncUpdate = false) {
             <div class="card score-entry-card">
                 <div class="title">Wizard Rundenwertung</div>
                 <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Runde ${wizardRoundInfo.currentRound} von ${wizardRoundInfo.maxRounds}: Trage die gebotenen und gemachten Stiche ein.</p>
+                <div class="wizard-turn-card">
+                    <span>Beginnt diese Runde</span>
+                    <strong>${wizardTurnInfo.starter?.name || "–"}</strong>
+                    <small>Erste Ansage und erster Stich</small>
+                </div>
                 <button onclick="openWizardRoundModal()">Runde ${wizardRoundInfo.currentRound} auswerten</button>
                 <button class="green" style="margin-top: 8px;" onclick="finishGame()">Spiel beenden</button>
             </div>`;
@@ -2332,6 +2356,7 @@ function openWizardRoundModal() {
         return;
     }
     const currentRoundNum = roundInfo.currentRound;
+    const turnInfo = getWizardTurnInfo(state.currentGame);
 
     // Entwurf aus dem State laden
     const draft = state.currentGame.wizardDraft || {};
@@ -2341,8 +2366,14 @@ function openWizardRoundModal() {
             Trage für <strong>Runde ${currentRoundNum}</strong> (${currentRoundNum} Karte/n) Ansage & gemachte Stiche ein:
         </p>
 
+        <div class="wizard-turn-card wizard-turn-card-modal">
+            <span>Beginnt diese Runde</span>
+            <strong>${turnInfo.starter?.name || "–"}</strong>
+            <small>Die Liste folgt der Ansagereihenfolge · Geber: ${turnInfo.dealer?.name || "–"}</small>
+        </div>
+
         <div style="display:flex; flex-direction:column; gap:10px;">
-            ${state.currentGame.players.map(p => {
+            ${turnInfo.orderedPlayers.map((p, orderIndex) => {
                 const pDraft = draft[p.id] || { bid: "", act: "" };
                 // Falls undefined oder null, leeren String nutzen
                 const bidVal = (pDraft.bid !== undefined && pDraft.bid !== null) ? pDraft.bid : "";
@@ -2350,7 +2381,11 @@ function openWizardRoundModal() {
 
                 return `
                     <div style="background:var(--bg); border:1px solid var(--border); padding:10px; border-radius:var(--radius-md);" id="wiz_card_${p.id}">
-                        <div style="font-weight:700; margin-bottom:6px;">${p.name}</div>
+                        <div class="wizard-player-heading">
+                            <strong>${p.name}</strong>
+                            ${orderIndex === 0 ? '<span class="wizard-order-badge">Beginnt</span>' : ''}
+                            ${p.id === turnInfo.dealer?.id ? '<span class="wizard-order-badge secondary">Geber</span>' : ''}
+                        </div>
                         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
                             <div>
                                 <span style="font-size:11px; color:var(--muted); font-weight:600;">Gefordert (Tipp)</span>
