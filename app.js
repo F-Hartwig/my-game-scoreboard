@@ -98,7 +98,7 @@ async function navigate(pageId, element) {
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     element.classList.add("active");
 
-    const titles = { gamePage: "ScoreBuddy", playersPage: "Spieler", statsPage: "Statistik", rulesPage: "Spielesammlung" };
+    const titles = { gamePage: "ScoreBuddy", playersPage: "Spieler", statsPage: "Statistik", rulesPage: "Spielesammlung", testPage: "Tastatur-Test" };
     document.getElementById("headerTitle").innerText = titles[pageId];
 
     await loadAllFromDb();
@@ -137,6 +137,27 @@ function toggleSignElement(btn) {
 function closeModal() {
     document.getElementById("appModal").classList.remove("open");
     state.activeEditPlayerId = null;
+}
+
+function updateKeyboardTest(input, outputId, concealValue = false) {
+    const output = document.getElementById(outputId);
+    if (!output) return;
+
+    if (!input.value) {
+        output.innerText = "Noch keine Eingabe";
+        return;
+    }
+
+    output.innerText = concealValue ? `${input.value.length} Zeichen eingegeben` : `Erkannt: ${input.value}`;
+}
+
+function resetKeyboardTests() {
+    document.querySelectorAll("#testPage input").forEach(input => {
+        input.value = "";
+    });
+    document.querySelectorAll("#testPage output").forEach(output => {
+        output.innerText = "Noch keine Eingabe";
+    });
 }
 
 // ===============================
@@ -2731,6 +2752,8 @@ window.submitRename = submitRename;
 window.triggerDelete = triggerDelete;
 window.submitDelete = submitDelete;
 window.closeModal = closeModal;
+window.updateKeyboardTest = updateKeyboardTest;
+window.resetKeyboardTests = resetKeyboardTests;
 window.startSetup = startSetup;
 window.handleGameSelectionChange = handleGameSelectionChange;
 window.setRated = setRated;

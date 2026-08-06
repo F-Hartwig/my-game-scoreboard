@@ -85,6 +85,76 @@
                 <div id="rulesGameList" class="rules-game-list"></div>
             </div>
         </section>
+
+        <section id="testPage" class="page" aria-label="Tastatur-Test">
+            <div class="card keyboard-test-card">
+                <div class="title">iOS-Tastaturen testen</div>
+                <p class="section-intro">
+                    Tippe jedes Feld auf deinem iPhone an und vergleiche Tastatur, Sonderzeichen und die Taste unten rechts. Die Eingaben werden nicht gespeichert.
+                </p>
+
+                <div class="keyboard-test-list">
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Text</strong><small>Buchstaben, Zahlen und Zeichen</small></span>
+                        <input type="text" inputmode="text" autocapitalize="words" autocomplete="off" enterkeyhint="next" placeholder="Name oder freier Text" oninput="updateKeyboardTest(this, 'testTextValue')">
+                        <output id="testTextValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Ganze Zahlen</strong><small>Großer Ziffernblock</small></span>
+                        <input type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="off" enterkeyhint="next" placeholder="123" oninput="updateKeyboardTest(this, 'testNumericValue')">
+                        <output id="testNumericValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Dezimalzahlen</strong><small>Ziffern mit Dezimaltrennzeichen</small></span>
+                        <input type="text" inputmode="decimal" autocomplete="off" enterkeyhint="next" placeholder="12,5" oninput="updateKeyboardTest(this, 'testDecimalValue')">
+                        <output id="testDecimalValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Telefon</strong><small>Ziffern sowie Telefonzeichen</small></span>
+                        <input type="tel" inputmode="tel" autocomplete="off" enterkeyhint="next" placeholder="+49 123…" oninput="updateKeyboardTest(this, 'testTelValue')">
+                        <output id="testTelValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>E-Mail</strong><small>Mit schnell erreichbarem @</small></span>
+                        <input type="email" inputmode="email" autocapitalize="none" autocomplete="off" enterkeyhint="next" placeholder="name@beispiel.de" oninput="updateKeyboardTest(this, 'testEmailValue')">
+                        <output id="testEmailValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Internetadresse</strong><small>Mit Punkt und Schrägstrich</small></span>
+                        <input type="url" inputmode="url" autocapitalize="none" autocomplete="off" enterkeyhint="go" placeholder="https://…" oninput="updateKeyboardTest(this, 'testUrlValue')">
+                        <output id="testUrlValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Suche</strong><small>Texttastatur mit Suchen-Taste</small></span>
+                        <input type="search" inputmode="search" autocomplete="off" enterkeyhint="search" placeholder="Suchbegriff" oninput="updateKeyboardTest(this, 'testSearchValue')">
+                        <output id="testSearchValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Passwort</strong><small>Verdeckte Texteingabe</small></span>
+                        <input type="password" inputmode="text" autocomplete="new-password" enterkeyhint="done" placeholder="Passwort" oninput="updateKeyboardTest(this, 'testPasswordValue', true)">
+                        <output id="testPasswordValue">Noch keine Eingabe</output>
+                    </label>
+
+                    <label class="keyboard-test-item">
+                        <span class="keyboard-test-heading"><strong>Keine Tastatur</strong><small>iOS-Unterstützung kann variieren</small></span>
+                        <input type="text" inputmode="none" autocomplete="off" placeholder="Antippen – es sollte nichts erscheinen" oninput="updateKeyboardTest(this, 'testNoneValue')">
+                        <output id="testNoneValue">Noch keine Eingabe</output>
+                    </label>
+                </div>
+
+                <div class="keyboard-test-note">
+                    Eine eigene „nur Buchstaben“-Tastatur gibt es für Webseiten nicht. Dafür wird die normale Texttastatur verwendet und die Eingabe anschließend geprüft.
+                </div>
+                <button class="secondary keyboard-test-reset" onclick="resetKeyboardTests()">Testfelder leeren</button>
+            </div>
+        </section>
     </main>
 
     <nav class="bottom-nav" aria-label="Hauptnavigation">
@@ -92,6 +162,7 @@
         <button class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><span>Spieler</span></button>
         <button class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><span>Statistik</span></button>
         <button class="nav-item" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><span>Regeln</span></button>
+        <button class="nav-item" onclick="removeSyncBlockAndNavigate('testPage', this)"><span>Test</span></button>
     </nav>
 
     <div class="modal-overlay" id="appModal" onclick="closeModal()" role="presentation">

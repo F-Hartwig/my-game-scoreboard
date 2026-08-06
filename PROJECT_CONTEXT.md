@@ -37,6 +37,7 @@ Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die
 - Wizard zeigt nach dem Speichern zuverlässig die nächste Runde an und beendet die Eingabe nach `floor(60 / Spielerzahl)` Runden.
 - Wizard zeigt die Person an, die links vom aktuellen Geber mit der Ansage beginnt und den ersten Stich eröffnet. Das Eingabefenster sortiert die Spieler automatisch in dieser Ansagereihenfolge.
 - Startperson und Geber können im Wizard-Eingabefenster manuell korrigiert werden. Da beide Rollen zusammenhängen, setzt die Wahl der Startperson automatisch die vorherige Person in der Reihenfolge als Geber.
+- Der temporäre Navigationstab `Test` enthält nicht persistierte Eingabefelder zum direkten Vergleich der von iOS angebotenen Tastaturen (`text`, `numeric`, `decimal`, `tel`, `email`, `url`, `search`, `password`, `none`). Nach der Auswahl der gewünschten Varianten kann dieser Tab wieder entfernt werden.
 - Wizard verhindert doppelte Übermittlungen, Dezimal-/Negativwerte und eine falsche Summe der tatsächlich gemachten Stiche. Die Summe der Ansagen darf entsprechend der verwendeten Spielvariante der Rundenzahl entsprechen.
 - Wizard-Entwürfe werden verzögert gespeichert; während eines geöffneten Modals überschreibt der Live-Abgleich keine laufende Eingabe.
 - Spiele mit `winCondition: "lowest"` markieren im laufenden Spiel und in Gleichständen den tatsächlich niedrigsten Wert als besten Spielstand.
