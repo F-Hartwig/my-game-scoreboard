@@ -154,6 +154,59 @@ function toggleSignElement(btn) {
     }
 }
 
+function focusInputWithoutScrolling(input) {
+    if (!input) return;
+    try {
+        input.focus({ preventScroll: true });
+    } catch (error) {
+        input.focus();
+    }
+}
+
+function markSignPointerHandled(button) {
+    if (!button) return;
+    button.dataset.signPointerHandled = "true";
+    setTimeout(() => {
+        delete button.dataset.signPointerHandled;
+    }, 700);
+}
+
+function handleScoreSignPointerDown(event, playerId) {
+    if (event.button !== undefined && event.button !== 0) return;
+    event.preventDefault();
+    markSignPointerHandled(event.currentTarget);
+    toggleSign(playerId);
+    focusInputWithoutScrolling(document.getElementById(`inp_${playerId}`));
+}
+
+function handleScoreSignClick(event, playerId) {
+    event.preventDefault();
+    if (event.currentTarget.dataset.signPointerHandled === "true") {
+        delete event.currentTarget.dataset.signPointerHandled;
+    } else {
+        toggleSign(playerId);
+    }
+    focusInputWithoutScrolling(document.getElementById(`inp_${playerId}`));
+}
+
+function handleModalSignPointerDown(event) {
+    if (event.button !== undefined && event.button !== 0) return;
+    event.preventDefault();
+    markSignPointerHandled(event.currentTarget);
+    toggleSignElement(event.currentTarget);
+    focusInputWithoutScrolling(document.getElementById("modalRoundInput"));
+}
+
+function handleModalSignClick(event) {
+    event.preventDefault();
+    if (event.currentTarget.dataset.signPointerHandled === "true") {
+        delete event.currentTarget.dataset.signPointerHandled;
+    } else {
+        toggleSignElement(event.currentTarget);
+    }
+    focusInputWithoutScrolling(document.getElementById("modalRoundInput"));
+}
+
 function closeModal() {
     document.getElementById("appModal").classList.remove("open");
     state.activeEditPlayerId = null;
@@ -940,7 +993,7 @@ function renderGame(isSyncUpdate = false) {
             html += `
                 <div class="round-player-row" style="background:var(--card); border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${p.name}</span>
-                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
+                    <button type="button" id="sign_${p.id}" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleRoundEnter(event, ${idx})">
                 </div>`;
@@ -960,7 +1013,7 @@ function renderGame(isSyncUpdate = false) {
             html += `
                 <div class="round-player-row" style="display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${p.name}</span>
-                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
+                    <button type="button" id="sign_${p.id}" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleSingleEnter(event, ${p.id})">
                     <button class="submit-single-btn" onclick="addSingleScore(${p.id})" style="width:42px; height:38px; font-size:11px;">OK</button>
@@ -1129,7 +1182,7 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
     let body = `
         <p style="color:var(--muted); margin-bottom:10px; font-size:14px;">Korrigiere die Punktzahl für <strong>${p.name}</strong> (${labelText}):</p>
         <div style="display:flex; gap:8px; align-items:center;">
-            <button id="modalSignBtn" onclick="toggleSignElement(this)" style="width:44px; height:48px; border-radius:var(--radius-md); font-size:18px; font-weight:800; padding:0; flex-shrink:0; 
+            <button type="button" id="modalSignBtn" onpointerdown="handleModalSignPointerDown(event)" onclick="handleModalSignClick(event)" style="width:44px; height:48px; border-radius:var(--radius-md); font-size:18px; font-weight:800; padding:0; flex-shrink:0;
                 background: ${isNegative ? 'var(--danger-light)' : 'var(--card-raised)'};
                 color: ${isNegative ? 'var(--danger)' : 'var(--muted)'};">
                 ${isNegative ? '-' : '+'}
@@ -2782,6 +2835,10 @@ window.viewGameDetails = viewGameDetails;
 window.triggerDeleteHistoryGame = triggerDeleteHistoryGame;
 window.submitDeleteHistoryGame = submitDeleteHistoryGame;
 window.toggleSignElement = toggleSignElement;
+window.handleScoreSignPointerDown = handleScoreSignPointerDown;
+window.handleScoreSignClick = handleScoreSignClick;
+window.handleModalSignPointerDown = handleModalSignPointerDown;
+window.handleModalSignClick = handleModalSignClick;
 window.showGameRulesModal = showGameRulesModal;
 window.openTeamBuilderModal = openTeamBuilderModal;
 window.submitTeamBuilderModal = submitTeamBuilderModal;
