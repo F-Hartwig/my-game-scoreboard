@@ -70,8 +70,8 @@ function toggleSignElement(btn) {
         btn.style.color = 'var(--danger)';
     } else {
         btn.innerText = '+';
-        btn.style.background = '#e2e8f0';
-        btn.style.color = '#475569';
+        btn.style.background = 'var(--card-raised)';
+        btn.style.color = 'var(--muted)';
     }
 }
 
@@ -222,7 +222,7 @@ function startSetup() {
     html += `
         </div>
         <div class="title">↕️ 2. Reihenfolge anpassen (ziehen)</div>
-        <div id="dragOrderList" style="margin-bottom:20px; background:#f8fafc; border:1px solid var(--border); padding:10px; border-radius:var(--radius-md); min-height:50px;">
+        <div id="dragOrderList" style="margin-bottom:20px; background:var(--card); border:1px solid var(--border); padding:10px; border-radius:var(--radius-md); min-height:50px;">
             <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Teilnehmer aus, um deren Reihenfolge festzulegen.</p>
         </div>
         
@@ -582,10 +582,12 @@ function renderGame(isSyncUpdate = false) {
     if(!state.currentGame) {
         state.lastRenderedGameId = null;
         let html = `
-            <div class="card">
-                <div class="title">🎮 Neues Spiel starten</div>
-                <p style="color: var(--muted); margin-bottom: 16px;">Aktuell läuft kein Spiel. Möchtest du eine neue Runde werten?</p>
-                <button onclick="startSetup()">✨ Neues Spiel anlegen</button>
+            <div class="card welcome-card">
+                <div class="welcome-icon" aria-hidden="true">🎲</div>
+                <div class="welcome-kicker">Bereit für den Spieleabend?</div>
+                <div class="title">Neues Spiel starten</div>
+                <p class="welcome-copy">Wähle eure Mitspieler, das passende Spiel und behalte jeden Punkt entspannt im Blick.</p>
+                <button onclick="startSetup()">✨ Spiel anlegen</button>
             </div>`;
 
         if(state.activeGames && state.activeGames.length > 0) {
@@ -593,7 +595,7 @@ function renderGame(isSyncUpdate = false) {
                 
             state.activeGames.forEach(ag => {
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
-                let ratedBadge = ag.rated === false ? ' <span style="font-size:10px; background:#e2e8f0; color:#475569; padding:2px 6px; border-radius:6px; font-weight:bold;">Ungewertet</span>' : '';
+                let ratedBadge = ag.rated === false ? ' <span style="font-size:10px; background:var(--card-raised); color:var(--muted); padding:3px 7px; border:1px solid var(--border-strong); border-radius:999px; font-weight:bold;">Ungewertet</span>' : '';
                 
                 html += `
                     <div class="active-game-card">
@@ -638,7 +640,7 @@ function renderGame(isSyncUpdate = false) {
         if (totalPoints < 0) req = 15;
         else if (totalPoints >= 1500 && totalPoints < 3000) req = 90;
         else if (totalPoints >= 3000) req = 120;
-        return `<span style="font-size: 11px; font-weight: 700; background: #eedffc; color: #7c3aed; padding: 2px 6px; border-radius: 6px; margin-left: 6px; border: 1px solid rgba(124, 58, 237, 0.2);">📋 Min: ${req}</span>`;
+        return `<span style="font-size: 11px; font-weight: 700; background: var(--primary-light); color: var(--primary); padding: 3px 7px; border-radius: 999px; margin-left: 6px; border: 1px solid var(--border-strong);">📋 Min: ${req}</span>`;
     };
 
     const getRemainingPointsBadge = (totalPoints) => {
@@ -652,16 +654,16 @@ function renderGame(isSyncUpdate = false) {
             // z.B. Cabo (101) oder Skyjo (100)
             const margin = target - totalPoints;
             if (margin <= 0) {
-                return `<span style="font-size: 10px; font-weight: 700; background: var(--danger-light); color: var(--danger); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">Limit überschritten!</span>`;
+                return `<span class="game-limit-badge danger">Limit überschritten!</span>`;
             }
-            return `<span style="font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">${margin} Pkt. bis Limit</span>`;
+            return `<span class="game-limit-badge">${margin} Pkt. bis Limit</span>`;
         } else {
             // z.B. Flip 7 (200) oder Canasta (5000)
             const needed = target - totalPoints;
             if (needed <= 0) {
-                return `<span style="font-size: 10px; font-weight: 700; background: var(--success-light); color: var(--success); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">Ziel erreicht!</span>`;
+                return `<span class="game-limit-badge success">Ziel erreicht!</span>`;
             }
-            return `<span style="font-size: 10px; font-weight: 600; background: var(--primary-light); color: var(--primary); padding: 2px 6px; border-radius: 6px; margin-left: 6px;">noch ${needed} Pkt.</span>`;
+            return `<span class="game-limit-badge">noch ${needed} Pkt.</span>`;
         }
     };
 
@@ -732,7 +734,7 @@ function renderGame(isSyncUpdate = false) {
         : '';
 
     let html = `
-        <div class="card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
+        <div class="card game-status-card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
             <span id="gameStatusLabel" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%;">⚡ ${statusText}</span>
             <div style="display:flex; gap:6px; flex-shrink:0;">
                 ${rulesBtnHtml}
@@ -740,7 +742,7 @@ function renderGame(isSyncUpdate = false) {
             </div>
         </div>
 
-        <div class="card" style="padding: 14px 12px;">
+        <div class="card scoreboard-card" style="padding: 14px 12px;">
             <div class="scoreboard-list">`;
 
     state.currentGame.players.forEach(p => {
@@ -796,7 +798,7 @@ function renderGame(isSyncUpdate = false) {
     html += `</div></div>`;
     if (state.currentGame.gameTypeId === "wizard") {
         html += `
-            <div class="card">
+            <div class="card score-entry-card">
                 <div class="title">🔮 Wizard Rundenwertung</div>
                 <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Runde ${maxRounds + 1}: Trage die gebotenen und gemachten Stiche ein.</p>
                 <button onclick="openWizardRoundModal()">➕ Runde ${maxRounds + 1} auswerten</button>
@@ -804,7 +806,7 @@ function renderGame(isSyncUpdate = false) {
             </div>`;
     } else if(state.currentGame.mode === 'round') {
         html += `
-            <div class="card" id="inputCardAnchor">
+            <div class="card score-entry-card" id="inputCardAnchor">
                 <div class="title">➕ Runde eintragen</div>
                 <div class="round-grid" id="roundInputs">`;
 
@@ -812,7 +814,7 @@ function renderGame(isSyncUpdate = false) {
             html += `
                 <div class="round-player-row" style="background:var(--card); border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${p.name}</span>
-                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:#e2e8f0; color:#475569; font-size:16px; font-weight:800; padding:0; flex-shrink:0;">+</button>
+                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleRoundEnter(event, ${idx})">
                 </div>`;
@@ -824,7 +826,7 @@ function renderGame(isSyncUpdate = false) {
              </div>`;
     } else {
         html += `
-            <div class="card">
+            <div class="card score-entry-card">
                 <div class="title">➕ Einzelpunkte eintragen</div>
                 <div class="round-grid" id="roundInputs">`;
 
@@ -832,7 +834,7 @@ function renderGame(isSyncUpdate = false) {
             html += `
                 <div class="round-player-row" style="display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${p.name}</span>
-                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:#e2e8f0; color:#475569; font-size:16px; font-weight:800; padding:0; flex-shrink:0;">+</button>
+                    <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleSingleEnter(event, ${p.id})">
                     <button class="submit-single-btn" onclick="addSingleScore(${p.id})" style="width:38px; height:38px;">✓</button>
@@ -887,8 +889,8 @@ function resetSignButton(playerId) {
     const btn = document.getElementById(`sign_${playerId}`);
     if (btn) {
         btn.innerText = '+';
-        btn.style.background = '#e2e8f0';
-        btn.style.color = '#475569';
+        btn.style.background = 'var(--card-raised)';
+        btn.style.color = 'var(--muted)';
     }
 }
 
@@ -1002,8 +1004,8 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
         <p style="color:var(--muted); margin-bottom:10px; font-size:14px;">Korrigiere die Punktzahl für <strong>${p.name}</strong> (${labelText}):</p>
         <div style="display:flex; gap:8px; align-items:center;">
             <button id="modalSignBtn" onclick="toggleSignElement(this)" style="width:44px; height:48px; border-radius:var(--radius-md); font-size:18px; font-weight:800; padding:0; flex-shrink:0; 
-                background: ${isNegative ? 'var(--danger-light)' : '#e2e8f0'}; 
-                color: ${isNegative ? 'var(--danger)' : '#475569'};">
+                background: ${isNegative ? 'var(--danger-light)' : 'var(--card-raised)'};
+                color: ${isNegative ? 'var(--danger)' : 'var(--muted)'};">
                 ${isNegative ? '-' : '+'}
             </button>
             <input type="text" inputmode="decimal" id="modalRoundInput" value="${absoluteValue}" style="text-align:center; font-weight:bold; font-size:18px;">
@@ -1214,7 +1216,7 @@ function showResult(gameData) {
 
     let textModeInfo = game.rated === false ? ' (Freundschaftsspiel)' : '';
     let html = `
-        <div class="card" style="text-align:center; padding:24px 16px;">
+        <div class="card result-hero-card" style="text-align:center; padding:24px 16px;">
             <div style="font-size:48px; margin-bottom:4px;">👑</div>
             <div style="font-size:22px; font-weight:850; color:var(--success);">${game.winner}</div>
             <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">🎲 ${game.name}${textModeInfo} · 📅 ${game.date}</p>
@@ -1341,7 +1343,7 @@ function renderHistory() {
     let gamesToRender = state.showAllHistory ? reversedGames : reversedGames.slice(0, 5);
 
     gamesToRender.forEach(g => {
-        let unratedTag = g.rated === false ? ' <span style="font-size:10px; background:#f1f5f9; color:#64748b; padding:2px 6px; border-radius:6px; font-weight:bold;">Freundschaft</span>' : '';
+        let unratedTag = g.rated === false ? ' <span style="font-size:10px; background:var(--card-raised); color:var(--muted); padding:3px 7px; border:1px solid var(--border-strong); border-radius:999px; font-weight:bold;">Freundschaft</span>' : '';
         box.innerHTML += `
             <div class="history-card" onclick="viewGameDetails(${g.id})">
                 <div class="history-card-top">
@@ -1551,7 +1553,7 @@ function renderRulesPage() {
 
     gamesWithRules.forEach(g => {
         let pureRulesBadge = g.hideFromSelection 
-            ? `<span style="font-size:11px; font-weight:700; background:#f1f5f9; color:#64748b; padding:2px 8px; border-radius:6px; margin-left:8px; border:1px solid var(--border); vertical-align:middle;">📖 Nur Regeln</span>`
+            ? `<span style="font-size:11px; font-weight:700; background:var(--card-raised); color:var(--muted); padding:3px 8px; border-radius:999px; margin-left:8px; border:1px solid var(--border-strong); vertical-align:middle;">📖 Nur Regeln</span>`
             : '';
 
         let playBtnHtml = !g.hideFromSelection
@@ -1713,26 +1715,35 @@ function openPlayerProfileModal(playerId) {
 }
 
 // ===============================
-// NEU: DARKMODE ENGINE LOGIC
+// THEME ENGINE
 // ===============================
-window.toggleTheme = function() {
+function applyTheme(theme) {
+    document.documentElement.setAttribute("data-theme", theme);
+
+    const btn = document.getElementById("themeToggleBtn");
+    if (btn) {
+        const isDark = theme === "dark";
+        btn.innerText = isDark ? "☀️" : "🌙";
+        btn.setAttribute("aria-label", isDark ? "Helles Farbschema aktivieren" : "Dunkles Farbschema aktivieren");
+        btn.setAttribute("title", isDark ? "Helles Farbschema aktivieren" : "Dunkles Farbschema aktivieren");
+    }
+
+    const themeMeta = document.getElementById("themeColorMeta");
+    if (themeMeta) themeMeta.setAttribute("content", theme === "dark" ? "#090d18" : "#edf2fb");
+}
+
+function toggleTheme() {
     const isDark = document.documentElement.getAttribute("data-theme") === "dark";
     const newTheme = isDark ? "light" : "dark";
-    document.documentElement.setAttribute("data-theme", newTheme);
+    applyTheme(newTheme);
     localStorage.setItem("scorebuddy_theme", newTheme);
-    
-    const btn = document.getElementById("themeToggleBtn");
-    if (btn) btn.innerText = newTheme === "dark" ? "☀️" : "🌙";
-};
+}
 
 async function initApp() {
     // Theme-Einstellung laden bevor die App rendert
-    const savedTheme = localStorage.getItem("scorebuddy_theme") || "light";
-    document.documentElement.setAttribute("data-theme", savedTheme);
-    setTimeout(() => {
-        const btn = document.getElementById("themeToggleBtn");
-        if (btn) btn.innerText = savedTheme === "dark" ? "☀️" : "🌙";
-    }, 50);
+    const storedTheme = localStorage.getItem("scorebuddy_theme");
+    const savedTheme = storedTheme === "dark" ? "dark" : "light";
+    applyTheme(savedTheme);
 
     await loadAllFromDb();
     renderGame();

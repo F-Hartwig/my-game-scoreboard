@@ -1,8 +1,34 @@
 # ScoreBuddy – Projektkontext und Leitfaden für die weitere Umsetzung
 
-Stand: 30. Juli 2026
+Stand: 6. August 2026
 
 Diese Datei ist die zentrale technische Projektnotiz für spätere Arbeiten. Sie beschreibt den aktuell geprüften Stand des Repositories, bekannte Risiken, den vorgesehenen Betrieb auf dem NAS und eine sinnvolle Reihenfolge für die weitere Umsetzung.
+
+## V2-Redesign (Branch `v2`)
+
+Im Branch `v2` wird die bestehende Anwendung optisch vollständig als modernes, von iOS-Liquid-Glass inspiriertes Interface überarbeitet. Der Branch ist bewusst vom automatisch auf dem NAS aktualisierten Branch `main` getrennt.
+
+Geändert werden ausschließlich die Darstellung und kleine oberflächennahe Komfortfunktionen:
+
+- neue App-Kopfzeile mit ScoreBuddy-Marke
+- helles und dunkles Glas-Design mit dynamischer Hintergrundtiefe
+- neue schwebende Hauptnavigation
+- modernisierte Karten, Spielstände, Punkt-Eingaben und Auswahllisten
+- einheitliche Darstellung von Rangliste, Historie, Regelwerk und Modalen
+- optimierte Touch-Ziele, Safe-Area-Abstände, Fokusdarstellung und reduzierte Animationen auf Wunsch des Betriebssystems
+- synchronisierte Browser-Theme-Farbe und aussagekräftigere Beschriftungen
+
+Bewusst unverändert bleiben:
+
+- `server.js` und alle API-Routen
+- `api.js` und die Umschaltung zwischen lokalem Browser-Speicher und NAS-API
+- `state.js` und die verwendeten State-Schlüssel
+- `gamesConfig.js` und alle hinterlegten Spiele/Regeln
+- SQLite-Tabelle, JSON-Strukturen und bestehender Datenbankpfad
+- IDs, Spielhistorie, Spielerstatistiken, aktive Partien und laufende Partien
+- Docker-/NAS-Startkommando und Portbelegung
+
+Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die bestehende `/app/scoreboard.db` wird unverändert weiterverwendet. Vor einem späteren Merge nach `main` muss trotzdem eine Sicherung dieser Datei erstellt werden. Solange V2 nur auf dem Branch `v2` liegt, zieht die aktuelle Compose-Konfiguration weiterhin `main` und die NAS-Produktivinstanz bleibt unverändert.
 
 ## 1. Ziel und Einsatz
 

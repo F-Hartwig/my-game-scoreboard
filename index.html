@@ -3,6 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" id="themeColorMeta" content="#eaf0ff">
+    <meta name="description" content="ScoreBuddy – der moderne Spielstandbegleiter für gemeinsame Spieleabende.">
     <title>ScoreBuddy</title>
     <link rel="stylesheet" href="/style.css">
     
@@ -10,75 +12,87 @@
     <link rel="apple-touch-icon" sizes="180x180" href="/icon.png">
 </head>
 <body>
-
-    <div class="header">
-        <h1 id="headerTitle">🎲 Scoreboard</h1>
-        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()">🌙</button>
+    <div class="ambient-background" aria-hidden="true">
+        <span class="ambient-orb ambient-orb-one"></span>
+        <span class="ambient-orb ambient-orb-two"></span>
+        <span class="ambient-orb ambient-orb-three"></span>
     </div>
 
-    <div class="toolbar">
-        <button class="tool-chip in-game-only" id="startPlayerToolBtn" onclick="openStartPlayerSelectorModal()" style="display: none;">
-            🎲 Startspieler
-        </button>
-        <button class="tool-chip in-game-only" id="dealerToolBtn" onclick="rotateDealerManually()" style="display: none;">
-            🎴 <span id="dealerLabel">Geber: --</span>
-        </button>
-
-        <button class="tool-chip" id="timerToolBtn" onclick="toggleTimerMenu()">
-            ⏱️ <span id="timerLabel">Timer</span>
-        </button>
-
-        <button class="tool-chip" id="diceToolBtn" onclick="openDiceModal()">
-            🎲 Würfel
-        </button>
-
-    </div>
-
-    <div id="gamePage" class="page active">
-        <div id="gameContent"></div>
-    </div>
-
-    <div id="playersPage" class="page">
-        <div class="card">
-            <div class="title">👥 Spieler hinzufügen</div>
-            <div style="display: flex; gap: 8px;">
-                <input id="playerInput" placeholder="Name...">
-                <button style="width: 48px; font-size: 20px; flex-shrink: 0;" onclick="addPlayer()">+</button>
+    <header class="header">
+        <div class="brand-lockup">
+            <div class="brand-mark" aria-hidden="true">SB</div>
+            <div class="brand-copy">
+                <span class="brand-eyebrow">Game night companion</span>
+                <h1 id="headerTitle">ScoreBuddy</h1>
             </div>
         </div>
-        <div id="playersList"></div>
-    </div>
+        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Farbschema wechseln" title="Farbschema wechseln">🌙</button>
+    </header>
 
-    <div id="statsPage" class="page">
-        <div class="card" style="padding: 16px 14px;">
-            <div class="title">🏆 Bestenliste</div>
-            <div id="ranking" class="ranking-list"></div>
+    <main class="app-shell">
+        <div class="toolbar" aria-label="Spielwerkzeuge">
+            <button class="tool-chip in-game-only" id="startPlayerToolBtn" onclick="openStartPlayerSelectorModal()" style="display: none;">
+                <span aria-hidden="true">🎲</span> Startspieler
+            </button>
+            <button class="tool-chip in-game-only" id="dealerToolBtn" onclick="rotateDealerManually()" style="display: none;">
+                <span aria-hidden="true">🎴</span> <span id="dealerLabel">Geber: --</span>
+            </button>
+
+            <button class="tool-chip" id="timerToolBtn" onclick="toggleTimerMenu()">
+                <span aria-hidden="true">⏱️</span> <span id="timerLabel" aria-live="polite">Timer</span>
+            </button>
+
+            <button class="tool-chip" id="diceToolBtn" onclick="openDiceModal()">
+                <span aria-hidden="true">🎲</span> Würfel
+            </button>
         </div>
-        <div class="card" style="padding: 16px 14px;">
-            <div class="title">📜 Historie</div>
-            <div id="history" class="history-list"></div>
-        </div>
-    </div>
 
-    <div id="rulesPage" class="page">
-        <div class="card" style="padding: 16px 14px;">
-            <div class="title">📚 Spielesammlung & Regeln</div>
-            <p style="color: var(--muted); font-size: 13px; margin-bottom: 16px; padding: 0 2px;">
-                Hier findest du alle hinterlegten Spielregeln und Limits auf einen Blick, ohne ein Match starten zu müssen.
-            </p>
-            <div id="rulesGameList" style="display: flex; flex-direction: column; gap: 10px;"></div>
-        </div>
-    </div>
+        <section id="gamePage" class="page active" aria-label="Spiel">
+            <div id="gameContent" aria-live="polite"></div>
+        </section>
 
-    <div class="bottom-nav" style="left: 16px; right: 16px;">
-        <div class="nav-item active" onclick="navigate('gamePage', this)"><span>🎮</span>Spiel</div>
-        <div class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><span>👥</span>Spieler</div>
-        <div class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><span>🏆</span>Statistik</div>
-        <div class="nav-item" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><span>📜</span>Regeln</div>
-    </div>
+        <section id="playersPage" class="page" aria-label="Spieler">
+            <div class="card add-player-card">
+                <div class="title">👥 Spieler hinzufügen</div>
+                <div class="inline-form">
+                    <input id="playerInput" placeholder="Name eingeben…" autocomplete="off" maxlength="40">
+                    <button class="add-player-btn" aria-label="Spieler hinzufügen" onclick="addPlayer()">+</button>
+                </div>
+            </div>
+            <div id="playersList"></div>
+        </section>
 
-    <div class="modal-overlay" id="appModal" onclick="closeModal()">
-        <div class="modal" onclick="event.stopPropagation()">
+        <section id="statsPage" class="page" aria-label="Statistik">
+            <div class="card stats-card">
+                <div class="title">🏆 Bestenliste</div>
+                <div id="ranking" class="ranking-list"></div>
+            </div>
+            <div class="card stats-card">
+                <div class="title">📜 Historie</div>
+                <div id="history" class="history-list"></div>
+            </div>
+        </section>
+
+        <section id="rulesPage" class="page" aria-label="Regeln">
+            <div class="card rules-library-card">
+                <div class="title">📚 Spielesammlung &amp; Regeln</div>
+                <p class="section-intro">
+                    Alle hinterlegten Spielregeln und Limits auf einen Blick – auch ohne laufendes Match.
+                </p>
+                <div id="rulesGameList" class="rules-game-list"></div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="Hauptnavigation">
+        <button class="nav-item active" onclick="navigate('gamePage', this)"><span aria-hidden="true">🎮</span><small>Spiel</small></button>
+        <button class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><span aria-hidden="true">👥</span><small>Spieler</small></button>
+        <button class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><span aria-hidden="true">🏆</span><small>Statistik</small></button>
+        <button class="nav-item" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><span aria-hidden="true">📜</span><small>Regeln</small></button>
+    </nav>
+
+    <div class="modal-overlay" id="appModal" onclick="closeModal()" role="presentation">
+        <div class="modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
             <h3 class="title" id="modalTitle">✏️ Bearbeiten</h3>
             <div id="modalBody"></div>
             <div style="display: flex; gap: 8px; margin-top: 16px;" id="modalActions"></div>
