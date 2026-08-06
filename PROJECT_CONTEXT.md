@@ -4,9 +4,9 @@ Stand: 6. August 2026
 
 Diese Datei ist die zentrale technische Projektnotiz für spätere Arbeiten. Sie beschreibt den aktuell geprüften Stand des Repositories, bekannte Risiken, den vorgesehenen Betrieb auf dem NAS und eine sinnvolle Reihenfolge für die weitere Umsetzung.
 
-## V2-Redesign (Branch `v2`)
+## V2-Redesign (Branch `staging`)
 
-Im Branch `v2` wird die bestehende Anwendung optisch vollständig als modernes, von iOS-Liquid-Glass inspiriertes Interface überarbeitet. Der Branch ist bewusst vom automatisch auf dem NAS aktualisierten Branch `main` getrennt.
+Im Branch `staging` wird die bestehende Anwendung optisch vollständig als modernes, von iOS-Liquid-Glass inspiriertes Interface überarbeitet. Der Branch ist bewusst vom automatisch auf dem NAS aktualisierten Branch `main` getrennt.
 
 Geändert werden die Darstellung, oberflächennahe Komfortfunktionen und gezielte abwärtskompatible Fehlerkorrekturen:
 
@@ -30,7 +30,7 @@ Bewusst unverändert bleiben:
 - IDs, Spielhistorie, Spielerstatistiken, aktive Partien und laufende Partien
 - Docker-/NAS-Startkommando und Portbelegung
 
-Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die bestehende `/app/scoreboard.db` wird unverändert weiterverwendet. Vor einem späteren Merge nach `main` muss trotzdem eine Sicherung dieser Datei erstellt werden. Solange V2 nur auf dem Branch `v2` liegt, zieht die aktuelle Compose-Konfiguration weiterhin `main` und die NAS-Produktivinstanz bleibt unverändert.
+Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die bestehende `/app/scoreboard.db` wird unverändert weiterverwendet. Vor einem späteren Merge nach `main` muss trotzdem eine Sicherung dieser Datei erstellt werden. Solange V2 nur auf dem Branch `staging` liegt, zieht die aktuelle Compose-Konfiguration weiterhin `main` und die NAS-Produktivinstanz bleibt unverändert.
 
 ### Fehlerkorrekturen im V2-Stand
 
