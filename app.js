@@ -2,13 +2,52 @@ import { apiSave } from './api.js';
 import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 
+function getWinnerPartyIds(game) {
+    if (Array.isArray(game?.winnerPartyIds)) {
+        return game.winnerPartyIds.map(Number).filter(Number.isFinite);
+    }
+    if (!game || game.winner === "Unentschieden" || !Array.isArray(game.players)) return [];
+
+    const winnerNames = String(game.winner || "")
+        .split(" + ")
+        .map(name => name.trim())
+        .filter(Boolean);
+
+    return game.players
+        .filter(party => winnerNames.includes(party.name))
+        .map(party => Number(party.id))
+        .filter(Number.isFinite);
+}
+
+function isWinningParty(game, party) {
+    return getWinnerPartyIds(game).includes(Number(party?.id));
+}
+
+function getLeadingScore(game) {
+    const scores = game?.players?.map(player => Number(player.total) || 0) || [];
+    if (scores.length === 0) return 0;
+    return game?.rules?.winCondition === "lowest" ? Math.min(...scores) : Math.max(...scores);
+}
+
+function getWizardRoundInfo(game) {
+    const playerCount = game?.players?.length || 0;
+    const completedRounds = Math.max(...(game?.players || []).map(player => player.rounds?.length || 0), 0);
+    const maxRounds = playerCount > 0 ? Math.floor(60 / playerCount) : 0;
+    return {
+        completedRounds,
+        currentRound: completedRounds + 1,
+        maxRounds,
+        isComplete: maxRounds > 0 && completedRounds >= maxRounds
+    };
+}
+
 // ===============================
 // CORE TIMING & LIVE SYNC
 // ===============================
 function startLiveSync() {
     if(state.autoRefreshInterval) clearInterval(state.autoRefreshInterval);
     state.autoRefreshInterval = setInterval(async () => {
-        if (state.isSettingUpGame) return;
+        if (state.isSettingUpGame || document.getElementById("appModal")?.classList.contains("open")) return;
 
         await loadAllFromDb();
         const activePage = document.querySelector(".page.active").id;
@@ -655,12 +694,16 @@ function renderGame(isSyncUpdate = false) {
     }
 
     let maxRounds = Math.max(...state.currentGame.players.map(p => p.rounds.length), 0);
-    let highestScore = Math.max(...state.currentGame.players.map(p => p.total));
-    let leadsCount = state.currentGame.players.filter(p => p.total === highestScore).length;
+    const leadingScore = getLeadingScore(state.currentGame);
+    let leadsCount = state.currentGame.players.filter(p => p.total === leadingScore).length;
     let anyRoundsPlayed = state.currentGame.players.some(p => p.rounds.length > 0);
 
     let modeTextInfo = state.currentGame.rated === false ? ' (Ungewertet)' : '';
+    const wizardRoundInfo = state.currentGame.gameTypeId === "wizard" ? getWizardRoundInfo(state.currentGame) : null;
     let statusText = state.currentGame.mode === 'round' ? `${state.currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${state.currentGame.name}${modeTextInfo}`;
+    if (wizardRoundInfo?.isComplete) {
+        statusText = `${state.currentGame.name}${modeTextInfo} · ${wizardRoundInfo.maxRounds} Runden gespielt`;
+    }
 
     // --- LOGIK FÜR CANASTA & FEHLENDE PUNKTE BIS ZUM GOAL/LIMIT ---
     const getCanastaPill = (totalPoints) => {
@@ -697,11 +740,12 @@ function renderGame(isSyncUpdate = false) {
     };
 
     // --- PARTIELLES RE-RENDERING BEI FAST-SYNC ---
-    if (state.lastRenderedGameId === state.currentGame.id && document.getElementById("gameStatusLabel")) {
+    const canUsePartialRender = state.currentGame.gameTypeId !== "wizard";
+    if (canUsePartialRender && state.lastRenderedGameId === state.currentGame.id && document.getElementById("gameStatusLabel")) {
         document.getElementById("gameStatusLabel").innerText = statusText;
         
         state.currentGame.players.forEach(p => {
-            const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
+            const isLeading = p.total === leadingScore && anyRoundsPlayed && leadsCount === 1;
             
             let metaBox = document.getElementById(`meta_${p.id}`);
             if (metaBox) {
@@ -775,7 +819,7 @@ function renderGame(isSyncUpdate = false) {
             <div class="scoreboard-list">`;
 
     state.currentGame.players.forEach(p => {
-        const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
+        const isLeading = p.total === leadingScore && anyRoundsPlayed && leadsCount === 1;
         
         let roundCounter = 1;
         html += `
@@ -826,11 +870,16 @@ function renderGame(isSyncUpdate = false) {
 
     html += `</div></div>`;
     if (state.currentGame.gameTypeId === "wizard") {
-        html += `
+        html += wizardRoundInfo.isComplete ? `
+            <div class="card score-entry-card" id="inputCardAnchor">
+                <div class="title">Wizard abgeschlossen</div>
+                <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Alle ${wizardRoundInfo.maxRounds} möglichen Runden wurden gespielt.</p>
+                <button class="green" onclick="finishGame()">Spiel auswerten</button>
+            </div>` : `
             <div class="card score-entry-card">
                 <div class="title">Wizard Rundenwertung</div>
-                <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Runde ${maxRounds + 1}: Trage die gebotenen und gemachten Stiche ein.</p>
-                <button onclick="openWizardRoundModal()">Runde ${maxRounds + 1} auswerten</button>
+                <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Runde ${wizardRoundInfo.currentRound} von ${wizardRoundInfo.maxRounds}: Trage die gebotenen und gemachten Stiche ein.</p>
+                <button onclick="openWizardRoundModal()">Runde ${wizardRoundInfo.currentRound} auswerten</button>
                 <button class="green" style="margin-top: 8px;" onclick="finishGame()">Spiel beenden</button>
             </div>`;
     } else if(state.currentGame.mode === 'round') {
@@ -1183,7 +1232,14 @@ function selectWinnerCard(element) {
     }
 }
 
+let isSavingGame = false;
+
 async function saveGame() {
+    if (isSavingGame || !state.currentGame) return;
+    isSavingGame = true;
+
+    try {
+
     let selectedCards = [...document.querySelectorAll(".winner-select-card.selected")];
     let winnerName = "Unentschieden";
     let winnerPartyIds = [];
@@ -1195,6 +1251,7 @@ async function saveGame() {
     }
 
     state.currentGame.winner = winnerName;
+    state.currentGame.winnerPartyIds = winnerPartyIds;
     state.currentGame.date = new Date().toLocaleDateString("de-DE");
 
     if (state.currentGame.rated !== false) {
@@ -1237,6 +1294,9 @@ async function saveGame() {
     await apiSave('currentGame', {}); 
 
     showResult(finishedGameCopy);
+    } finally {
+        isSavingGame = false;
+    }
 }
 
 function showResult(gameData) {
@@ -1384,7 +1444,7 @@ function renderHistory() {
                 </div>
                 <div class="history-card-scores">
                     ${g.players.map(p => {
-                        const isWinner = g.winner.includes(p.name);
+                        const isWinner = isWinningParty(g, p);
                         return `<span class="history-player-score ${isWinner ? 'is-winner' : ''}">${p.name}: <strong>${p.total}</strong></span>`;
                     }).join("")}
                 </div>
@@ -1411,7 +1471,7 @@ function viewGameDetails(gameId) {
     if(!g) return;
 
     activeHistoryGameId = gameId;
-    let highestScore = Math.max(...g.players.map(p => p.total));
+    const bestScore = getLeadingScore(g);
     let anyRoundsPlayed = g.players.some(p => p.rounds && p.rounds.length > 0);
     let modeTextInfo = g.rated === false ? 'Freundschaftsspiel' : 'Gewertetes Match';
     
@@ -1422,7 +1482,7 @@ function viewGameDetails(gameId) {
         <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
 
     g.players.forEach(p => {
-        const isWinner = g.winner.includes(p.name) || (g.winner === 'Unentschieden' && p.total === highestScore && anyRoundsPlayed);
+        const isWinner = isWinningParty(g, p) || (g.winner === 'Unentschieden' && p.total === bestScore && anyRoundsPlayed);
         let roundCounter = 1;
         
         html += `
@@ -1538,8 +1598,8 @@ async function submitDeleteHistoryGame() {
                         let p = state.players.find(x => x.id === pId);
                         if(p) {
                             p.games = Math.max(0, p.games - 1);
-                            p.points = Math.max(0, p.points - (typeof cp.total === 'number' ? cp.total : 0));
-                            if(g.winner.includes(cp.name)) {
+                            p.points = (Number(p.points) || 0) - (typeof cp.total === 'number' ? cp.total : 0);
+                            if(isWinningParty(g, cp)) {
                                 p.wins = Math.max(0, p.wins - 1);
                             }
                         }
@@ -1586,14 +1646,14 @@ function renderRulesPage() {
             : '';
 
         let playBtnHtml = !g.hideFromSelection
-            ? `<button class="icon-btn edit-btn" style="width:34px; height:34px; font-size:14px; background:var(--primary-light); color:var(--primary); margin-left:auto; flex-shrink:0;" 
-                title="Spiel starten" aria-label="Spiel starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">Start</button>`
+            ? `<button class="rules-start-btn"
+                title="Spiel starten" aria-label="${g.name} starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">Start</button>`
             : '';
 
         box.innerHTML += `
             <div class="history-card" style="cursor: default;">
-                <div class="history-card-top" style="border-bottom: none; padding-bottom: 0; display:flex; align-items:center; justify-content:space-between; gap:10px;">
-                    <div class="history-card-info" style="flex:1; min-width:0;">
+                <div class="history-card-top rules-game-header">
+                    <div class="history-card-info rules-game-title">
                         <div class="history-card-date" style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
                             ${g.name} ${pureRulesBadge}
                         </div>
@@ -1663,7 +1723,7 @@ function openPlayerProfileModal(playerId) {
             }
             gameStats[matchDisplayName].games++;
             
-            const isWinner = g.winner === playerInMatch.name || g.winner.includes(playerInMatch.name);
+            const isWinner = isWinningParty(g, playerInMatch);
             if (isWinner) {
                 gameStats[matchDisplayName].wins++;
             }
@@ -2235,8 +2295,10 @@ function calculateWizardPoints(bid, actual) {
     }
 }
 
-// Speichert die aktuellen Input-Werte live im state UND in der DB/LocalStorage
-async function saveWizardDraft(playerId) {
+// Speichert die aktuellen Input-Werte im State und kurz verzögert im Speicher.
+let wizardDraftSaveTimer = null;
+
+function saveWizardDraft(playerId) {
     if (!state.currentGame) return;
     if (!state.currentGame.wizardDraft) {
         state.currentGame.wizardDraft = {};
@@ -2252,16 +2314,24 @@ async function saveWizardDraft(playerId) {
 
     clearWizardErrors(playerId);
 
-    // WICHTIG: Sofort im LocalStorage / Backend sichern!
-    await apiSave('currentGame', state.currentGame);
+    clearTimeout(wizardDraftSaveTimer);
+    wizardDraftSaveTimer = setTimeout(() => {
+        if (state.currentGame?.gameTypeId === "wizard") {
+            apiSave('currentGame', state.currentGame);
+        }
+    }, 300);
 }
 
 // Modal zur komfortablen Wizard-Rundeneingabe
 function openWizardRoundModal() {
     if (!state.currentGame || state.currentGame.gameTypeId !== "wizard") return;
 
-    const maxRounds = Math.max(...state.currentGame.players.map(p => p.rounds.length), 0);
-    const currentRoundNum = maxRounds + 1;
+    const roundInfo = getWizardRoundInfo(state.currentGame);
+    if (roundInfo.isComplete) {
+        finishGame();
+        return;
+    }
+    const currentRoundNum = roundInfo.currentRound;
 
     // Entwurf aus dem State laden
     const draft = state.currentGame.wizardDraft || {};
@@ -2301,7 +2371,7 @@ function openWizardRoundModal() {
 
     let actions = `
         <button class="secondary" onclick="closeModal()">Schließen</button>
-        <button onclick="submitWizardRound()">Runde auswerten</button>
+        <button id="wizardSubmitBtn" onclick="submitWizardRound()">Runde ${currentRoundNum} auswerten</button>
     `;
 
     openModal(`Wizard · Runde ${currentRoundNum}`, body, actions);
@@ -2326,9 +2396,19 @@ function clearWizardErrors(playerId) {
     }
 }
 
+let isSubmittingWizardRound = false;
+
 async function submitWizardRound() {
-    const maxRounds = Math.max(...state.currentGame.players.map(p => p.rounds.length), 0);
-    const currentRoundNum = maxRounds + 1;
+    if (isSubmittingWizardRound || !state.currentGame || state.currentGame.gameTypeId !== "wizard") return;
+
+    const roundInfo = getWizardRoundInfo(state.currentGame);
+    if (roundInfo.isComplete) {
+        closeModal();
+        state.lastRenderedGameId = null;
+        renderGame();
+        return;
+    }
+    const currentRoundNum = roundInfo.currentRound;
 
     let totalActualStiche = 0;
     let hasValidationError = false;
@@ -2346,7 +2426,18 @@ async function submitWizardRound() {
         let bid = Number(bidInput?.value || 0);
         let act = Number(actInput?.value || 0);
 
-        if (bid < 0 || act < 0) {
+        if (!Number.isInteger(bid) || !Number.isInteger(act)) {
+            if (bidInput) {
+                bidInput.style.borderColor = "var(--danger)";
+                bidInput.style.background = "var(--danger-light)";
+            }
+            if (actInput) {
+                actInput.style.borderColor = "var(--danger)";
+                actInput.style.background = "var(--danger-light)";
+            }
+            hasValidationError = true;
+            errorText = "Bitte nur ganze Zahlen für Ansagen und Stiche eingeben!";
+        } else if (bid < 0 || act < 0) {
             if (bid < 0 && bidInput) {
                 bidInput.style.borderColor = "var(--danger)";
                 bidInput.style.background = "var(--danger-light)";
@@ -2399,6 +2490,18 @@ async function submitWizardRound() {
         return;
     }
 
+    clearTimeout(wizardDraftSaveTimer);
+    wizardDraftSaveTimer = null;
+    isSubmittingWizardRound = true;
+    const submitButton = document.getElementById("wizardSubmitBtn");
+    if (submitButton) {
+        submitButton.disabled = true;
+        submitButton.innerText = "Wird gespeichert …";
+    }
+
+    const previousDraft = state.currentGame.wizardDraft || {};
+    const previousDealerIndex = state.currentGame.dealerIndex;
+
     // 3. Wenn alles valide ist: Punkte auswerten
     state.currentGame.players.forEach(p => {
         let bidInput = document.getElementById(`wiz_bid_${p.id}`);
@@ -2423,9 +2526,30 @@ async function submitWizardRound() {
     state.currentGame.dealerIndex = (state.currentGame.dealerIndex + 1) % state.currentGame.players.length;
     updateDealerUI();
 
-    await apiSave('currentGame', state.currentGame);
+    const saveSucceeded = await apiSave('currentGame', state.currentGame);
+    if (!saveSucceeded) {
+        state.currentGame.players.forEach(p => {
+            const removedPoints = Number(p.rounds.pop()) || 0;
+            p.total -= removedPoints;
+        });
+        state.currentGame.wizardDraft = previousDraft;
+        state.currentGame.dealerIndex = previousDealerIndex;
+        isSubmittingWizardRound = false;
+        if (submitButton) {
+            submitButton.disabled = false;
+            submitButton.innerText = `Runde ${currentRoundNum} auswerten`;
+        }
+        if (errBox) {
+            errBox.innerText = "Die Runde konnte nicht gespeichert werden. Bitte prüfe die Verbindung und versuche es erneut.";
+            errBox.style.display = "block";
+        }
+        return;
+    }
+
+    isSubmittingWizardRound = false;
     closeModal();
-    renderGame(true);
+    state.lastRenderedGameId = null;
+    renderGame();
 }
 
 // =========================================================

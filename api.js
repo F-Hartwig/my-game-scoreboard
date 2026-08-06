@@ -9,38 +9,56 @@ export async function apiFetch(endpoint) {
         if (!localData) {
             return endpoint === 'currentGame' ? null : [];
         }
-        return JSON.parse(localData);
+        try {
+            return JSON.parse(localData);
+        } catch (e) {
+            console.error("Ungültige lokale Daten für " + endpoint, e);
+            return undefined;
+        }
     }
 
     // ---- 2. ONLINE-MODUS (Echte NAS-Datenbank) ----
     try {
         const res = await fetch(`/api/${endpoint}`);
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
         return await res.json();
     } catch (e) {
         console.error("Fehler beim Laden von " + endpoint, e);
-        return endpoint === 'currentGame' ? null : [];
+        return undefined;
     }
 }
 
 export async function apiSave(endpoint, data) {
     // ---- 1. OFFLINE-MODUS (Browser-Speicher) ----
     if (IS_OFFLINE_TEST) {
-        if (endpoint === 'currentGame' && (!data || Object.keys(data).length === 0)) {
-            localStorage.removeItem(`scorebuddy_${endpoint}`);
-        } else {
-            localStorage.setItem(`scorebuddy_${endpoint}`, JSON.stringify(data));
+        try {
+            if (endpoint === 'currentGame' && (!data || Object.keys(data).length === 0)) {
+                localStorage.removeItem(`scorebuddy_${endpoint}`);
+            } else {
+                localStorage.setItem(`scorebuddy_${endpoint}`, JSON.stringify(data));
+            }
+            return true;
+        } catch (e) {
+            console.error("Fehler beim lokalen Speichern von " + endpoint, e);
+            return false;
         }
-        return;
     }
 
     // ---- 2. ONLINE-MODUS (Echte NAS-Datenbank) ----
     try {
-        await fetch(`/api/${endpoint}`, {
+        const res = await fetch(`/api/${endpoint}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         });
+        if (!res.ok) {
+            throw new Error(`HTTP ${res.status}`);
+        }
+        return true;
     } catch (e) {
         console.error("Fehler beim Speichern von " + endpoint, e);
+        return false;
     }
 }

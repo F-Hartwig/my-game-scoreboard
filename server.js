@@ -26,7 +26,7 @@ app.use(express.static(__dirname));
 
 // DB liegt direkt neben den Skripten
 const db = new sqlite3.Database(DB_PATH, (err) => {
-    if (err) console.error(err.message);
+    if (err) return console.error('SQLite-Verbindung fehlgeschlagen:', err.message);
     console.log('Verbunden mit der SQLite-Datenbank.');
 });
 
@@ -39,7 +39,12 @@ const getStatus = (id, res) => {
     db.get(`SELECT json_data FROM state WHERE id = ?`, [id], (err, row) => {
         if (err) return res.status(500).json({ error: err.message });
         if (row) {
-            return res.json(JSON.parse(row.json_data));
+            try {
+                return res.json(JSON.parse(row.json_data));
+            } catch (parseError) {
+                console.error(`Ungültige JSON-Daten für ${id}:`, parseError.message);
+                return res.status(500).json({ error: `Gespeicherte Daten für ${id} sind beschädigt.` });
+            }
         } else {
             // currentGame erwartet im leeren Zustand null, andere Routen ein Array []
             return res.json(id === 'currentGame' ? null : []);

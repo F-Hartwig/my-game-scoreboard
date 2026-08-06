@@ -8,7 +8,7 @@ Diese Datei ist die zentrale technische Projektnotiz für spätere Arbeiten. Sie
 
 Im Branch `v2` wird die bestehende Anwendung optisch vollständig als modernes, von iOS-Liquid-Glass inspiriertes Interface überarbeitet. Der Branch ist bewusst vom automatisch auf dem NAS aktualisierten Branch `main` getrennt.
 
-Geändert werden ausschließlich die Darstellung und kleine oberflächennahe Komfortfunktionen:
+Geändert werden die Darstellung, oberflächennahe Komfortfunktionen und gezielte abwärtskompatible Fehlerkorrekturen:
 
 - neue App-Kopfzeile mit ScoreBuddy-Marke
 - helles und dunkles Glas-Design mit dynamischer Hintergrundtiefe
@@ -23,15 +23,25 @@ Geändert werden ausschließlich die Darstellung und kleine oberflächennahe Kom
 
 Bewusst unverändert bleiben:
 
-- `server.js` und alle API-Routen
-- `api.js` und die Umschaltung zwischen lokalem Browser-Speicher und NAS-API
-- `state.js` und die verwendeten State-Schlüssel
+- alle vorhandenen API-Routen und die Umschaltung zwischen lokalem Browser-Speicher und NAS-API
+- die verwendeten State-Schlüssel
 - `gamesConfig.js` und alle hinterlegten Spiele/Regeln
 - SQLite-Tabelle, JSON-Strukturen und bestehender Datenbankpfad
 - IDs, Spielhistorie, Spielerstatistiken, aktive Partien und laufende Partien
 - Docker-/NAS-Startkommando und Portbelegung
 
 Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die bestehende `/app/scoreboard.db` wird unverändert weiterverwendet. Vor einem späteren Merge nach `main` muss trotzdem eine Sicherung dieser Datei erstellt werden. Solange V2 nur auf dem Branch `v2` liegt, zieht die aktuelle Compose-Konfiguration weiterhin `main` und die NAS-Produktivinstanz bleibt unverändert.
+
+### Fehlerkorrekturen im V2-Stand
+
+- Wizard zeigt nach dem Speichern zuverlässig die nächste Runde an und beendet die Eingabe nach `floor(60 / Spielerzahl)` Runden.
+- Wizard verhindert doppelte Übermittlungen, Dezimal-/Negativwerte und eine falsche Summe der tatsächlich gemachten Stiche. Die Summe der Ansagen darf entsprechend der verwendeten Spielvariante der Rundenzahl entsprechen.
+- Wizard-Entwürfe werden verzögert gespeichert; während eines geöffneten Modals überschreibt der Live-Abgleich keine laufende Eingabe.
+- Spiele mit `winCondition: "lowest"` markieren im laufenden Spiel und in Gleichständen den tatsächlich niedrigsten Wert als besten Spielstand.
+- Neue abgeschlossene Partien speichern zusätzlich optionale `winnerPartyIds`. Alte Partien bleiben kompatibel und werden über exakte Namen statt unsicherer Teiltreffer ausgewertet.
+- Beim Löschen einer historischen Partie werden auch negative Punkte mathematisch korrekt zurückgerechnet.
+- API-Fehler und beschädigtes JSON werden kontrolliert behandelt; ein fehlgeschlagener Abruf ersetzt den letzten gültigen Frontend-State nicht mehr durch leere Daten.
+- Die vier regelmäßigen Ladevorgänge laufen parallel. Das SQLite-Schema und der Datenbankpfad wurden nicht verändert.
 
 ## 1. Ziel und Einsatz
 
@@ -184,7 +194,7 @@ Wichtige Struktur einer Partie:
 game
 ├── id, gameTypeId, name, mode, rated, date
 ├── rules
-├── winner (erst nach Abschluss)
+├── winner, optional winnerPartyIds[] (erst nach Abschluss)
 └── players[]
     ├── id, name
     ├── isTeam, playerIds[]
@@ -232,11 +242,11 @@ Bereits entschärft: Die SQLite-Datei wurde zuvor durch `express.static(__dirnam
 1. **Mehrere Browser können Änderungen gegenseitig überschreiben.**
    Jeder Client lädt komplette Arrays und speichert sie wieder vollständig. Zwei fast gleichzeitige Änderungen basieren möglicherweise auf unterschiedlichen Ständen; der letzte POST gewinnt. Benötigt werden mindestens Versionsnummern/optimistische Sperren, besser fachliche API-Aktionen oder Transaktionen.
 
-2. **API-Fehler werden im Frontend nicht verlässlich behandelt.**
-   `apiSave` prüft `res.ok` nicht und meldet dem Benutzer keinen Fehler. `apiFetch` behandelt HTTP-Fehlerantworten wie normale Daten. Ein Netzwerkfehler liefert teilweise leere Arrays, wodurch die App leer wirken und ein späteres Speichern vorhandene Daten überschreiben kann. Fehler müssen sichtbar sein; der letzte gültige State darf nicht durch Fallback-Leerwerte ersetzt werden.
+2. **API-Fehler sind noch nicht überall in der Oberfläche sichtbar.**
+   HTTP-Status und JSON-Fehler werden inzwischen erkannt, und fehlgeschlagene Abrufe ersetzen den letzten gültigen State nicht mehr. Viele Schreibaktionen protokollieren einen Fehlschlag aber weiterhin nur in der Browser-Konsole. Für kritische Aktionen fehlen noch ein sichtbarer Fehlerzustand und ein sauberer Wiederholungsablauf.
 
-3. **Ungültiges JSON in SQLite kann den Serverprozess beenden.**
-   `JSON.parse(row.json_data)` läuft ohne Fehlerbehandlung. Beschädigte Daten müssen mit `try/catch`, Logging und einer kontrollierten Fehlerantwort behandelt werden.
+3. **Beschädigtes SQLite-JSON muss weiterhin administrativ repariert werden.**
+   Der Server fängt den Parse-Fehler inzwischen ab und antwortet kontrolliert mit HTTP 500, kann den beschädigten Datensatz aber nicht selbst wiederherstellen.
 
 4. **Die Historie wächst als ein einzelner JSON-Block.**
    Express verwendet standardmäßig ein relativ kleines JSON-Body-Limit. Mit wachsender Historie werden Requests langsam und können irgendwann abgewiesen werden. Mittelfristig sollten Partien als einzelne Datensätze gespeichert oder das Limit kontrolliert angepasst werden.
@@ -245,7 +255,7 @@ Bereits entschärft: Die SQLite-Datei wurde zuvor durch `express.static(__dirnam
    WAL-Modus, `busy_timeout`, kontrolliertes Schließen bei `SIGTERM` und ein Backup-/Restore-Prozess fehlen.
 
 6. **Polling erzeugt unnötige Last und Konfliktpotenzial.**
-   Pro geöffnetem Gerät werden alle zwei Sekunden vier GET-Requests sequenziell ausgeführt, also ungefähr 120 Requests pro Minute. Sinnvolle erste Verbesserungen sind `Promise.all`, Pausieren bei unsichtbarem Browser-Tab und ein längeres oder adaptives Intervall. Später wären ein zusammengefasster State-Endpunkt, Server-Sent Events oder WebSockets denkbar.
+   Pro geöffnetem Gerät werden alle zwei Sekunden vier GET-Requests ausgeführt, also ungefähr 120 Requests pro Minute. Sie laufen inzwischen parallel und pausieren während Modaleingaben. Sinnvolle weitere Verbesserungen sind das Pausieren bei unsichtbarem Browser-Tab und ein längeres oder adaptives Intervall. Später wären ein zusammengefasster State-Endpunkt, Server-Sent Events oder WebSockets denkbar.
 
 7. **Der aktuelle Container verwendet eine nicht mehr unterstützte Node-Version.**
    Node.js 18 ist seit dem 27. März 2025 End-of-Life und erhält keine regulären Sicherheitsupdates mehr. Vor dem Wechsel auf eine unterstützte LTS-Version muss insbesondere geprüft werden, ob das native `sqlite3`-Paket unter der neuen Node-/Alpine-Kombination sauber installiert und ausgeführt wird. Quelle: [offizielle Node.js-Versionsübersicht](https://nodejs.org/en/about/previous-releases).
@@ -255,7 +265,7 @@ Bereits entschärft: Die SQLite-Datei wurde zuvor durch `express.static(__dirnam
 - `app.js` bündelt UI, Spiellogik, Statistiken und Werkzeuge in einer sehr großen Datei.
 - Es gibt kein festgehaltenes Datenformat mit einer `schemaVersion`; spätere Änderungen an gespeicherten Partien werden dadurch riskant.
 - IDs über `Date.now()` können bei sehr schnellen oder verteilten Erstellungen kollidieren. `crypto.randomUUID()` ist robuster.
-- Die Gewinnererkennung an einigen Stellen nutzt `winner.includes(name)`. Ähnliche oder ineinander enthaltene Namen können dadurch falsch zugeordnet werden. Gewinner sollten dauerhaft über IDs gespeichert werden.
+- Neue Partien speichern Gewinner über `winnerPartyIds`; alte Partien werden über exakte Namen kompatibel ausgewertet. Eine spätere Datenmigration könnte die IDs auch für alte Historieneinträge ergänzen.
 - Das Löschen historischer Spiele rekonstruiert Statistiken durch Subtraktion. Stabiler wäre, Statistiken aus der Historie neu zu berechnen oder atomar serverseitig zu aktualisieren.
 - In HTML-Regeltexten vorkommende Markdown-Zeichen wie `**Text**` werden nicht als Fettformatierung gerendert.
 - Eine PWA-Manifestdatei und ein Service Worker fehlen; die App besitzt derzeit nur Icon- und Mobile-Viewport-Grundlagen.

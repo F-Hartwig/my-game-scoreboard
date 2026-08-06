@@ -313,8 +313,8 @@ export const PREDEFINED_GAMES = [
                 <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔄 Rundenanzahl & Kartenvergabe</strong>
                 In Runde 1 erhält jeder 1 Karte, in Runde 2 erhält jeder 2 Karten ... bis alle 60 Karten aufgebraucht sind (z. B. 20 Runden bei 3 Spielern, 15 Runden bei 4 Spielern, 12 Runden bei 5 Spielern, 10 Runden bei 6 Spielern).
 
-                <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🛡️ Die Geber-Regel (Keine aufgehende Summe)</strong>
-                Die Summe aller gebotenen Stiche in einer Runde darf **niemals genau der Anzahl der Handkarten entsprechen**! Der Geber (letzte Person beim Ansagen) darf daher die Zahl nicht wählen, die die Summe genau aufgeben würde.
+                <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🛡️ Ansagen</strong>
+                Jede Person sagt vor der Runde ihre erwarteten Stiche an. In dieser ScoreBuddy-Spielvariante darf die Summe aller Ansagen auch genau der Anzahl der Handkarten entsprechen.
 
                 <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">📊 Punktewertung</strong>
                 <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
