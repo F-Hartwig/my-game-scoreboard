@@ -2376,7 +2376,7 @@ function openWizardRoundModal() {
                 <strong>${turnInfo.starter?.name || "–"}</strong>
                 <small>Geber: ${turnInfo.dealer?.name || "–"}</small>
             </div>
-            <button class="wizard-change-turn-btn" onclick="openWizardStarterSelector()">Ändern</button>
+            <button class="wizard-change-turn-btn" onclick="openWizardStarterSelector()">Start ändern</button>
         </div>
 
         <div class="wizard-player-list">
