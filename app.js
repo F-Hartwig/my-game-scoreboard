@@ -41,7 +41,7 @@ async function navigate(pageId, element) {
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     element.classList.add("active");
 
-    const titles = { gamePage: "🎲 ScoreBuddy", playersPage: "👥 Spieler", statsPage: "🏆 Statistik", rulesPage: "📚 Spielesammlung" };
+    const titles = { gamePage: "ScoreBuddy", playersPage: "Spieler", statsPage: "Statistik", rulesPage: "Spielesammlung" };
     document.getElementById("headerTitle").innerText = titles[pageId];
 
     await loadAllFromDb();
@@ -105,7 +105,7 @@ function triggerRename(id) {
     state.activeEditPlayerId = id;
     let body = `<input id="modalInput" value="${p.name}">`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitRename()">Speichern</button>`;
-    openModal("✏️ Name ändern", body, actions);
+    openModal("Name ändern", body, actions);
 }
 
 async function submitRename() {
@@ -122,7 +122,7 @@ async function submitRename() {
 function triggerDelete(id) {
     state.activeEditPlayerId = id;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDelete()">Löschen</button>`;
-    openModal("🗑️ Spieler löschen?", "<p style='color:var(--muted)'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
+    openModal("Spieler löschen?", "<p style='color:var(--muted)'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
 }
 
 async function submitDelete() {
@@ -151,14 +151,14 @@ function renderPlayers() {
                     <div class="avatar">${initials}</div>
                     <div>
                         <div class="player-name">${p.name}</div>
-                        <div class="player-info">${p.wins} 🏆 · ${p.games} Matches</div>
-                        ${p.favorite ? `<div class="favorite-badge">⭐ Favorit</div>` : ""}
+                        <div class="player-info">${p.wins} Siege · ${p.games} Matches</div>
+                        ${p.favorite ? `<div class="favorite-badge">Favorit</div>` : ""}
                     </div>
                 </div>
                 <div class="actions">
-                    <button class="icon-btn edit-btn" onclick="toggleFav(${p.id})">⭐</button>
-                    <button class="icon-btn edit-btn" onclick="triggerRename(${p.id})">✏️</button>
-                    <button class="icon-btn delete-btn" onclick="triggerDelete(${p.id})">🗑</button>
+                    <button class="icon-btn edit-btn" onclick="toggleFav(${p.id})" aria-label="Favorit umschalten" title="Favorit umschalten">☆</button>
+                    <button class="icon-btn edit-btn" onclick="triggerRename(${p.id})" aria-label="Namen ändern" title="Namen ändern">Aa</button>
+                    <button class="icon-btn delete-btn" onclick="triggerDelete(${p.id})" aria-label="Spieler löschen" title="Spieler löschen">×</button>
                 </div>
             </div>`;
     });
@@ -190,7 +190,7 @@ function startSetup() {
 
     let html = `
         <div class="card">
-            <div class="title">🎯 0. Spiel auswählen</div>
+            <div class="title">0. Spiel auswählen</div>
             <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
                 ${selectableGames.map(g => `<option value="${g.id}">${g.name}</option>`).join("")}
             </select>
@@ -204,7 +204,7 @@ function startSetup() {
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <div class="title" style="margin:0;">🎮 1. Teilnehmer wählen</div>
+                <div class="title" style="margin:0;">1. Teilnehmer wählen</div>
                 <div class="toggle-container">
                     <button class="toggle-btn active" id="toggleRated" onclick="setRated(true)">Gewertet</button>
                     <button class="toggle-btn" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
@@ -212,7 +212,7 @@ function startSetup() {
             </div>
             
             <div style="margin-bottom: 14px;">
-                <button class="secondary" style="height: 44px; font-size: 14px; background: var(--primary-light); color: var(--primary); border-color: rgba(79, 70, 229, 0.2); font-weight:700;" onclick="openTeamBuilderModal()">👥 + Neues Team erstellen</button>
+                <button class="secondary" style="height: 44px; font-size: 14px; background: var(--primary-light); color: var(--primary); border-color: rgba(79, 70, 229, 0.2); font-weight:700;" onclick="openTeamBuilderModal()">Neues Team erstellen</button>
             </div>
 
             <div id="selectList" style="margin-bottom: 20px;">`;
@@ -251,7 +251,7 @@ function startSetup() {
     </div>
 </div>
 
-        <button onclick="createGame()">Spiel starten 🚀</button>
+        <button onclick="createGame()">Spiel starten</button>
         <button class="secondary" style="margin-top:8px;" onclick="cancelSetup()">Abbrechen</button>
     </div>`;
 
@@ -271,10 +271,10 @@ function renderSetupPoolHtml() {
                 <div class="select-card" data-type="team" data-id="${t.id}" onclick="toggleSelectCard(event, this)">
                     <div class="player-left" style="flex:1; min-width:0;">
                         <input type="checkbox" value="${t.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
-                        <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; background: var(--success-light); color: var(--success);">👥</div>
+                        <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; background: var(--success-light); color: var(--success);">T</div>
                         <strong style="word-break: break-all; overflow:hidden; text-overflow:ellipsis;">${t.name}</strong>
                     </div>
-                    <button class="icon-btn delete-btn" style="width:32px; height:32px; font-size:12px; flex-shrink:0; margin-left:8px;" onclick="event.stopPropagation(); removeSingleTeam(${t.id})">✕</button>
+                    <button class="icon-btn delete-btn" style="width:32px; height:32px; font-size:14px; flex-shrink:0; margin-left:8px;" onclick="event.stopPropagation(); removeSingleTeam(${t.id})">×</button>
                 </div>`;
         });
     }
@@ -326,10 +326,10 @@ function openTeamBuilderModal() {
 
     let actionsHtml = `
         <button class="secondary" onclick="closeModal()">Abbrechen</button>
-        <button onclick="submitTeamBuilderModal()">Team erstellen ✓</button>
+        <button onclick="submitTeamBuilderModal()">Team erstellen</button>
     `;
 
-    openModal("👥 Neues Team gründen", bodyHtml, actionsHtml);
+    openModal("Neues Team gründen", bodyHtml, actionsHtml);
 }
 
 function submitTeamBuilderModal() {
@@ -458,7 +458,7 @@ function updateDragOrderList() {
         card.innerHTML = `
             <div class="player-left">
                 <span style="color:var(--muted); font-size:14px; margin-right:4px;">↕️</span>
-                <div class="avatar" style="width:28px; height:28px; font-size:10px; ${isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${isTeam ? '👥' : displayName.substring(0,2).toUpperCase()}</div>
+                <div class="avatar" style="width:28px; height:28px; font-size:10px; ${isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${isTeam ? 'T' : displayName.substring(0,2).toUpperCase()}</div>
                 <strong>${displayName}</strong>
             </div>`;
             
@@ -583,15 +583,14 @@ function renderGame(isSyncUpdate = false) {
         state.lastRenderedGameId = null;
         let html = `
             <div class="card welcome-card">
-                <div class="welcome-icon" aria-hidden="true">🎲</div>
                 <div class="welcome-kicker">Bereit für den Spieleabend?</div>
                 <div class="title">Neues Spiel starten</div>
                 <p class="welcome-copy">Wähle eure Mitspieler, das passende Spiel und behalte jeden Punkt entspannt im Blick.</p>
-                <button onclick="startSetup()">✨ Spiel anlegen</button>
+                <button onclick="startSetup()">Spiel anlegen</button>
             </div>`;
 
         if(state.activeGames && state.activeGames.length > 0) {
-            html += `<div class="title" style="margin-top:20px; padding:0 4px;">⏳ Aktive & pausierte Spiele (${state.activeGames.length})</div>`;
+            html += `<div class="title" style="margin-top:20px; padding:0 4px;">Aktive & pausierte Spiele (${state.activeGames.length})</div>`;
                 
             state.activeGames.forEach(ag => {
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
@@ -601,10 +600,10 @@ function renderGame(isSyncUpdate = false) {
                     <div class="active-game-card">
                         <div class="active-game-card-top">
                             <div class="active-game-meta">
-                                <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">🎲 ${ag.name}${ratedBadge}</strong>
-                                <span style="font-size:11px; font-weight:600;">📅 Am ${ag.date} · ${modeText}</span>
+                                <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">${ag.name}${ratedBadge}</strong>
+                                <span style="font-size:11px; font-weight:600;">${ag.date} · ${modeText}</span>
                             </div>
-                            <span class="active-game-badge">⏸ Pausiert</span>
+                            <span class="active-game-badge">Pausiert</span>
                         </div>
                         <div class="active-game-players-box">
                             ${ag.players.map(x => `
@@ -615,8 +614,8 @@ function renderGame(isSyncUpdate = false) {
                             `).join("")}
                         </div>
                         <div class="active-game-actions">
-                            <button class="resume-btn" onclick="resumeGame(${ag.id})">▶ Weiter spielen</button>
-                            <button class="abort-btn" onclick="triggerDeleteActiveGame(${ag.id})">🗑</button>
+                            <button class="resume-btn" onclick="resumeGame(${ag.id})">Fortsetzen</button>
+                            <button class="abort-btn" onclick="triggerDeleteActiveGame(${ag.id})" aria-label="Spielstand löschen" title="Spielstand löschen">×</button>
                         </div>
                     </div>`;
             });
@@ -640,7 +639,7 @@ function renderGame(isSyncUpdate = false) {
         if (totalPoints < 0) req = 15;
         else if (totalPoints >= 1500 && totalPoints < 3000) req = 90;
         else if (totalPoints >= 3000) req = 120;
-        return `<span style="font-size: 11px; font-weight: 700; background: var(--primary-light); color: var(--primary); padding: 3px 7px; border-radius: 999px; margin-left: 6px; border: 1px solid var(--border-strong);">📋 Min: ${req}</span>`;
+        return `<span style="font-size: 11px; font-weight: 700; background: var(--primary-light); color: var(--primary); padding: 3px 7px; border-radius: 999px; margin-left: 6px; border: 1px solid var(--border-strong);">Min. ${req}</span>`;
     };
 
     const getRemainingPointsBadge = (totalPoints) => {
@@ -669,14 +668,14 @@ function renderGame(isSyncUpdate = false) {
 
     // --- PARTIELLES RE-RENDERING BEI FAST-SYNC ---
     if (state.lastRenderedGameId === state.currentGame.id && document.getElementById("gameStatusLabel")) {
-        document.getElementById("gameStatusLabel").innerText = `⚡ ${statusText}`;
+        document.getElementById("gameStatusLabel").innerText = statusText;
         
         state.currentGame.players.forEach(p => {
             const isLeading = p.total === highestScore && anyRoundsPlayed && leadsCount === 1;
             
             let metaBox = document.getElementById(`meta_${p.id}`);
             if (metaBox) {
-                metaBox.innerHTML = `<span>${p.name}</span>${getCanastaPill(p.total)}${getRemainingPointsBadge(p.total)}${isLeading ? '<span>👑</span>' : ''}`;
+                metaBox.innerHTML = `<span>${p.name}</span>${getCanastaPill(p.total)}${getRemainingPointsBadge(p.total)}${isLeading ? '<span class="leader-badge">Führt</span>' : ''}`;
             }
             
             let totalBadge = document.getElementById(`total_${p.id}`);
@@ -730,15 +729,15 @@ function renderGame(isSyncUpdate = false) {
 
     const hasLongRules = state.currentGame.rules && state.currentGame.rules.descriptionLong;
     let rulesBtnHtml = hasLongRules 
-        ? `<button class="secondary" style="width:auto; height:32px; font-size:13px; padding:0 10px; border-radius:8px; flex-shrink:0; font-weight:700;" onclick="showGameRulesModal()">📜 Regeln</button>`
+        ? `<button class="secondary" style="width:auto; height:32px; font-size:13px; padding:0 10px; border-radius:8px; flex-shrink:0; font-weight:700;" onclick="showGameRulesModal()">Regeln</button>`
         : '';
 
     let html = `
         <div class="card game-status-card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <span id="gameStatusLabel" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%;">⚡ ${statusText}</span>
+            <span id="gameStatusLabel" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%;">${statusText}</span>
             <div style="display:flex; gap:6px; flex-shrink:0;">
                 ${rulesBtnHtml}
-                <button class="secondary" style="width:40px; height:32px; font-size:14px; padding:0; border-radius:8px;" onclick="pauseCurrentGame()">⏸</button>
+                <button class="secondary" style="width:auto; height:32px; font-size:12px; padding:0 10px; border-radius:10px;" onclick="pauseCurrentGame()">Pausieren</button>
             </div>
         </div>
 
@@ -756,7 +755,7 @@ function renderGame(isSyncUpdate = false) {
                         <span>${p.name}</span>
                         ${getCanastaPill(p.total)}
                         ${getRemainingPointsBadge(p.total)}
-                        ${isLeading ? '<span>👑</span>' : ''}
+                        ${isLeading ? '<span class="leader-badge">Führt</span>' : ''}
                     </div>
                     <div class="total-badge" id="total_${p.id}">${p.total} Pkt</div>
                 </div>
@@ -799,15 +798,15 @@ function renderGame(isSyncUpdate = false) {
     if (state.currentGame.gameTypeId === "wizard") {
         html += `
             <div class="card score-entry-card">
-                <div class="title">🔮 Wizard Rundenwertung</div>
+                <div class="title">Wizard Rundenwertung</div>
                 <p style="color:var(--muted); font-size:13px; margin-bottom:14px;">Runde ${maxRounds + 1}: Trage die gebotenen und gemachten Stiche ein.</p>
-                <button onclick="openWizardRoundModal()">➕ Runde ${maxRounds + 1} auswerten</button>
-                <button class="green" style="margin-top: 8px;" onclick="finishGame()">🏆 Spiel beenden</button>
+                <button onclick="openWizardRoundModal()">Runde ${maxRounds + 1} auswerten</button>
+                <button class="green" style="margin-top: 8px;" onclick="finishGame()">Spiel beenden</button>
             </div>`;
     } else if(state.currentGame.mode === 'round') {
         html += `
             <div class="card score-entry-card" id="inputCardAnchor">
-                <div class="title">➕ Runde eintragen</div>
+                <div class="title">Runde eintragen</div>
                 <div class="round-grid" id="roundInputs">`;
 
         state.currentGame.players.forEach((p, idx) => {
@@ -821,13 +820,13 @@ function renderGame(isSyncUpdate = false) {
         });
 
         html += `</div>
-                <button onclick="addRoundRow()">Runde speichern ✓</button>
-                <button class="green" style="margin-top: 8px;" onclick="finishGame()">🏆 Spiel beenden</button>
+                <button onclick="addRoundRow()">Runde speichern</button>
+                <button class="green" style="margin-top: 8px;" onclick="finishGame()">Spiel beenden</button>
              </div>`;
     } else {
         html += `
             <div class="card score-entry-card">
-                <div class="title">➕ Einzelpunkte eintragen</div>
+                <div class="title">Einzelpunkte eintragen</div>
                 <div class="round-grid" id="roundInputs">`;
 
         state.currentGame.players.forEach((p, idx) => {
@@ -837,12 +836,12 @@ function renderGame(isSyncUpdate = false) {
                     <button id="sign_${p.id}" onclick="toggleSign(${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleSingleEnter(event, ${p.id})">
-                    <button class="submit-single-btn" onclick="addSingleScore(${p.id})" style="width:38px; height:38px;">✓</button>
+                    <button class="submit-single-btn" onclick="addSingleScore(${p.id})" style="width:42px; height:38px; font-size:11px;">OK</button>
                 </div>`;
         });
 
         html += `</div>
-                <button class="green" style="margin-top: 14px;" onclick="finishGame()">🏆 Spiel beenden</button>
+                <button class="green" style="margin-top: 14px;" onclick="finishGame()">Spiel beenden</button>
              </div>`;
     }
 
@@ -865,7 +864,7 @@ function showGameRulesModal() {
     let body = `<div style="font-size:14px; color:var(--text); line-height:1.5; padding:4px 0;">${state.currentGame.rules.descriptionLong}</div>`;
     let actions = `<button class="secondary" onclick="closeModal()">Schließen</button>`;
     
-    openModal(`📜 ${state.currentGame.name} Regeln`, body, actions);
+    openModal(`${state.currentGame.name} · Regeln`, body, actions);
 }
 
 function toggleSign(playerId) {
@@ -1011,9 +1010,9 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
             <input type="text" inputmode="decimal" id="modalRoundInput" value="${absoluteValue}" style="text-align:center; font-weight:bold; font-size:18px;">
         </div>`;
         
-    let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitEditRound()">✓ Speichern</button>`;
+    let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitEditRound()">Speichern</button>`;
     
-    openModal("✏️ Wert bearbeiten", body, actions);
+    openModal("Wert bearbeiten", body, actions);
 }
 
 async function submitEditRound() {
@@ -1080,7 +1079,7 @@ function triggerDeleteActiveGame(gameId) {
     let ag = state.activeGames.find(x => x.id === gameId);
     let body = `<p style="color:var(--muted)">Möchtest du das pausierte Spiel <strong>${ag.name}</strong> wirklich unwiderruflich verwerfen?</p>`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteActiveGame()">Löschen</button>`;
-    openModal("🗑️ Spielstand verwerfen?", body, actions);
+    openModal("Spielstand verwerfen?", body, actions);
 }
 
 async function submitDeleteActiveGame() {
@@ -1107,10 +1106,10 @@ function finishGame() {
 
     let html = `
         <div class="card">
-            <div class="title">🏆 Wer hat gewonnen?</div>
+            <div class="title">Wer hat gewonnen?</div>
             <div id="winnerCardsList" style="margin-bottom:16px;">
                 <div class="winner-select-card" data-id="Unentschieden" onclick="selectWinnerCard(this)">
-                    <div class="player-left">🤝 <strong>Unentschieden</strong></div>
+                    <div class="player-left"><strong>Unentschieden</strong></div>
                 </div>`;
 
     state.currentGame.players.forEach(p => {
@@ -1118,7 +1117,7 @@ function finishGame() {
         html += `
             <div class="winner-select-card ${isBest ? 'selected' : ''}" data-id="${p.id}" onclick="selectWinnerCard(this)">
                 <div class="player-left" style="flex: 1; min-width: 0;">
-                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; ${p.isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${p.isTeam ? '👥' : p.name.substring(0,2).toUpperCase()}</div>
+                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; ${p.isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${p.isTeam ? 'T' : p.name.substring(0,2).toUpperCase()}</div>
                     <strong class="player-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</strong>
                     ${isBest ? '<span class="rec-tag" style="margin-left:8px; flex-shrink:0;">Empfehlung</span>' : ''}
                 </div>
@@ -1217,13 +1216,13 @@ function showResult(gameData) {
     let textModeInfo = game.rated === false ? ' (Freundschaftsspiel)' : '';
     let html = `
         <div class="card result-hero-card" style="text-align:center; padding:24px 16px;">
-            <div style="font-size:48px; margin-bottom:4px;">👑</div>
+            <div class="result-label">Ergebnis</div>
             <div style="font-size:22px; font-weight:850; color:var(--success);">${game.winner}</div>
-            <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">🎲 ${game.name}${textModeInfo} · 📅 ${game.date}</p>
+            <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">${game.name}${textModeInfo} · ${game.date}</p>
         </div>
 
         <div class="card">
-            <div class="title">📊 Endresultat</div>`;
+            <div class="title">Endresultat</div>`;
 
     const rules = game.rules || { winCondition: "highest" };
     let sortedFinal = [...game.players].sort((a,b) => {
@@ -1246,7 +1245,7 @@ function showResult(gameData) {
     });
 
     html += `
-    <button style="margin-top:14px;" onclick="startRematch()">🔄 Revanche starten</button>
+    <button style="margin-top:14px;" onclick="startRematch()">Revanche starten</button>
     <button class="secondary" style="margin-top:8px;" onclick="newGame()">Hauptmenü</button>
     </div>`;
 
@@ -1348,10 +1347,10 @@ function renderHistory() {
             <div class="history-card" onclick="viewGameDetails(${g.id})">
                 <div class="history-card-top">
                     <div class="history-card-info">
-                        <div class="history-card-date">🎲 ${g.name}${unratedTag}</div>
-                        <div class="history-card-sub">📅 ${g.date}</div>
+                        <div class="history-card-date">${g.name}${unratedTag}</div>
+                        <div class="history-card-sub">${g.date}</div>
                     </div>
-                    <div class="winner-badge">🏆 ${g.winner}</div>
+                    <div class="winner-badge">Gewinner: ${g.winner}</div>
                 </div>
                 <div class="history-card-scores">
                     ${g.players.map(p => {
@@ -1365,7 +1364,7 @@ function renderHistory() {
     if (state.games.length > 5 && !state.showAllHistory) {
         box.innerHTML += `
             <button class="secondary" style="margin-top: 10px; height: 40px; font-size: 14px;" onclick="triggerShowAllHistory()">
-                📜 Alle anzeigen (${state.games.length} Spiele)
+                Alle anzeigen (${state.games.length} Spiele)
             </button>`;
     }
 }
@@ -1388,7 +1387,7 @@ function viewGameDetails(gameId) {
     
     let html = `
         <p style="color: var(--muted); font-size:13px; margin-bottom:16px; font-weight:500;">
-            📅 Datum: ${g.date} · Typ: ${modeTextInfo}
+            Datum: ${g.date} · Typ: ${modeTextInfo}
         </p>
         <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
 
@@ -1401,7 +1400,7 @@ function viewGameDetails(gameId) {
                 <div class="modal-player-header">
                     <div class="modal-player-meta">
                         <span>${p.name}</span>
-                        ${isWinner ? '<span>👑</span>' : ''}
+                        ${isWinner ? '<span class="leader-badge">Gewinner</span>' : ''}
                     </div>
                     <div class="modal-total-badge">${p.total} Pkt</div>
                 </div>
@@ -1444,11 +1443,11 @@ function viewGameDetails(gameId) {
     html += `</div>`;
     
     // Titel als HTML-String für innerHTML
-    let modalTitle = `<span style="display:flex; align-items:center; gap:8px;">📊 ${g.name} <button class="icon-btn edit-btn" style="width:28px; height:28px; font-size:12px; flex-shrink:0;" onclick="triggerRenameHistoryGame(${g.id})" title="Spielnamen ändern">✏️</button></span>`;
+    let modalTitle = `<span style="display:flex; align-items:center; gap:8px;">${g.name} <button class="icon-btn edit-btn" style="width:30px; height:28px; font-size:11px; flex-shrink:0;" onclick="triggerRenameHistoryGame(${g.id})" title="Spielnamen ändern" aria-label="Spielnamen ändern">Aa</button></span>`;
 
     let actions = `
         <button class="secondary" onclick="closeModal()" style="flex:1">Schließen</button>
-        <button class="red" onclick="triggerDeleteHistoryGame(${g.id})" style="width:auto; padding:0 14px; background:var(--danger-light); color:var(--danger);">🗑️ Löschen</button>`;
+        <button class="red" onclick="triggerDeleteHistoryGame(${g.id})" style="width:auto; padding:0 14px; background:var(--danger-light); color:var(--danger);">Löschen</button>`;
     
     openModal(modalTitle, html, actions);
 
@@ -1474,9 +1473,9 @@ function triggerRenameHistoryGame(gameId) {
         `;
         let actions = `
             <button class="secondary" onclick="viewGameDetails(${gameId})">Abbrechen</button>
-            <button onclick="submitRenameHistoryGame()">Speichern ✓</button>
+            <button onclick="submitRenameHistoryGame()">Speichern</button>
         `;
-        openModal("✏️ Spielnamen ändern", body, actions);
+        openModal("Spielnamen ändern", body, actions);
     }, 200);
 }
 
@@ -1558,7 +1557,7 @@ function renderRulesPage() {
 
         let playBtnHtml = !g.hideFromSelection
             ? `<button class="icon-btn edit-btn" style="width:34px; height:34px; font-size:14px; background:var(--primary-light); color:var(--primary); margin-left:auto; flex-shrink:0;" 
-                title="Spiel starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">▶</button>`
+                title="Spiel starten" aria-label="Spiel starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">Start</button>`
             : '';
 
         box.innerHTML += `
@@ -1566,7 +1565,7 @@ function renderRulesPage() {
                 <div class="history-card-top" style="border-bottom: none; padding-bottom: 0; display:flex; align-items:center; justify-content:space-between; gap:10px;">
                     <div class="history-card-info" style="flex:1; min-width:0;">
                         <div class="history-card-date" style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
-                            🎲 ${g.name} ${pureRulesBadge}
+                            ${g.name} ${pureRulesBadge}
                         </div>
                     </div>
                     ${playBtnHtml}
@@ -1575,7 +1574,7 @@ function renderRulesPage() {
                 ${g.rules && g.rules.descriptionLong ? `
                     <button class="secondary" style="margin-top: 10px; height: 36px; font-size: 13px; font-weight: 700;" 
                         onclick="openCollectionRulesModal('${g.id}')">
-                        📜 Regelbuch öffnen
+                        Regelbuch öffnen
                     </button>
                 ` : ''}
             </div>`;
@@ -1606,7 +1605,7 @@ function openCollectionRulesModal(gameId) {
     let body = `<div style="font-size:14px; color:var(--text); line-height:1.5; padding:4px 0;">${game.rules.descriptionLong}</div>`;
     let actions = `<button class="secondary" onclick="closeModal()">Schließen</button>`;
     
-    openModal(`📜 ${game.name} Regeln`, body, actions);
+    openModal(`${game.name} · Regeln`, body, actions);
 }
 
 // ===============================
@@ -1667,9 +1666,9 @@ function openPlayerProfileModal(playerId) {
             const rate = Math.round((stats.wins / stats.games) * 100);
             gamesHtml += `
                 <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border)">
-                    <div style="font-size:14px; font-weight:600;">🎲 ${gName}</div>
+                    <div style="font-size:14px; font-weight:600;">${gName}</div>
                     <div style="text-align:right; font-size:13px;">
-                        <strong>${stats.wins}🏆</strong> <span style="color:var(--muted)">/ ${stats.games} Spiele</span>
+                        <strong>${stats.wins} Siege</strong> <span style="color:var(--muted)">/ ${stats.games} Spiele</span>
                         <span style="margin-left:6px; font-weight:700; color:var(--primary); background:var(--primary-light); padding:2px 6px; border-radius:6px;">${rate}%</span>
                     </div>
                 </div>`;
@@ -1686,7 +1685,7 @@ function openPlayerProfileModal(playerId) {
         partnerHtml = `
             <div style="margin-top:16px; background:var(--success-light); border:1px solid rgba(16, 185, 129, 0.2); padding:12px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:space-between;">
                 <div>
-                    <div style="font-size:11px; font-weight:700; color:var(--success); text-transform:uppercase; letter-spacing:0.5px;">🤝 Beste Team-Harmonie</div>
+                    <div style="font-size:11px; font-weight:700; color:var(--success); text-transform:uppercase; letter-spacing:0.5px;">Beste Team-Harmonie</div>
                     <div style="font-size:15px; font-weight:700; margin-top:2px;">Mit ${bestPartnerName}</div>
                 </div>
                 <div style="text-align:right; font-size:13px;">
@@ -1703,7 +1702,7 @@ function openPlayerProfileModal(playerId) {
             <p style="color:var(--muted); font-size:13px; margin-top:2px;">Gesamt-Erfolgsquote: <strong>${p.games ? Math.round((p.wins / p.games) * 100) : 0}%</strong></p>
         </div>
         
-        <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:var(--muted);">🎯 Siege nach Spielen:</div>
+        <div style="font-weight:700; font-size:14px; margin-bottom:8px; color:var(--muted);">Siege nach Spielen</div>
         <div style="display:flex; flex-direction:column; gap:2px; margin-bottom:10px;">
             ${gamesHtml}
         </div>
@@ -1711,7 +1710,7 @@ function openPlayerProfileModal(playerId) {
     `;
 
     let actionsHtml = `<button class="secondary" style="flex:1;" onclick="closeModal()">Schließen</button>`;
-    openModal(`👤 Spieler-Profil`, bodyHtml, actionsHtml);
+    openModal(`Spielerprofil`, bodyHtml, actionsHtml);
 }
 
 // ===============================
@@ -1723,13 +1722,16 @@ function applyTheme(theme) {
     const btn = document.getElementById("themeToggleBtn");
     if (btn) {
         const isDark = theme === "dark";
-        btn.innerText = isDark ? "☀️" : "🌙";
+        btn.classList.toggle("is-dark", isDark);
         btn.setAttribute("aria-label", isDark ? "Helles Farbschema aktivieren" : "Dunkles Farbschema aktivieren");
         btn.setAttribute("title", isDark ? "Helles Farbschema aktivieren" : "Dunkles Farbschema aktivieren");
     }
 
+    const label = document.getElementById("themeToggleLabel");
+    if (label) label.innerText = theme === "dark" ? "Hell" : "Dunkel";
+
     const themeMeta = document.getElementById("themeColorMeta");
-    if (themeMeta) themeMeta.setAttribute("content", theme === "dark" ? "#090d18" : "#edf2fb");
+    if (themeMeta) themeMeta.setAttribute("content", theme === "dark" ? "#151b28" : "#f4f7fc");
 }
 
 function toggleTheme() {
@@ -1775,7 +1777,7 @@ function toggleTimerMenu() {
         </div>
     `;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button>`;
-    openModal("⏱️ Zug-Timer starten", body, actions);
+    openModal("Zug-Timer starten", body, actions);
 }
 
 function startTimer(seconds) {
@@ -1878,7 +1880,7 @@ function openStartPlayerSelectorModal() {
             ${players.map(p => `
                 <div class="select-card start-player-card" data-id="${p.id}" onclick="selectStartPlayerDirectly(${p.id})" style="margin-bottom:0; padding:12px;">
                     <div class="player-left">
-                        <div class="avatar" style="width:30px; height:30px; font-size:11px;">${p.isTeam ? '👥' : p.name.substring(0,2).toUpperCase()}</div>
+                        <div class="avatar" style="width:30px; height:30px; font-size:11px;">${p.isTeam ? 'T' : p.name.substring(0,2).toUpperCase()}</div>
                         <strong class="start-player-name">${p.name}</strong>
                     </div>
                 </div>
@@ -1888,10 +1890,10 @@ function openStartPlayerSelectorModal() {
 
     let actions = `
         <button class="secondary" onclick="closeModal()">Abbrechen</button>
-        <button id="randomRollBtn" onclick="runStartPlayerAnimation()">🎰 Zufall</button>
+        <button id="randomRollBtn" onclick="runStartPlayerAnimation()">Zufällig auswählen</button>
     `;
 
-    openModal("🎲 Startspieler bestimmen", body, actions);
+    openModal("Startspieler bestimmen", body, actions);
 }
 
 // 2. Direkt-Auswahl per Klick auf einen Namen
@@ -1945,7 +1947,7 @@ function runStartPlayerAnimation() {
             
             // Text des Gewinners leicht betonen
             const nameEl = winnerCard.querySelector(".start-player-name");
-            if (nameEl) nameEl.innerHTML += " 👑";
+            if (nameEl) nameEl.innerHTML += " · ausgewählt";
 
             // Erfolgs-Vibration
             if ("vibrate" in navigator) {
@@ -2078,10 +2080,10 @@ function openDiceModal() {
 
     let actions = `
         <button class="secondary" onclick="closeModal()">Schließen</button>
-        <button id="rollDiceBtn" onclick="rollDiceAnimation()">🎲 Würfeln!</button>
+        <button id="rollDiceBtn" onclick="rollDiceAnimation()">Würfeln</button>
     `;
 
-    openModal("🎲 Würfelbecher", body, actions);
+    openModal("Würfelbecher", body, actions);
 
     // Initial-Darstellung anhand der gewählten Werte rendern
     setDiceType(selectedDiceType);
@@ -2269,10 +2271,10 @@ function openWizardRoundModal() {
 
     let actions = `
         <button class="secondary" onclick="closeModal()">Schließen</button>
-        <button onclick="submitWizardRound()">Runde auswerten ✓</button>
+        <button onclick="submitWizardRound()">Runde auswerten</button>
     `;
 
-    openModal(`🔮 Wizard - Runde ${currentRoundNum}`, body, actions);
+    openModal(`Wizard · Runde ${currentRoundNum}`, body, actions);
 }
 
 // Setzt Fehler-Markierungen zurück

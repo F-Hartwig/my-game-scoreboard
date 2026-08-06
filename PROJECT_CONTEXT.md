@@ -12,6 +12,9 @@ Geändert werden ausschließlich die Darstellung und kleine oberflächennahe Kom
 
 - neue App-Kopfzeile mit ScoreBuddy-Marke
 - helles und dunkles Glas-Design mit dynamischer Hintergrundtiefe
+- reduzierte, textbasierte Navigation und Werkzeugleiste ohne dekorative Emoji-Icons
+- kontrastreicher Light Mode mit klar hervorgehobenen Karten, Eingaben und aktiven Zuständen
+- weicher Dark Mode in Navy-/Graphit-Tönen statt nahezu schwarzer beziehungsweise stark violetter Flächen
 - neue schwebende Hauptnavigation
 - modernisierte Karten, Spielstände, Punkt-Eingaben und Auswahllisten
 - einheitliche Darstellung von Rangliste, Historie, Regelwerk und Modalen

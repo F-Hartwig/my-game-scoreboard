@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="theme-color" id="themeColorMeta" content="#eaf0ff">
+    <meta name="theme-color" id="themeColorMeta" content="#f4f7fc">
     <meta name="description" content="ScoreBuddy – der moderne Spielstandbegleiter für gemeinsame Spieleabende.">
     <title>ScoreBuddy</title>
     <link rel="stylesheet" href="/style.css">
@@ -26,24 +26,27 @@
                 <h1 id="headerTitle">ScoreBuddy</h1>
             </div>
         </div>
-        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Farbschema wechseln" title="Farbschema wechseln">🌙</button>
+        <button class="theme-toggle-btn" id="themeToggleBtn" onclick="toggleTheme()" aria-label="Farbschema wechseln" title="Farbschema wechseln">
+            <span class="theme-indicator" aria-hidden="true"></span>
+            <span id="themeToggleLabel">Dunkel</span>
+        </button>
     </header>
 
     <main class="app-shell">
         <div class="toolbar" aria-label="Spielwerkzeuge">
             <button class="tool-chip in-game-only" id="startPlayerToolBtn" onclick="openStartPlayerSelectorModal()" style="display: none;">
-                <span aria-hidden="true">🎲</span> Startspieler
+                Startspieler
             </button>
             <button class="tool-chip in-game-only" id="dealerToolBtn" onclick="rotateDealerManually()" style="display: none;">
-                <span aria-hidden="true">🎴</span> <span id="dealerLabel">Geber: --</span>
+                <span id="dealerLabel">Geber: --</span>
             </button>
 
             <button class="tool-chip" id="timerToolBtn" onclick="toggleTimerMenu()">
-                <span aria-hidden="true">⏱️</span> <span id="timerLabel" aria-live="polite">Timer</span>
+                <span id="timerLabel" aria-live="polite">Timer</span>
             </button>
 
             <button class="tool-chip" id="diceToolBtn" onclick="openDiceModal()">
-                <span aria-hidden="true">🎲</span> Würfel
+                Würfel
             </button>
         </div>
 
@@ -53,7 +56,7 @@
 
         <section id="playersPage" class="page" aria-label="Spieler">
             <div class="card add-player-card">
-                <div class="title">👥 Spieler hinzufügen</div>
+                <div class="title">Spieler hinzufügen</div>
                 <div class="inline-form">
                     <input id="playerInput" placeholder="Name eingeben…" autocomplete="off" maxlength="40">
                     <button class="add-player-btn" aria-label="Spieler hinzufügen" onclick="addPlayer()">+</button>
@@ -64,18 +67,18 @@
 
         <section id="statsPage" class="page" aria-label="Statistik">
             <div class="card stats-card">
-                <div class="title">🏆 Bestenliste</div>
+                <div class="title">Bestenliste</div>
                 <div id="ranking" class="ranking-list"></div>
             </div>
             <div class="card stats-card">
-                <div class="title">📜 Historie</div>
+                <div class="title">Historie</div>
                 <div id="history" class="history-list"></div>
             </div>
         </section>
 
         <section id="rulesPage" class="page" aria-label="Regeln">
             <div class="card rules-library-card">
-                <div class="title">📚 Spielesammlung &amp; Regeln</div>
+                <div class="title">Spielesammlung &amp; Regeln</div>
                 <p class="section-intro">
                     Alle hinterlegten Spielregeln und Limits auf einen Blick – auch ohne laufendes Match.
                 </p>
@@ -85,15 +88,15 @@
     </main>
 
     <nav class="bottom-nav" aria-label="Hauptnavigation">
-        <button class="nav-item active" onclick="navigate('gamePage', this)"><span aria-hidden="true">🎮</span><small>Spiel</small></button>
-        <button class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><span aria-hidden="true">👥</span><small>Spieler</small></button>
-        <button class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><span aria-hidden="true">🏆</span><small>Statistik</small></button>
-        <button class="nav-item" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><span aria-hidden="true">📜</span><small>Regeln</small></button>
+        <button class="nav-item active" onclick="navigate('gamePage', this)"><span>Spiel</span></button>
+        <button class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><span>Spieler</span></button>
+        <button class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><span>Statistik</span></button>
+        <button class="nav-item" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><span>Regeln</span></button>
     </nav>
 
     <div class="modal-overlay" id="appModal" onclick="closeModal()" role="presentation">
         <div class="modal" onclick="event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
-            <h3 class="title" id="modalTitle">✏️ Bearbeiten</h3>
+            <h3 class="title" id="modalTitle">Bearbeiten</h3>
             <div id="modalBody"></div>
             <div style="display: flex; gap: 8px; margin-top: 16px;" id="modalActions"></div>
         </div>
