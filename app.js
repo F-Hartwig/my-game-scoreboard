@@ -1309,16 +1309,16 @@ function renderRanking() {
     let sorted = [...state.players].sort((a, b) => b.wins - a.wins);
     sorted.forEach((p, i) => {
         let winRate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
-        let badge = ["🥇", "🥈", "🥉"][i] || "🏅";
+        let rank = String(i + 1).padStart(2, "0");
 
         box.innerHTML += `
             <div class="rank-card" style="cursor: pointer; transition: background 0.15s ease;" onclick="openPlayerProfileModal(${p.id})">
                 <div class="rank-card-header" style="justify-content: space-between;">
-                    <div style="display:flex; align-items:center; gap:8px;">
-                        <span>${badge}</span>
+                    <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                        <span class="rank-position">${rank}</span>
                         <span>${p.name}</span>
                     </div>
-                    <span style="font-size:12px; color:var(--primary); font-weight:700;">Profil ansehen ➔</span>
+                    <span class="profile-link">Profil</span>
                 </div>
                 <div class="stat-grid">
                     <div><strong>${p.wins}</strong><span>Siege</span></div>

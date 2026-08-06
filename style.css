@@ -16,6 +16,9 @@
     --card: rgba(255, 255, 255, 0.8);
     --card-solid: #ffffff;
     --card-raised: rgba(255, 255, 255, 0.94);
+    --surface-soft: rgba(241, 246, 254, 0.9);
+    --surface-muted: rgba(229, 237, 251, 0.92);
+    --surface-deep: rgba(216, 228, 248, 0.88);
     --text: #17213a;
     --muted: #5d6981;
     --border: rgba(255, 255, 255, 0.94);
@@ -52,6 +55,9 @@
     --card: rgba(34, 43, 60, 0.78);
     --card-solid: #20293a;
     --card-raised: rgba(43, 53, 73, 0.9);
+    --surface-soft: rgba(24, 36, 57, 0.9);
+    --surface-muted: rgba(29, 45, 70, 0.92);
+    --surface-deep: rgba(14, 25, 43, 0.94);
     --text: #f2f5fb;
     --muted: #aab4c7;
     --border: rgba(255, 255, 255, 0.1);
@@ -727,7 +733,7 @@ select option {
 }
 
 #dragOrderList {
-    background: rgba(255, 255, 255, 0.24) !important;
+    background: var(--surface-soft) !important;
     border: 1px solid var(--border-strong) !important;
     border-radius: var(--radius-md) !important;
 }
@@ -876,7 +882,7 @@ select option {
     display: flex;
     flex-direction: column;
     gap: 7px;
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--surface-soft);
     border: 1px solid var(--border-strong);
     border-radius: 15px;
 }
@@ -929,7 +935,7 @@ select option {
     display: flex;
     flex-direction: column;
     gap: 10px;
-    background: rgba(255, 255, 255, 0.27);
+    background: var(--surface-soft);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     box-shadow: inset 0 1px 0 var(--glass-highlight);
@@ -940,7 +946,7 @@ select option {
 :root:not([data-theme="dark"]) .round-player-row,
 :root:not([data-theme="dark"]) .rank-card,
 :root:not([data-theme="dark"]) .active-game-players-box {
-    background: rgba(244, 247, 253, 0.78);
+    background: var(--surface-soft);
     border-color: rgba(67, 82, 119, 0.18);
 }
 
@@ -1031,7 +1037,7 @@ select option {
     display: flex;
     align-items: center;
     gap: 9px;
-    background: rgba(255, 255, 255, 0.25);
+    background: var(--surface-soft);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     box-shadow: inset 0 1px 0 var(--glass-highlight);
@@ -1110,7 +1116,7 @@ select option {
     display: flex;
     flex-direction: column;
     gap: 11px;
-    background: rgba(255, 255, 255, 0.26);
+    background: linear-gradient(145deg, var(--surface-muted), var(--surface-soft));
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     box-shadow: inset 0 1px 0 var(--glass-highlight);
@@ -1126,13 +1132,60 @@ select option {
     font-weight: 740;
 }
 
+.rank-position {
+    width: 34px;
+    height: 28px;
+    flex: 0 0 auto;
+    display: grid;
+    place-items: center;
+    color: var(--primary);
+    background: var(--primary-light);
+    border: 1px solid rgba(114, 163, 245, 0.2);
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 820;
+    letter-spacing: 0.7px;
+}
+
+.rank-card:nth-child(1) .rank-position {
+    color: var(--warning);
+    background: var(--warning-light);
+    border-color: rgba(255, 192, 102, 0.2);
+}
+
+.rank-card:nth-child(3) .rank-position {
+    color: var(--success);
+    background: var(--success-light);
+    border-color: rgba(82, 213, 172, 0.18);
+}
+
+.profile-link {
+    flex: 0 0 auto;
+    padding: 5px 9px;
+    color: var(--primary);
+    background: var(--primary-light);
+    border: 1px solid rgba(114, 163, 245, 0.16);
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 760;
+}
+
+[data-theme="dark"] .rank-card {
+    border-color: rgba(117, 159, 224, 0.18);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.07), 0 10px 26px rgba(3, 9, 19, 0.18);
+}
+
+[data-theme="dark"] .stat-grid {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06), 0 6px 18px rgba(2, 8, 18, 0.16);
+}
+
 .stat-grid {
     padding: 11px 8px;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
     text-align: center;
-    background: var(--card-raised);
-    border: 1px solid var(--border);
+    background: var(--surface-deep);
+    border: 1px solid var(--border-strong);
     border-radius: 15px;
     box-shadow: inset 0 1px 0 var(--glass-highlight);
 }
@@ -1289,7 +1342,7 @@ select option {
     align-items: center;
     gap: 11px;
     color: var(--text);
-    background: rgba(255, 255, 255, 0.26);
+    background: var(--surface-soft);
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-md);
     box-shadow: inset 0 1px 0 var(--glass-highlight);
