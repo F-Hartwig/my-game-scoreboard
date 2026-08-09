@@ -215,6 +215,8 @@ function closeModal() {
 // ===============================
 // PLAYERS MANAGEMENT
 // ===============================
+let playerListFilter = "all";
+
 async function addPlayer() {
     let input = document.getElementById("playerInput");
     let name = input.value.trim();
@@ -229,6 +231,11 @@ async function toggleFav(id) {
     let p = state.players.find(x => x.id === id);
     if(p) p.favorite = !p.favorite;
     await apiSave('players', state.players);
+    renderPlayers();
+}
+
+function setPlayerListFilter(filter) {
+    playerListFilter = filter === "favorites" ? "favorites" : "all";
     renderPlayers();
 }
 
@@ -268,14 +275,51 @@ async function submitDelete() {
 
 function renderPlayers() {
     let box = document.getElementById("playersList");
-    if(!box) return; box.innerHTML = "";
+    let toolbar = document.getElementById("playerListToolbar");
+    if(!box) return;
+
+    box.innerHTML = "";
+
+    const favoriteCount = state.players.filter(player => player.favorite).length;
+    if (toolbar) {
+        toolbar.innerHTML = `
+            <div class="player-filter" role="group" aria-label="Spieler filtern">
+                <button class="player-filter-btn ${playerListFilter === "all" ? "active" : ""}"
+                        type="button"
+                        aria-pressed="${playerListFilter === "all"}"
+                        onclick="setPlayerListFilter('all')">
+                    Alle <span>${state.players.length}</span>
+                </button>
+                <button class="player-filter-btn ${playerListFilter === "favorites" ? "active" : ""}"
+                        type="button"
+                        aria-pressed="${playerListFilter === "favorites"}"
+                        onclick="setPlayerListFilter('favorites')">
+                    Favoriten <span>${favoriteCount}</span>
+                </button>
+            </div>`;
+    }
 
     if(state.players.length === 0) {
-        box.innerHTML = `<p style="text-align:center; color:var(--muted); padding:20px;">Keine Spieler vorhanden.</p>`;
+        if (toolbar) toolbar.innerHTML = "";
+        box.innerHTML = `<div class="player-empty-state">Noch keine Spieler vorhanden.</div>`;
         return;
     }
 
-    state.players.forEach(p => {
+    const visiblePlayers = playerListFilter === "favorites"
+        ? state.players.filter(player => player.favorite)
+        : state.players;
+
+    if (visiblePlayers.length === 0) {
+        box.innerHTML = `
+            <div class="player-empty-state">
+                <strong>Noch keine Favoriten</strong>
+                <span>Tippe bei einem Spieler auf den Stern, um ihn hier anzuzeigen.</span>
+                <button type="button" class="secondary" onclick="setPlayerListFilter('all')">Alle Spieler anzeigen</button>
+            </div>`;
+        return;
+    }
+
+    visiblePlayers.forEach(p => {
         let initials = p.name.substring(0, 2).toUpperCase();
         box.innerHTML += `
             <div class="player-card">
@@ -284,11 +328,14 @@ function renderPlayers() {
                     <div>
                         <div class="player-name">${p.name}</div>
                         <div class="player-info">${p.wins} Siege · ${p.games} Matches</div>
-                        ${p.favorite ? `<div class="favorite-badge">Favorit</div>` : ""}
                     </div>
                 </div>
                 <div class="actions">
-                    <button class="icon-btn edit-btn" onclick="toggleFav(${p.id})" aria-label="Favorit umschalten" title="Favorit umschalten">☆</button>
+                    <button class="icon-btn favorite-btn ${p.favorite ? "is-favorite" : ""}"
+                            onclick="toggleFav(${p.id})"
+                            aria-label="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}"
+                            aria-pressed="${Boolean(p.favorite)}"
+                            title="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}">${p.favorite ? "★" : "☆"}</button>
                     <button class="icon-btn edit-btn" onclick="triggerRename(${p.id})" aria-label="Namen ändern" title="Namen ändern">Aa</button>
                     <button class="icon-btn delete-btn" onclick="triggerDelete(${p.id})" aria-label="Spieler löschen" title="Spieler löschen">×</button>
                 </div>
@@ -2803,6 +2850,7 @@ window.navigate = navigate;
 window.removeSyncBlockAndNavigate = removeSyncBlockAndNavigate;
 window.addPlayer = addPlayer;
 window.toggleFav = toggleFav;
+window.setPlayerListFilter = setPlayerListFilter;
 window.triggerRename = triggerRename;
 window.submitRename = submitRename;
 window.triggerDelete = triggerDelete;
