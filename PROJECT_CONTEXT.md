@@ -23,6 +23,7 @@ Geändert werden die Darstellung, oberflächennahe Komfortfunktionen und gezielt
 - optionaler Fokusmodus für laufende Spiele mit reduzierter Navigation, größeren Eingaben und sitzungsweiser Wiederherstellung
 - bestmögliches Display-Wachhalten und Hochformat-Sperren über Browser-APIs; auf nicht unterstützten iPhones blockiert ein eigener Querformat-Hinweis die Spieleingabe
 - Ergebnisansicht mit direkter Revanche sowie einer vorausgefüllten Spielanpassung, über die Teilnehmer, Teams, Reihenfolge, Wertung und Spielmodus vor dem nächsten Start geändert werden können
+- erweitertes Statistik-Dashboard mit Gesamtpartien, Anzahl gewerteter Spiele, aktiven Spielern, meistgespieltem Spiel, sortierbarer Bestenliste und filterbarer Historie inklusive Teilnehmer- und Rundenzahl
 
 Bewusst unverändert bleiben:
 

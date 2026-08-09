@@ -86,8 +86,7 @@ function startLiveSync() {
                 renderPlayers();
             }
             if (activePage === 'statsPage' && (changes.playersChanged || changes.gamesChanged)) {
-                renderRanking();
-                renderHistory();
+                renderStatsPage();
             }
         } finally {
             isLiveSyncRunning = false;
@@ -123,7 +122,7 @@ async function navigate(pageId, element) {
 
     await loadAllFromDb();
     if(pageId === 'playersPage') renderPlayers();
-    if(pageId === 'statsPage') { state.showAllHistory = false; renderRanking(); renderHistory(); }
+    if(pageId === 'statsPage') { state.showAllHistory = false; renderStatsPage(); }
     if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
     if(pageId === 'rulesPage') renderRulesPage();
 }
@@ -1727,15 +1726,90 @@ async function newGame() {
 // STATS & RANKING
 // ===============================
 let rankingPlayerFilter = "all";
+let rankingSortMode = "wins";
+let historyGameFilter = "all";
+
+function renderStatsPage() {
+    renderStatsOverview();
+    renderRanking();
+    renderHistory();
+}
+
+function renderStatsOverview() {
+    const box = document.getElementById("statsOverview");
+    if (!box) return;
+
+    const games = Array.isArray(state.games) ? state.games : [];
+    const ratedGames = games.filter(game => game.rated !== false);
+    const activePlayers = state.players.filter(player => Number(player.games) > 0);
+    const gameFrequency = new Map();
+
+    games.forEach(game => {
+        const configuredName = PREDEFINED_GAMES.find(config => config.id === game.gameTypeId)?.name;
+        const displayName = game.gameTypeId === "custom" ? game.name : (configuredName || game.name || "Unbekanntes Spiel");
+        gameFrequency.set(displayName, (gameFrequency.get(displayName) || 0) + 1);
+    });
+
+    const mostPlayed = [...gameFrequency.entries()].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0], "de"))[0];
+    const latestGame = games[games.length - 1];
+
+    box.innerHTML = `
+        <div class="stats-overview-hero">
+            <div>
+                <span class="stats-eyebrow">Gesamtübersicht</span>
+                <strong>${games.length} ${games.length === 1 ? "Partie" : "Partien"}</strong>
+                <small>${latestGame ? `Letztes Spiel am ${latestGame.date}` : "Noch keine Partie abgeschlossen"}</small>
+            </div>
+            <div class="stats-overview-balance">
+                <span>${ratedGames.length}</span>
+                <small>gewertet</small>
+            </div>
+        </div>
+        <div class="stats-overview-grid">
+            <div class="stats-overview-tile">
+                <span>Spieler aktiv</span>
+                <strong>${activePlayers.length}<small> von ${state.players.length}</small></strong>
+            </div>
+            <div class="stats-overview-tile stats-overview-tile-wide">
+                <span>Meistgespielt</span>
+                <strong>${mostPlayed ? mostPlayed[0] : "Noch offen"}</strong>
+                <small>${mostPlayed ? `${mostPlayed[1]} ${mostPlayed[1] === 1 ? "Partie" : "Partien"}` : "–"}</small>
+            </div>
+        </div>`;
+}
 
 function setRankingPlayerFilter(filter) {
     rankingPlayerFilter = filter === "favorites" ? "favorites" : "all";
     renderRanking();
 }
 
+function setRankingSortMode(mode) {
+    rankingSortMode = ["wins", "rate", "games", "points"].includes(mode) ? mode : "wins";
+    renderRanking();
+}
+
+function getPlayerWinRate(player) {
+    return Number(player.games) > 0 ? (Number(player.wins) || 0) / Number(player.games) : 0;
+}
+
+function compareRankingPlayers(a, b) {
+    const valueComparators = {
+        wins: () => (Number(b.wins) || 0) - (Number(a.wins) || 0),
+        rate: () => getPlayerWinRate(b) - getPlayerWinRate(a),
+        games: () => (Number(b.games) || 0) - (Number(a.games) || 0),
+        points: () => (Number(b.points) || 0) - (Number(a.points) || 0)
+    };
+
+    return valueComparators[rankingSortMode]()
+        || (Number(b.wins) || 0) - (Number(a.wins) || 0)
+        || (Number(b.games) || 0) - (Number(a.games) || 0)
+        || String(a.name).localeCompare(String(b.name), "de");
+}
+
 function renderRanking() {
     let box = document.getElementById("ranking");
     let toolbar = document.getElementById("rankingFilterToolbar");
+    let sortToolbar = document.getElementById("rankingSortToolbar");
     if(!box) return;
 
     box.innerHTML = "";
@@ -1759,13 +1833,32 @@ function renderRanking() {
             </div>`;
     }
 
+    if (sortToolbar) {
+        const sortOptions = [
+            ["wins", "Siege"],
+            ["rate", "Quote"],
+            ["games", "Spiele"],
+            ["points", "Punkte"]
+        ];
+        sortToolbar.innerHTML = `
+            <span>Sortieren nach</span>
+            <div class="ranking-sort-options" role="group" aria-label="Sortierung wählen">
+                ${sortOptions.map(([value, label]) => `
+                    <button type="button"
+                            class="ranking-sort-btn ${rankingSortMode === value ? "active" : ""}"
+                            aria-pressed="${rankingSortMode === value}"
+                            onclick="setRankingSortMode('${value}')">${label}</button>`).join("")}
+            </div>`;
+    }
+
     if(state.players.length === 0) {
         if (toolbar) toolbar.innerHTML = "";
+        if (sortToolbar) sortToolbar.innerHTML = "";
         box.innerHTML = `<p style="color:var(--muted); text-align:center; padding:10px;">Keine Daten verfügbar.</p>`;
         return;
     }
 
-    const sorted = [...state.players].sort((a, b) => b.wins - a.wins);
+    const sorted = [...state.players].sort(compareRankingPlayers);
     const rankedPlayers = sorted.map((player, index) => ({ player, overallRank: index + 1 }));
     const visiblePlayers = rankingPlayerFilter === "favorites"
         ? rankedPlayers.filter(entry => entry.player.favorite)
@@ -1798,32 +1891,76 @@ function renderRanking() {
                     <div><strong>${p.wins}</strong><span>Siege</span></div>
                     <div><strong>${p.games}</strong><span>Spiele</span></div>
                     <div><strong>${winRate}%</strong><span>Quote</span></div>
+                    <div><strong>${Number(p.points) || 0}</strong><span>Punkte</span></div>
                 </div>
             </div>`;
     });
 }
 
+function setHistoryGameFilter(filter) {
+    historyGameFilter = ["all", "rated", "friendly"].includes(filter) ? filter : "all";
+    state.showAllHistory = false;
+    renderHistory();
+}
+
 function renderHistory() {
     let box = document.getElementById("history");
-    if(!box) return; box.innerHTML = "";
+    let toolbar = document.getElementById("historyFilterToolbar");
+    let countBadge = document.getElementById("historyCountBadge");
+    if(!box) return;
 
-    if(!state.games || state.games.length === 0) {
+    box.innerHTML = "";
+
+    const games = Array.isArray(state.games) ? state.games : [];
+    const filterOptions = [
+        ["all", "Alle"],
+        ["rated", "Gewertet"],
+        ["friendly", "Freundschaft"]
+    ];
+    if (toolbar) {
+        toolbar.innerHTML = `
+            <div class="history-filter-options" role="group" aria-label="Spielhistorie filtern">
+                ${filterOptions.map(([value, label]) => `
+                    <button type="button"
+                            class="history-filter-btn ${historyGameFilter === value ? "active" : ""}"
+                            aria-pressed="${historyGameFilter === value}"
+                            onclick="setHistoryGameFilter('${value}')">${label}</button>`).join("")}
+            </div>`;
+    }
+
+    if(games.length === 0) {
+        if (toolbar) toolbar.innerHTML = "";
+        if (countBadge) countBadge.innerText = "0 Spiele";
         box.innerHTML = `<p style="text-align:center; color:var(--muted); padding:10px;">Keine Spiele aufgezeichnet.</p>`;
         return;
     }
 
-    let reversedGames = [...state.games].reverse();
+    const filteredGames = games.filter(game => {
+        if (historyGameFilter === "rated") return game.rated !== false;
+        if (historyGameFilter === "friendly") return game.rated === false;
+        return true;
+    });
+    if (countBadge) countBadge.innerText = `${filteredGames.length} ${filteredGames.length === 1 ? "Spiel" : "Spiele"}`;
+
+    if (filteredGames.length === 0) {
+        box.innerHTML = `<div class="stats-history-empty">Keine Spiele in dieser Auswahl.</div>`;
+        return;
+    }
+
+    let reversedGames = [...filteredGames].reverse();
     let gamesToRender = state.showAllHistory ? reversedGames : reversedGames.slice(0, 5);
 
     gamesToRender.forEach(g => {
         let unratedTag = g.rated === false ? ' <span style="font-size:10px; background:var(--card-raised); color:var(--muted); padding:3px 7px; border:1px solid var(--border-strong); border-radius:999px; font-weight:bold;">Freundschaft</span>' : '';
         const isDraw = g.winner === "Unentschieden";
+        const entryCount = Math.max(...(g.players || []).map(player => player.rounds?.length || 0), 0);
+        const entryLabel = g.mode === "single" ? "Einträge" : "Runden";
         box.innerHTML += `
             <div class="history-card" onclick="viewGameDetails(${g.id})">
                 <div class="history-card-top match-history-header">
                     <div class="history-card-info">
                         <div class="history-card-date">${g.name}${unratedTag}</div>
-                        <div class="history-card-sub">${g.date}</div>
+                        <div class="history-card-sub">${g.date} · ${g.players.length} Teilnehmer · ${entryCount} ${entryLabel}</div>
                     </div>
                     <div class="history-winner-summary ${isDraw ? 'is-draw' : ''}">
                         <span>${isDraw ? 'Ergebnis' : 'Gewinner'}</span>
@@ -1839,10 +1976,10 @@ function renderHistory() {
             </div>`;
     });
 
-    if (state.games.length > 5 && !state.showAllHistory) {
+    if (filteredGames.length > 5 && !state.showAllHistory) {
         box.innerHTML += `
             <button class="secondary" style="margin-top: 10px; height: 40px; font-size: 14px;" onclick="triggerShowAllHistory()">
-                Alle anzeigen (${state.games.length} Spiele)
+                Alle anzeigen (${filteredGames.length} Spiele)
             </button>`;
     }
 }
@@ -1967,7 +2104,7 @@ async function submitRenameHistoryGame() {
         if (g) {
             g.name = newName;
             await apiSave('games', state.games);
-            renderHistory();
+            renderStatsPage();
             viewGameDetails(activeHistoryGameId);
             return;
         }
@@ -1997,8 +2134,7 @@ async function submitDeleteHistoryGame() {
             state.games = state.games.filter(x => x.id !== activeHistoryDeleteId);
             await apiSave('players', state.players);
             await apiSave('games', state.games);
-            renderRanking();
-            renderHistory();
+            renderStatsPage();
         }
     }
     closeModal();
@@ -3136,6 +3272,8 @@ window.submitRenameHistoryGame = submitRenameHistoryGame;
 window.startRematch = startRematch;
 window.customizeLastGame = customizeLastGame;
 window.setRankingPlayerFilter = setRankingPlayerFilter;
+window.setRankingSortMode = setRankingSortMode;
+window.setHistoryGameFilter = setHistoryGameFilter;
 window.toggleTimerMenu = toggleTimerMenu;
 window.startTimer = startTimer;
 window.stopTimer = stopTimer;
