@@ -1621,6 +1621,7 @@ select option {
 .ranking-sort-toolbar {
     min-height: 46px;
     margin: 0;
+    padding-block: 8px;
     display: grid;
     grid-template-columns: minmax(80px, 1fr) auto;
     align-items: center;
