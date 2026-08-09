@@ -1999,6 +1999,19 @@ select option {
     text-transform: uppercase;
 }
 
+.result-next-actions {
+    margin-top: 14px;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+}
+
+.result-next-actions button {
+    min-width: 0;
+    padding-inline: 10px;
+    font-size: 13px;
+}
+
 .rec-tag {
     padding: 3px 7px;
     color: var(--success);

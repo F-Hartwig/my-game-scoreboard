@@ -347,16 +347,31 @@ function renderPlayers() {
 // CONFIGURABLE GAME SETUP & TOUCH-DRAG
 // ===============================
 let setupPlayerFilter = "all";
+let setupDraftSelection = [];
 
-function startSetup() {
+function startSetup(prefillGame = null) {
     if(state.players.length < 2) {
         alert("Bitte lege zuerst mindestens 2 Spieler an!");
         return;
     }
     
     state.isSettingUpGame = true;
-    state.ratedMode = true;
-    state.tempTeams = []; 
+    state.ratedMode = prefillGame ? prefillGame.rated !== false : true;
+    state.tempTeams = prefillGame
+        ? prefillGame.players
+            .filter(party => party.isTeam)
+            .map(party => ({
+                id: Number(party.id),
+                name: party.name,
+                playerIds: [...(party.playerIds || [])]
+            }))
+        : [];
+    setupDraftSelection = prefillGame
+        ? prefillGame.players.map(party => ({
+            id: Number(party.id),
+            type: party.isTeam ? "team" : "player"
+        }))
+        : [];
     setupPlayerFilter = "all";
 
     const selectableGames = PREDEFINED_GAMES
@@ -367,14 +382,19 @@ function startSetup() {
             return a.name.localeCompare(b.name); 
         });
     
-    const firstGame = selectableGames[0] || PREDEFINED_GAMES[0];
+    const prefilledGameConfig = prefillGame
+        ? selectableGames.find(game => game.id === prefillGame.gameTypeId)
+        : null;
+    const firstGame = prefilledGameConfig || selectableGames[0] || PREDEFINED_GAMES[0];
     const isCustomActive = firstGame.id === "custom";
+    const initialMode = prefillGame?.mode === "single" ? "single" : "round";
+    const customGameName = isCustomActive && prefillGame ? prefillGame.name : "";
 
     let html = `
         <div class="card">
             <div class="title">Spiel auswählen</div>
             <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
-                ${selectableGames.map(g => `<option value="${g.id}">${g.name}</option>`).join("")}
+                ${selectableGames.map(g => `<option value="${g.id}" ${g.id === firstGame.id ? "selected" : ""}>${g.name}</option>`).join("")}
             </select>
             <p id="gameDescriptionText" style="font-size:13px; color:var(--muted); margin-top:-8px; margin-bottom:20px; line-height:1.4; padding:0 4px;">
                 ${firstGame.description}
@@ -382,14 +402,14 @@ function startSetup() {
 
             <div id="customGameNameContainer" style="display: ${isCustomActive ? 'block' : 'none'}; margin-bottom: 20px;">
                 <div class="title">Name des Spiels</div>
-                <input id="gameNameInput" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
+                <input id="gameNameInput" value="${String(customGameName).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
                 <div class="title" style="margin:0;">Teilnehmer wählen</div>
                 <div class="toggle-container">
-                    <button class="toggle-btn active" id="toggleRated" onclick="setRated(true)">Gewertet</button>
-                    <button class="toggle-btn" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
+                    <button class="toggle-btn ${state.ratedMode ? "active" : ""}" id="toggleRated" onclick="setRated(true)">Gewertet</button>
+                    <button class="toggle-btn ${state.ratedMode ? "" : "active"}" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
                 </div>
             </div>
             
@@ -416,8 +436,8 @@ function startSetup() {
     <div style="display:grid; gap:10px; margin-bottom:20px;">
         
         <!-- Runden-Modus -->
-        <div class="mode-select-card selected" id="modeCardRound" onclick="selectGameMode('round', this)">
-            <input type="radio" name="gameMode" value="round" checked onclick="event.stopPropagation();">
+        <div class="mode-select-card ${initialMode === "round" ? "selected" : ""}" id="modeCardRound" onclick="selectGameMode('round', this)">
+            <input type="radio" name="gameMode" value="round" ${initialMode === "round" ? "checked" : ""} onclick="event.stopPropagation();">
             <div class="mode-select-card-content">
                 <span style="font-weight:700;">Klassischer Runden-Modus</span>
                 <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
@@ -425,8 +445,8 @@ function startSetup() {
         </div>
         
         <!-- Einzel-Modus -->
-        <div class="mode-select-card" id="modeCardSingle" onclick="selectGameMode('single', this)">
-            <input type="radio" name="gameMode" value="single" onclick="event.stopPropagation();">
+        <div class="mode-select-card ${initialMode === "single" ? "selected" : ""}" id="modeCardSingle" onclick="selectGameMode('single', this)">
+            <input type="radio" name="gameMode" value="single" ${initialMode === "single" ? "checked" : ""} onclick="event.stopPropagation();">
             <div class="mode-select-card-content">
                 <span style="font-weight:700;">Flexibler Einzel-Modus</span>
                 <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
@@ -441,6 +461,7 @@ function startSetup() {
     </div>`;
 
     document.getElementById("gameContent").innerHTML = html;
+    if (setupDraftSelection.length > 0) updateDragOrderList();
 }
 
 function renderSetupPlayerFilterHtml() {
@@ -484,10 +505,11 @@ function renderSetupPoolHtml() {
 
     if(state.tempTeams && state.tempTeams.length > 0) {
         state.tempTeams.forEach(t => {
+            const isSelected = setupDraftSelection.some(item => item.type === "team" && Number(item.id) === Number(t.id));
             html += `
-                <div class="select-card" data-type="team" data-id="${t.id}" onclick="toggleSelectCard(event, this)">
+                <div class="select-card ${isSelected ? "selected" : ""}" data-type="team" data-id="${t.id}" onclick="toggleSelectCard(event, this)">
                     <div class="player-left" style="flex:1; min-width:0;">
-                        <input type="checkbox" value="${t.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                        <input type="checkbox" value="${t.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
                         <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; background: var(--success-light); color: var(--success);">T</div>
                         <strong style="word-break: break-all; overflow:hidden; text-overflow:ellipsis;">${t.name}</strong>
                     </div>
@@ -498,11 +520,12 @@ function renderSetupPoolHtml() {
 
     state.players.forEach(p => {
         if (!assignedPlayerIds.includes(p.id)) {
-            const isFilterHidden = setupPlayerFilter === "favorites" && !p.favorite;
+            const isSelected = setupDraftSelection.some(item => item.type === "player" && Number(item.id) === Number(p.id));
+            const isFilterHidden = setupPlayerFilter === "favorites" && !p.favorite && !isSelected;
             html += `
-                <div class="select-card ${isFilterHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
+                <div class="select-card ${isSelected ? "selected" : ""} ${isFilterHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
                     <div class="player-left">
-                        <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                        <input type="checkbox" value="${p.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
                         <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
                         <strong>${p.name}</strong>
                     </div>
@@ -562,6 +585,7 @@ function submitTeamBuilderModal() {
     const teamName = teamPlayers.map(p => p.name).join(" / ");
     const teamId = Date.now();
 
+    captureSetupSelection();
     if(!state.tempTeams) state.tempTeams = [];
     state.tempTeams.push({ id: teamId, name: teamName, playerIds: playerIds });
     closeModal();
@@ -574,6 +598,8 @@ function submitTeamBuilderModal() {
 }
 
 function removeSingleTeam(teamId) {
+    captureSetupSelection();
+    setupDraftSelection = setupDraftSelection.filter(item => !(item.type === "team" && Number(item.id) === Number(teamId)));
     state.tempTeams = state.tempTeams.filter(x => x.id !== teamId);
     const selectList = document.getElementById("selectList");
     if (selectList) {
@@ -628,6 +654,16 @@ function toggleSelectCard(e, cardElement) {
         const player = state.players.find(item => Number(item.id) === Number(cardElement.dataset.id));
         cardElement.classList.toggle("filter-hidden", !player?.favorite && !checkbox.checked);
     }
+    captureSetupSelection();
+}
+
+function captureSetupSelection() {
+    const dragBox = document.getElementById("dragOrderList");
+    if (!dragBox) return;
+    setupDraftSelection = [...dragBox.querySelectorAll(".drag-card")].map(card => ({
+        id: Number(card.dataset.id),
+        type: card.dataset.type
+    }));
 }
 
 function updateDragOrderList() {
@@ -636,8 +672,8 @@ function updateDragOrderList() {
     const placeholder = document.getElementById("dragPlaceholder");
     
     if(checkedBoxes.length === 0) {
-        dragBox.innerHTML = "";
-        dragBox.appendChild(placeholder);
+        dragBox.innerHTML = `<p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Teilnehmer aus, um deren Reihenfolge festzulegen.</p>`;
+        setupDraftSelection = [];
         return;
     }
     
@@ -650,8 +686,11 @@ function updateDragOrderList() {
 
     const currentOrderIds = [...dragBox.querySelectorAll(".drag-card")].map(c => Number(c.dataset.id));
     dragBox.innerHTML = "";
-    
-    const finalItems = currentOrderIds.map(id => {
+
+    const preferredOrderIds = currentOrderIds.length > 0
+        ? currentOrderIds
+        : setupDraftSelection.map(item => Number(item.id));
+    const finalItems = preferredOrderIds.map(id => {
         return selectedItems.find(item => item.id === id);
     }).filter(Boolean);
 
@@ -751,6 +790,8 @@ function updateDragOrderList() {
 
         dragBox.appendChild(card);
     });
+
+    setupDraftSelection = finalItems.map(item => ({ ...item }));
     
     dragBox.addEventListener('dragover', e => {
         e.preventDefault();
@@ -1618,7 +1659,10 @@ function showResult(gameData) {
     });
 
     html += `
-    <button style="margin-top:14px;" onclick="startRematch()">Revanche starten</button>
+    <div class="result-next-actions">
+        <button onclick="startRematch()">Revanche starten</button>
+        <button class="secondary" onclick="customizeLastGame()">Spieler hinzufügen</button>
+    </div>
     <button class="secondary" style="margin-top:8px;" onclick="newGame()">Hauptmenü</button>
     </div>`;
 
@@ -1657,6 +1701,18 @@ async function startRematch() {
 
     await apiSave('currentGame', state.currentGame);
     renderGame();
+}
+
+function customizeLastGame() {
+    const lastGame = state.games[state.games.length - 1];
+    if (!lastGame) {
+        newGame();
+        return;
+    }
+
+    state.currentGame = null;
+    state.lastRenderedGameId = null;
+    startSetup(lastGame);
 }
 
 
@@ -3078,6 +3134,7 @@ window.removeSingleTeam = removeSingleTeam;
 window.triggerRenameHistoryGame = triggerRenameHistoryGame;
 window.submitRenameHistoryGame = submitRenameHistoryGame;
 window.startRematch = startRematch;
+window.customizeLastGame = customizeLastGame;
 window.setRankingPlayerFilter = setRankingPlayerFilter;
 window.toggleTimerMenu = toggleTimerMenu;
 window.startTimer = startTimer;

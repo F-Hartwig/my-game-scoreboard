@@ -22,6 +22,7 @@ Geändert werden die Darstellung, oberflächennahe Komfortfunktionen und gezielt
 - synchronisierte Browser-Theme-Farbe und aussagekräftigere Beschriftungen
 - optionaler Fokusmodus für laufende Spiele mit reduzierter Navigation, größeren Eingaben und sitzungsweiser Wiederherstellung
 - bestmögliches Display-Wachhalten und Hochformat-Sperren über Browser-APIs; auf nicht unterstützten iPhones blockiert ein eigener Querformat-Hinweis die Spieleingabe
+- Ergebnisansicht mit direkter Revanche sowie einer vorausgefüllten Spielanpassung, über die Teilnehmer, Teams, Reihenfolge, Wertung und Spielmodus vor dem nächsten Start geändert werden können
 
 Bewusst unverändert bleiben:
 
