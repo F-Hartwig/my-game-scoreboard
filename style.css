@@ -330,6 +330,193 @@ button,
     animation: pulseTool 0.8s ease-in-out infinite alternate;
 }
 
+.game-status-card {
+    margin-bottom: 10px;
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.game-status-copy {
+    min-width: 0;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+#gameStatusLabel {
+    overflow: hidden;
+    font-size: 15px;
+    font-weight: 700;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.game-status-actions {
+    flex: 0 0 auto;
+    display: flex;
+    gap: 6px;
+}
+
+.focus-mode-toggle {
+    width: auto;
+    height: 32px;
+    min-height: 32px;
+    padding: 0 10px;
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+.focus-mode-toggle.active {
+    color: var(--primary);
+    background: var(--primary-light);
+    border-color: rgba(54, 91, 216, 0.25);
+}
+
+.focus-mode-kicker,
+.focus-wake-status {
+    display: none;
+}
+
+.orientation-guard {
+    display: none;
+}
+
+body.focus-mode {
+    padding: max(8px, env(safe-area-inset-top)) 10px max(14px, env(safe-area-inset-bottom));
+}
+
+body.focus-mode .header,
+body.focus-mode .bottom-nav {
+    display: none;
+}
+
+body.focus-mode .toolbar {
+    max-width: var(--content-width);
+    margin-bottom: 9px;
+    padding-bottom: 3px;
+}
+
+body.focus-mode .game-status-card {
+    margin-bottom: 9px;
+    position: sticky;
+    z-index: 90;
+    top: max(6px, env(safe-area-inset-top));
+    border-color: rgba(54, 91, 216, 0.25);
+    box-shadow: 0 13px 32px rgba(43, 61, 101, 0.16), var(--shadow-inset);
+}
+
+body.focus-mode .focus-mode-kicker {
+    display: block;
+    color: var(--primary);
+    font-size: 9px;
+    font-weight: 820;
+    letter-spacing: 0.8px;
+    line-height: 1.2;
+    text-transform: uppercase;
+}
+
+body.focus-mode #gameStatusLabel {
+    overflow: visible;
+    line-height: 1.25;
+    text-overflow: clip;
+    white-space: normal;
+}
+
+body.focus-mode .focus-wake-status.active {
+    margin-top: 1px;
+    display: block;
+    color: var(--success);
+    font-size: 9px;
+    font-weight: 720;
+}
+
+body.focus-mode .game-status-secondary {
+    display: none;
+}
+
+body.focus-mode .scoreboard-card,
+body.focus-mode .score-entry-card {
+    padding: 16px !important;
+}
+
+body.focus-mode .scoreboard-row {
+    padding: 15px;
+}
+
+body.focus-mode .round-player-row {
+    min-height: 66px;
+    padding: 8px 10px 8px 14px !important;
+}
+
+body.focus-mode .round-player-row .player-name {
+    font-size: 16px;
+}
+
+body.focus-mode .round-player-row input {
+    width: 100px !important;
+    height: 52px !important;
+    font-size: 20px;
+}
+
+body.focus-mode .round-player-row > button {
+    height: 52px !important;
+    min-height: 52px !important;
+}
+
+body.focus-mode .round-player-row > button:not(.submit-single-btn) {
+    width: 48px !important;
+}
+
+body.focus-mode .round-player-row .submit-single-btn {
+    width: 52px !important;
+}
+
+body.focus-mode .score-entry-card > button {
+    min-height: 56px;
+    font-size: 16px;
+}
+
+@media (orientation: landscape) and (max-height: 600px) {
+    body.focus-mode .orientation-guard {
+        position: fixed;
+        z-index: 10000;
+        inset: 0;
+        padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(18px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left));
+        display: grid;
+        place-items: center;
+        background: linear-gradient(155deg, var(--bg), var(--bg-deep));
+    }
+
+    .orientation-guard-card {
+        width: min(420px, 88vw);
+        padding: 24px;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        color: var(--muted);
+        text-align: center;
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow), var(--shadow-inset);
+        backdrop-filter: var(--blur);
+        -webkit-backdrop-filter: var(--blur);
+    }
+
+    .orientation-guard-card strong {
+        color: var(--text);
+        font-size: 19px;
+    }
+
+    .orientation-guard-card span {
+        font-size: 13px;
+        line-height: 1.5;
+    }
+}
+
 @keyframes pulseTool {
     from { transform: scale(1); }
     to { transform: scale(1.035); }

@@ -826,12 +826,95 @@ async function createGame() {
 // ===============================
 // CORE MATCH ENGINE & RENDERING
 // ===============================
+let isFocusMode = false;
+let focusWakeLock = null;
+
+function updateFocusModeControls() {
+    document.body.classList.toggle("focus-mode", isFocusMode);
+
+    const button = document.getElementById("focusModeToggle");
+    if (button) {
+        button.classList.toggle("active", isFocusMode);
+        button.setAttribute("aria-pressed", String(isFocusMode));
+        button.innerText = isFocusMode ? "Normalansicht" : "Fokusmodus";
+    }
+
+    const wakeStatus = document.getElementById("focusWakeStatus");
+    if (wakeStatus) {
+        wakeStatus.classList.toggle("active", Boolean(focusWakeLock));
+        wakeStatus.innerText = focusWakeLock ? "Display bleibt an" : "";
+    }
+}
+
+async function requestFocusWakeLock() {
+    if (!isFocusMode || document.visibilityState !== "visible" || !navigator.wakeLock?.request) return;
+
+    try {
+        if (focusWakeLock) return;
+        focusWakeLock = await navigator.wakeLock.request("screen");
+        focusWakeLock.addEventListener("release", () => {
+            focusWakeLock = null;
+            updateFocusModeControls();
+        }, { once: true });
+        updateFocusModeControls();
+    } catch (error) {
+        focusWakeLock = null;
+        updateFocusModeControls();
+    }
+}
+
+async function releaseFocusWakeLock() {
+    const activeWakeLock = focusWakeLock;
+    focusWakeLock = null;
+    if (!activeWakeLock) return;
+
+    try {
+        await activeWakeLock.release();
+    } catch (error) {
+        // Der Browser kann den Wake Lock beim Verlassen bereits freigegeben haben.
+    }
+}
+
+async function setFocusMode(enabled) {
+    const nextValue = Boolean(enabled && state.currentGame);
+    isFocusMode = nextValue;
+    sessionStorage.setItem("scorebuddy_focus_mode", String(nextValue));
+    updateFocusModeControls();
+
+    if (nextValue) {
+        try {
+            await screen.orientation?.lock?.("portrait");
+        } catch (error) {
+            // iOS/Safari erlaubt die Sperre außerhalb installierter Web-Apps oft nicht.
+        }
+        await requestFocusWakeLock();
+        return;
+    }
+
+    await releaseFocusWakeLock();
+    try {
+        screen.orientation?.unlock?.();
+    } catch (error) {
+        // Keine Aktion nötig, wenn der Browser keine Ausrichtungssperre unterstützt.
+    }
+    updateFocusModeControls();
+}
+
+function toggleFocusMode() {
+    setFocusMode(!isFocusMode);
+}
+
+document.addEventListener("visibilitychange", () => {
+    if (!document.hidden && isFocusMode) requestFocusWakeLock();
+});
+
 function renderGame(isSyncUpdate = false) {
     if (state.isSettingUpGame) return; 
 
     let contentBox = document.getElementById("gameContent");
     
     if(!state.currentGame) {
+        if (isFocusMode) setFocusMode(false);
         state.lastRenderedGameId = null;
         let html = `
             <div class="card welcome-card">
@@ -986,15 +1069,23 @@ function renderGame(isSyncUpdate = false) {
 
     const hasLongRules = state.currentGame.rules && state.currentGame.rules.descriptionLong;
     let rulesBtnHtml = hasLongRules 
-        ? `<button class="secondary" style="width:auto; height:32px; font-size:13px; padding:0 10px; border-radius:8px; flex-shrink:0; font-weight:700;" onclick="showGameRulesModal()">Regeln</button>`
+        ? `<button class="secondary game-status-secondary" style="width:auto; height:32px; font-size:13px; padding:0 10px; border-radius:8px; flex-shrink:0; font-weight:700;" onclick="showGameRulesModal()">Regeln</button>`
         : '';
 
     let html = `
-        <div class="card game-status-card" style="padding: 12px 16px; margin-bottom:10px; display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <span id="gameStatusLabel" style="font-weight:700; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:55%;">${statusText}</span>
-            <div style="display:flex; gap:6px; flex-shrink:0;">
+        <div class="card game-status-card">
+            <div class="game-status-copy">
+                <span class="focus-mode-kicker">Fokusmodus</span>
+                <span id="gameStatusLabel">${statusText}</span>
+                <span id="focusWakeStatus" class="focus-wake-status" aria-live="polite"></span>
+            </div>
+            <div class="game-status-actions">
                 ${rulesBtnHtml}
-                <button class="secondary" style="width:auto; height:32px; font-size:12px; padding:0 10px; border-radius:10px;" onclick="pauseCurrentGame()">Pausieren</button>
+                <button class="secondary game-status-secondary" style="width:auto; height:32px; font-size:12px; padding:0 10px; border-radius:10px;" onclick="pauseCurrentGame()">Pausieren</button>
+                <button id="focusModeToggle" class="secondary focus-mode-toggle ${isFocusMode ? "active" : ""}"
+                        type="button"
+                        aria-pressed="${isFocusMode}"
+                        onclick="toggleFocusMode()">${isFocusMode ? "Normalansicht" : "Fokusmodus"}</button>
             </div>
         </div>
 
@@ -1116,6 +1207,7 @@ function renderGame(isSyncUpdate = false) {
     }
 
     contentBox.innerHTML = html;
+    updateFocusModeControls();
     
     setTimeout(() => {
         state.currentGame.players.forEach(p => {
@@ -2078,7 +2170,9 @@ async function initApp() {
     applyTheme(savedTheme);
 
     await loadAllFromDb();
+    isFocusMode = sessionStorage.getItem("scorebuddy_focus_mode") === "true" && Boolean(state.currentGame);
     renderGame();
+    if (isFocusMode) requestFocusWakeLock();
     startLiveSync(); 
 }
 
@@ -2945,6 +3039,7 @@ window.triggerDelete = triggerDelete;
 window.submitDelete = submitDelete;
 window.closeModal = closeModal;
 window.startSetup = startSetup;
+window.toggleFocusMode = toggleFocusMode;
 window.setSetupPlayerFilter = setSetupPlayerFilter;
 window.handleGameSelectionChange = handleGameSelectionChange;
 window.setRated = setRated;

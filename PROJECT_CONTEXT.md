@@ -20,6 +20,8 @@ Geändert werden die Darstellung, oberflächennahe Komfortfunktionen und gezielt
 - einheitliche Darstellung von Rangliste, Historie, Regelwerk und Modalen
 - optimierte Touch-Ziele, Safe-Area-Abstände, Fokusdarstellung und reduzierte Animationen auf Wunsch des Betriebssystems
 - synchronisierte Browser-Theme-Farbe und aussagekräftigere Beschriftungen
+- optionaler Fokusmodus für laufende Spiele mit reduzierter Navigation, größeren Eingaben und sitzungsweiser Wiederherstellung
+- bestmögliches Display-Wachhalten und Hochformat-Sperren über Browser-APIs; auf nicht unterstützten iPhones blockiert ein eigener Querformat-Hinweis die Spieleingabe
 
 Bewusst unverändert bleiben:
 
