@@ -387,6 +387,7 @@ function startSetup(prefillGame = null) {
     const firstGame = prefilledGameConfig || selectableGames[0] || PREDEFINED_GAMES[0];
     const isCustomActive = firstGame.id === "custom";
     const initialMode = prefillGame?.mode === "single" ? "single" : "round";
+    const initialCustomWinCondition = prefillGame?.rules?.winCondition === "lowest" ? "lowest" : "highest";
     const customGameName = isCustomActive && prefillGame ? prefillGame.name : "";
 
     let html = `
@@ -402,6 +403,28 @@ function startSetup(prefillGame = null) {
             <div id="customGameNameContainer" style="display: ${isCustomActive ? 'block' : 'none'}; margin-bottom: 20px;">
                 <div class="title">Name des Spiels</div>
                 <input id="gameNameInput" value="${String(customGameName).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
+            </div>
+
+            <div id="customWinConditionContainer" class="custom-win-condition" style="display: ${isCustomActive ? 'block' : 'none'};">
+                <div class="title">Wer gewinnt?</div>
+                <input type="hidden" id="customWinConditionInput" value="${initialCustomWinCondition}">
+                <div class="custom-win-condition-options" role="group" aria-label="Gewinnbedingung wählen">
+                    <button type="button"
+                            class="custom-win-condition-btn ${initialCustomWinCondition === "highest" ? "active" : ""}"
+                            aria-pressed="${initialCustomWinCondition === "highest"}"
+                            data-win-condition="highest"
+                            onclick="setCustomWinCondition('highest')">
+                        Höchste Punktzahl
+                    </button>
+                    <button type="button"
+                            class="custom-win-condition-btn ${initialCustomWinCondition === "lowest" ? "active" : ""}"
+                            aria-pressed="${initialCustomWinCondition === "lowest"}"
+                            data-win-condition="lowest"
+                            onclick="setCustomWinCondition('lowest')">
+                        Niedrigste Punktzahl
+                    </button>
+                </div>
+                <p class="custom-win-condition-hint">Bestimmt die Gewinnerempfehlung und die Sortierung in der Statistik.</p>
             </div>
 
             <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
@@ -614,14 +637,17 @@ function handleGameSelectionChange(gameId) {
     document.getElementById("gameDescriptionText").innerText = gameConfig.description;
     
     const nameContainer = document.getElementById("customGameNameContainer");
+    const winConditionContainer = document.getElementById("customWinConditionContainer");
     const modeContainer = document.getElementById("customGameModeContainer");
 
     if (gameId === "custom") {
         if (nameContainer) nameContainer.style.display = "block";
+        if (winConditionContainer) winConditionContainer.style.display = "block";
         if (modeContainer) modeContainer.style.display = "block";
         selectGameMode('round', document.getElementById("modeCardRound"));
     } else {
         if (nameContainer) nameContainer.style.display = "none";
+        if (winConditionContainer) winConditionContainer.style.display = "none";
         if (modeContainer) modeContainer.style.display = "none";
         
         if (gameConfig.defaultMode === 'single') {
@@ -630,6 +656,18 @@ function handleGameSelectionChange(gameId) {
             selectGameMode('round', document.getElementById("modeCardRound"));
         }
     }
+}
+
+function setCustomWinCondition(condition) {
+    const value = condition === "lowest" ? "lowest" : "highest";
+    const input = document.getElementById("customWinConditionInput");
+    if (input) input.value = value;
+
+    document.querySelectorAll(".custom-win-condition-btn").forEach(button => {
+        const isActive = button.dataset.winCondition === value;
+        button.classList.toggle("active", isActive);
+        button.setAttribute("aria-pressed", String(isActive));
+    });
 }
 
 function setRated(val) {
@@ -835,6 +873,9 @@ async function createGame() {
         let typedName = document.getElementById("gameNameInput").value.trim();
         gameName = typedName || gameConfig.name;
     }
+    const selectedWinCondition = selectedGameId === "custom"
+        ? (document.getElementById("customWinConditionInput")?.value === "lowest" ? "lowest" : "highest")
+        : gameConfig.rules.winCondition;
 
     state.currentGame = {
         id: Date.now(),
@@ -843,7 +884,10 @@ async function createGame() {
         mode: selectedMode,
         rated: state.ratedMode,
         date: new Date().toLocaleDateString("de-DE"),
-        rules: gameConfig.rules,
+        rules: {
+            ...gameConfig.rules,
+            winCondition: selectedWinCondition
+        },
         players: dragCards.map(card => {
             let id = Number(card.dataset.id);
             let type = card.dataset.type;
@@ -3337,6 +3381,7 @@ window.startSetup = startSetup;
 window.toggleFocusMode = toggleFocusMode;
 window.setSetupPlayerFilter = setSetupPlayerFilter;
 window.handleGameSelectionChange = handleGameSelectionChange;
+window.setCustomWinCondition = setCustomWinCondition;
 window.setRated = setRated;
 window.cancelSetup = cancelSetup;
 window.toggleSelectCard = toggleSelectCard;

@@ -47,6 +47,7 @@ Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die
 - Neue abgeschlossene Partien speichern zusätzlich optionale `winnerPartyIds`. Alte Partien bleiben kompatibel und werden über exakte Namen statt unsicherer Teiltreffer ausgewertet.
 - Beim Löschen einer historischen Partie werden auch negative Punkte mathematisch korrekt zurückgerechnet.
 - Die Bestenliste kann nach dem tatsächlich gespeicherten Spielnamen gefiltert werden (z. B. ein Custom-Spiel „Rome“). Gesamtpunkte bleiben in der spielübergreifenden Ansicht verborgen und werden nur innerhalb eines konkret ausgewählten Spiels angezeigt und sortierbar, weil nur dort dieselbe Wertungslogik verglichen wird.
+- Custom-Spiele besitzen beim Anlegen eine eigene Auswahl, ob die höchste oder niedrigste Gesamtpunktzahl gewinnt. Diese Einstellung wird in `game.rules.winCondition` gespeichert und steuert Gewinnerempfehlung, Ergebnisreihenfolge und spielbezogene Punktesortierung.
 - API-Fehler und beschädigtes JSON werden kontrolliert behandelt; ein fehlgeschlagener Abruf ersetzt den letzten gültigen Frontend-State nicht mehr durch leere Daten.
 - Die vier regelmäßigen Ladevorgänge laufen parallel. Das SQLite-Schema und der Datenbankpfad wurden nicht verändert.
 - Der Live-Abgleich rendert Seiten nur noch bei tatsächlich geänderten Daten, pausiert bei Texteingaben, offenen Modalen und unsichtbaren Browser-Tabs und verhindert überlappende Aktualisierungen. Beginnt während eines Ladevorgangs ein Speichervorgang, wird die möglicherweise veraltete Ladeantwort verworfen.
