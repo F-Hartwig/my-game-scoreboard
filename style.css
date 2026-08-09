@@ -357,7 +357,13 @@ button,
 .game-status-actions {
     flex: 0 0 auto;
     display: flex;
+    align-items: center;
     gap: 6px;
+}
+
+.game-status-secondary {
+    height: 32px;
+    min-height: 32px;
 }
 
 .focus-mode-toggle {
