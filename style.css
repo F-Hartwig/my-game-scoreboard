@@ -1004,8 +1004,16 @@ select option {
     appearance: none;
     width: 22px;
     height: 22px;
+    min-width: 22px;
+    max-width: 22px;
+    min-height: 22px;
+    max-height: 22px;
     margin: 0;
+    padding: 0;
     flex: 0 0 22px;
+    align-self: center;
+    box-sizing: border-box;
+    aspect-ratio: 1;
     display: grid;
     place-content: center;
     background: var(--surface-deep);
