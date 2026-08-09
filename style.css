@@ -993,11 +993,53 @@ select option {
     box-shadow: 0 11px 28px var(--primary-glow), var(--shadow-inset);
 }
 
-.select-card input[type="checkbox"],
 .mode-select-card input[type="radio"] {
     width: 21px;
     height: 21px;
     accent-color: var(--primary);
+}
+
+.select-card input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 22px;
+    height: 22px;
+    margin: 0;
+    flex: 0 0 22px;
+    display: grid;
+    place-content: center;
+    background: var(--surface-deep);
+    border: 1.5px solid var(--border-strong);
+    border-radius: 6px;
+    box-shadow: inset 0 1px 2px rgba(19, 29, 52, 0.12), 0 1px 0 var(--glass-highlight);
+    cursor: pointer;
+    transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.select-card input[type="checkbox"]::after {
+    content: "";
+    width: 5px;
+    height: 10px;
+    border: solid #ffffff;
+    border-width: 0 2px 2px 0;
+    transform: translateY(-1px) rotate(45deg) scale(0);
+    transform-origin: center;
+    transition: transform 0.12s ease;
+}
+
+.select-card input[type="checkbox"]:checked {
+    background: linear-gradient(145deg, var(--primary), var(--primary-strong));
+    border-color: var(--primary);
+    box-shadow: 0 5px 13px var(--primary-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+
+.select-card input[type="checkbox"]:checked::after {
+    transform: translateY(-1px) rotate(45deg) scale(1);
+}
+
+.select-card input[type="checkbox"]:focus-visible {
+    outline: 3px solid var(--primary-light);
+    outline-offset: 3px;
 }
 
 .player-left {
