@@ -1,6 +1,6 @@
 # ScoreBuddy – Projektkontext und Leitfaden für die weitere Umsetzung
 
-Stand: 6. August 2026
+Stand: 9. August 2026
 
 Diese Datei ist die zentrale technische Projektnotiz für spätere Arbeiten. Sie beschreibt den aktuell geprüften Stand des Repositories, bekannte Risiken, den vorgesehenen Betrieb auf dem NAS und eine sinnvolle Reihenfolge für die weitere Umsetzung.
 
@@ -30,7 +30,7 @@ Bewusst unverändert bleiben:
 - IDs, Spielhistorie, Spielerstatistiken, aktive Partien und laufende Partien
 - Docker-/NAS-Startkommando und Portbelegung
 
-Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die bestehende `/app/scoreboard.db` wird unverändert weiterverwendet. Vor einem späteren Merge nach `main` muss trotzdem eine Sicherung dieser Datei erstellt werden. Solange V2 nur auf dem Branch `staging` liegt, zieht die aktuelle Compose-Konfiguration weiterhin `main` und die NAS-Produktivinstanz bleibt unverändert.
+Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die produktive `/app/scoreboard.db` bleibt unverändert. Vor einem späteren Merge nach `main` muss trotzdem eine Sicherung dieser Datei erstellt werden. Solange V2 nur auf dem Branch `staging` liegt, zieht die Produktivinstanz weiterhin `main` und bleibt unverändert. Die separate Staging-Instanz verwendet dagegen bewusst eine eigene, derzeit leere Datenbank unter `/data/scoreboard.db`.
 
 ### Fehlerkorrekturen im V2-Stand
 
@@ -60,6 +60,28 @@ Vom Besitzer bestätigter Betriebszustand:
 - Ein Push in das Repository stößt nach Aussage des Besitzers bereits ein automatisches Update der laufenden Anwendung an. Da die Compose-Konfiguration selbst nur **beim Containerstart** pullt, muss der dafür nötige Neustart oder Recreate durch einen zusätzlichen NAS-Dienst, Webhook oder Updater ausgelöst werden.
 - Änderungen an `main` können dadurch unmittelbar die NAS-Instanz betreffen. Vor einem Push sollten deshalb mindestens Syntax, Kernabläufe und Datenkompatibilität geprüft werden.
 
+### Separat bereitgestellte Staging-Instanz
+
+Am 9. August 2026 wurde auf dem NAS eine vollständig von Produktion getrennte Staging-Instanz eingerichtet und geprüft:
+
+| Eigenschaft | Produktion | Staging |
+| --- | --- | --- |
+| Git-Branch | `main` | `staging` |
+| Container | `game-scoreboard-db` | `game-scoreboard-staging` |
+| NAS-Verzeichnis | `/volume2/docker/scoreboard-server` | `/volume2/docker/scoreboard-staging` |
+| Port | `8085` | `8086` |
+| Datenbank | `/volume2/docker/scoreboard-server/scoreboard.db` | `/volume2/docker/scoreboard-staging/data/scoreboard.db` |
+
+Die Staging-Konfiguration liegt im Repository als `docker-compose.staging.yml`; auf dem NAS liegt sie als `/volume2/docker/scoreboard-staging/docker-compose.yml`. Code (`./app:/app`) und Daten (`./data:/data`) sind dort separat eingebunden. Der Container setzt `DB_PATH=/data/scoreboard.db`, besitzt einen Healthcheck und eine begrenzte Log-Rotation.
+
+Bestätigter Zustand bei der Einrichtung:
+
+- Staging lief als `healthy` mit Commit `7b31018` vom Branch `staging`.
+- `http://100.113.89.85:8086/api/players` war über Tailscale erreichbar und lieferte erwartungsgemäß `[]`.
+- Die produktive Instanz auf Port `8085` blieb durchgehend aktiv und lieferte weiterhin die vorhandenen Spieler.
+- Ein Containerstart aktualisiert Staging mit `git fetch` und `git reset --hard origin/staging`. Ein automatischer Neustart unmittelbar nach jedem Push ist für Staging noch nicht separat nachgewiesen oder eingerichtet.
+- Produktive Daten dürfen nicht nach Staging kopiert werden, sofern dies nicht ausdrücklich für einen Test gewünscht und zuvor abgesichert wurde.
+
 ## 2. Aktueller technischer Aufbau
 
 Die Anwendung ist bewusst klein und ohne Frontend-Framework aufgebaut:
@@ -87,7 +109,7 @@ Wichtige Dateien:
 | `.gitignore` | Schließt Abhängigkeiten, SQLite-Laufzeitdateien und lokale Dateien aus |
 | `PROJECT_CONTEXT.md` | Architektur, Risiken, Deploymentwissen und Roadmap |
 
-Es gibt aktuell keine sichtbare `package.json`, Lock-Datei, Dockerfile, Compose-Datei, Tests, README, CI-Konfiguration oder Datenbankmigrationen im Repository.
+Es gibt aktuell keine sichtbare `package.json`, Lock-Datei, Dockerfile, Tests, README, CI-Konfiguration oder Datenbankmigrationen im Repository. Für Staging existiert `docker-compose.staging.yml`.
 
 Die Browserdateien bleiben bewusst im Projektstamm, damit die bestehende Entwicklung mit VS Code Live Server ohne Buildschritt funktioniert. Express blockiert den direkten Abruf von `server.js` und den SQLite-Laufzeitdateien, bevor es die übrigen Dateien statisch ausliefert.
 
@@ -360,7 +382,7 @@ TZ=Europe/Berlin
 NODE_ENV=production
 ```
 
-Die Namen sind Empfehlungen und noch keine bestehende Schnittstelle.
+Diese Werte werden von der Staging-Instanz bereits verwendet. Die produktive Instanz nutzt weiterhin ihren bisherigen Aufbau.
 
 ## 9. Definition of Done für künftige Änderungen
 
@@ -384,13 +406,14 @@ Bei der Erstellung dieser Notiz wurden alle eingecheckten Projektdateien und die
 
 Nach dem Struktur-Cleanup wurden alle ES-Modul-Imports, HTML-Assetpfade und erwarteten Dateien geprüft. Der Root-Aufruf sowie `app.js`, `api.js` und `gamesConfig.js` wurden außerdem über einen lokalen statischen HTTP-Server wie bei VS Code Live Server erfolgreich mit HTTP 200 abgerufen. `git diff --check` meldet keine Formatierungsfehler. Ein vollständiger Express-Serverstart war lokal nicht möglich, weil `express` und `sqlite3` nicht als reproduzierbar installierbare Projektabhängigkeiten im Repository vorliegen.
 
-Nicht durchgeführt wurden:
+Zusätzlich wurde die Staging-Compose-Datei lokal und auf dem NAS validiert. Der Containerstart, Healthcheck, Branch/Commit, die getrennte SQLite-Datei sowie der Zugriff auf die Staging-API vom NAS und über Tailscale wurden erfolgreich geprüft. Parallel wurde bestätigt, dass Produktion auf Port `8085` weiterläuft und vorhandene Daten ausliefert.
+
+Noch nicht durchgeführt wurden:
 
 - Installation oder Ausführung der nicht im Repository definierten npm-Abhängigkeiten
-- End-to-End-Test gegen die NAS-Instanz
 - Prüfung des extern eingerichteten Docker-Autodeployments
-- Prüfung des tatsächlichen NAS-Volume-Mappings
-- Funktionsprüfung mit vorhandenen Produktionsdaten
+- vollständiger End-to-End-Bedientest aller Spielabläufe auf der Staging-Instanz
+- schreibender Funktionstest mit vorhandenen Produktionsdaten; aus Sicherheitsgründen wurde die Produktivdatenbank nicht verändert oder nach Staging kopiert
 - Fachliche Verifikation sämtlicher Spielregeln
 
 ## 11. Offene Entscheidungen
@@ -398,7 +421,7 @@ Nicht durchgeführt wurden:
 Diese Punkte sollten geklärt werden, bevor die jeweilige Arbeit beginnt:
 
 1. Soll ScoreBuddy ausschließlich im vertrauenswürdigen Heimnetz laufen oder auch von außen erreichbar sein?
-2. Welcher konkrete NAS-Hostpfad steckt hinter `.:/app`, und wurde `/app/scoreboard.db` bereits in eine Backup-Routine aufgenommen?
+2. Ist die bestätigte produktive Datenbank `/volume2/docker/scoreboard-server/scoreboard.db` bereits in eine Backup-Routine aufgenommen und wurde die Wiederherstellung getestet?
 3. Welcher Dienst übernimmt den Neustart beziehungsweise das Recreate für das automatische Update nach einem Push?
 4. Soll `main` weiterhin direkt produktiv deployen oder soll ein Test-/Freigabeschritt vorgeschaltet werden?
 5. Sollen mehrere Geräte gleichzeitig aktiv Punkte eintragen dürfen oder dient Live-Sync hauptsächlich der Anzeige?
