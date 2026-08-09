@@ -1640,9 +1640,17 @@ select option {
 
 .ranking-controls .player-filter,
 .ranking-controls .ranking-sort-options {
+    width: min(100%, 280px);
     justify-self: end;
     background: var(--card-raised);
     border-color: var(--border);
+}
+
+.ranking-controls .player-filter-btn,
+.ranking-controls .ranking-sort-btn {
+    min-width: 0;
+    flex: 1 1 0;
+    justify-content: center;
 }
 
 .ranking-game-select {
