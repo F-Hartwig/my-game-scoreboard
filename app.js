@@ -1784,7 +1784,7 @@ function setRankingPlayerFilter(filter) {
 }
 
 function setRankingSortMode(mode) {
-    rankingSortMode = ["wins", "rate", "games", "points"].includes(mode) ? mode : "wins";
+    rankingSortMode = ["wins", "rate", "games"].includes(mode) ? mode : "wins";
     renderRanking();
 }
 
@@ -1796,8 +1796,7 @@ function compareRankingPlayers(a, b) {
     const valueComparators = {
         wins: () => (Number(b.wins) || 0) - (Number(a.wins) || 0),
         rate: () => getPlayerWinRate(b) - getPlayerWinRate(a),
-        games: () => (Number(b.games) || 0) - (Number(a.games) || 0),
-        points: () => (Number(b.points) || 0) - (Number(a.points) || 0)
+        games: () => (Number(b.games) || 0) - (Number(a.games) || 0)
     };
 
     return valueComparators[rankingSortMode]()
@@ -1817,6 +1816,7 @@ function renderRanking() {
     const favoriteCount = state.players.filter(player => player.favorite).length;
     if (toolbar) {
         toolbar.innerHTML = `
+            <span class="ranking-control-label">Anzeigen</span>
             <div class="player-filter" role="group" aria-label="Bestenliste filtern">
                 <button class="player-filter-btn ${rankingPlayerFilter === "all" ? "active" : ""}"
                         type="button"
@@ -1837,11 +1837,10 @@ function renderRanking() {
         const sortOptions = [
             ["wins", "Siege"],
             ["rate", "Quote"],
-            ["games", "Spiele"],
-            ["points", "Punkte"]
+            ["games", "Spiele"]
         ];
         sortToolbar.innerHTML = `
-            <span>Sortieren nach</span>
+            <span class="ranking-control-label">Sortieren</span>
             <div class="ranking-sort-options" role="group" aria-label="Sortierung wählen">
                 ${sortOptions.map(([value, label]) => `
                     <button type="button"
@@ -1891,7 +1890,6 @@ function renderRanking() {
                     <div><strong>${p.wins}</strong><span>Siege</span></div>
                     <div><strong>${p.games}</strong><span>Spiele</span></div>
                     <div><strong>${winRate}%</strong><span>Quote</span></div>
-                    <div><strong>${Number(p.points) || 0}</strong><span>Punkte</span></div>
                 </div>
             </div>`;
     });
@@ -2147,7 +2145,7 @@ function triggerDeleteHistoryGame(gameId) {
     closeModal();
     
     setTimeout(() => {
-        let body = `<p style="color:var(--muted)">Möchtest du das spiel <strong>${g.name}</strong> wirklich löschen? Alle Siege und Punkte werden restlos aus der Bestenliste abgezogen!</p>`;
+        let body = `<p style="color:var(--muted)">Möchtest du das Spiel <strong>${g.name}</strong> wirklich löschen? Siege, Spiele und zugehörige Statistikwerte werden korrekt zurückgerechnet.</p>`;
         let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteHistoryGame()">Definitiv löschen</button>`;
         openModal("Spiel unwiderruflich löschen?", body, actions);
     }, 300);

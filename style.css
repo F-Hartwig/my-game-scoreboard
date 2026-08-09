@@ -1565,19 +1565,42 @@ select option {
     font-size: 10px;
 }
 
+.ranking-controls {
+    margin: -3px 0 16px;
+    padding: 7px 10px;
+    display: grid;
+    gap: 0;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-strong);
+    border-radius: var(--radius-md);
+    box-shadow: inset 0 1px 0 var(--glass-highlight);
+}
+
+.ranking-filter-toolbar,
 .ranking-sort-toolbar {
-    margin: -3px 0 14px;
-    display: flex;
+    min-height: 46px;
+    margin: 0;
+    display: grid;
+    grid-template-columns: minmax(80px, 1fr) auto;
     align-items: center;
-    justify-content: space-between;
     gap: 10px;
 }
 
-.ranking-sort-toolbar > span {
-    flex: 0 0 auto;
+.ranking-sort-toolbar {
+    border-top: 1px solid var(--border-strong);
+}
+
+.ranking-control-label {
     color: var(--muted);
     font-size: 10px;
     font-weight: 720;
+}
+
+.ranking-controls .player-filter,
+.ranking-controls .ranking-sort-options {
+    justify-self: end;
+    background: var(--card-raised);
+    border-color: var(--border);
 }
 
 .ranking-sort-options,
@@ -1722,7 +1745,7 @@ select option {
 .stat-grid {
     padding: 11px 8px;
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, 1fr);
     text-align: center;
     background: var(--surface-deep);
     border: 1px solid var(--border-strong);
@@ -2306,6 +2329,29 @@ select option {
     .stats-card,
     .rules-library-card {
         padding: 18px !important;
+    }
+
+    .ranking-controls {
+        padding: 8px;
+    }
+
+    .ranking-filter-toolbar,
+    .ranking-sort-toolbar {
+        padding-block: 8px;
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .ranking-controls .player-filter,
+    .ranking-controls .ranking-sort-options {
+        width: 100%;
+        justify-self: stretch;
+    }
+
+    .ranking-controls .player-filter-btn,
+    .ranking-controls .ranking-sort-btn {
+        min-width: 0;
+        flex: 1;
     }
 
     .player-card {
