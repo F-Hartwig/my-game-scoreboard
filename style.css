@@ -839,6 +839,21 @@ select option {
     justify-content: flex-end;
 }
 
+.ranking-filter-toolbar,
+.setup-player-filter-toolbar {
+    display: flex;
+    justify-content: flex-end;
+}
+
+.ranking-filter-toolbar {
+    min-height: 43px;
+    margin: -5px 0 13px;
+}
+
+.setup-player-filter-toolbar {
+    margin: 0 0 12px;
+}
+
 .player-filter {
     padding: 3px;
     display: inline-flex;
@@ -880,6 +895,10 @@ select option {
     box-shadow: 0 5px 14px rgba(43, 61, 101, 0.1), inset 0 1px 0 var(--glass-highlight);
 }
 
+.select-card.filter-hidden {
+    display: none;
+}
+
 .player-empty-state {
     min-height: 150px;
     padding: 28px 20px;
@@ -906,6 +925,10 @@ select option {
     min-height: 38px;
     margin-top: 7px;
     padding: 8px 14px;
+}
+
+.ranking-empty-state {
+    min-height: 165px;
 }
 
 .actions {

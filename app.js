@@ -346,6 +346,8 @@ function renderPlayers() {
 // ===============================
 // CONFIGURABLE GAME SETUP & TOUCH-DRAG
 // ===============================
+let setupPlayerFilter = "all";
+
 function startSetup() {
     if(state.players.length < 2) {
         alert("Bitte lege zuerst mindestens 2 Spieler an!");
@@ -355,6 +357,7 @@ function startSetup() {
     state.isSettingUpGame = true;
     state.ratedMode = true;
     state.tempTeams = []; 
+    setupPlayerFilter = "all";
 
     const selectableGames = PREDEFINED_GAMES
         .filter(g => !g.hideFromSelection)
@@ -394,6 +397,9 @@ function startSetup() {
                 <button class="secondary" style="height: 44px; font-size: 14px; background: var(--primary-light); color: var(--primary); border-color: rgba(79, 70, 229, 0.2); font-weight:700;" onclick="openTeamBuilderModal()">Neues Team erstellen</button>
             </div>
 
+            <div class="setup-player-filter-toolbar">
+                ${renderSetupPlayerFilterHtml()}
+            </div>
             <div id="selectList" style="margin-bottom: 20px;">`;
             
     html += renderSetupPoolHtml();
@@ -437,6 +443,38 @@ function startSetup() {
     document.getElementById("gameContent").innerHTML = html;
 }
 
+function renderSetupPlayerFilterHtml() {
+    const favoriteCount = state.players.filter(player => player.favorite).length;
+    return `
+        <div class="player-filter" role="group" aria-label="Teilnehmer filtern">
+            <button class="player-filter-btn ${setupPlayerFilter === "all" ? "active" : ""}"
+                    type="button"
+                    aria-pressed="${setupPlayerFilter === "all"}"
+                    onclick="setSetupPlayerFilter('all')">
+                Alle <span>${state.players.length}</span>
+            </button>
+            <button class="player-filter-btn ${setupPlayerFilter === "favorites" ? "active" : ""}"
+                    type="button"
+                    aria-pressed="${setupPlayerFilter === "favorites"}"
+                    onclick="setSetupPlayerFilter('favorites')">
+                Favoriten <span>${favoriteCount}</span>
+            </button>
+        </div>`;
+}
+
+function setSetupPlayerFilter(filter) {
+    setupPlayerFilter = filter === "favorites" ? "favorites" : "all";
+
+    const toolbar = document.querySelector(".setup-player-filter-toolbar");
+    if (toolbar) toolbar.innerHTML = renderSetupPlayerFilterHtml();
+
+    document.querySelectorAll('#selectList .select-card[data-type="player"]').forEach(card => {
+        const player = state.players.find(item => Number(item.id) === Number(card.dataset.id));
+        const shouldHide = setupPlayerFilter === "favorites" && !player?.favorite && !card.classList.contains("selected");
+        card.classList.toggle("filter-hidden", shouldHide);
+    });
+}
+
 function renderSetupPoolHtml() {
     let html = "";
     let assignedPlayerIds = [];
@@ -460,8 +498,9 @@ function renderSetupPoolHtml() {
 
     state.players.forEach(p => {
         if (!assignedPlayerIds.includes(p.id)) {
+            const isFilterHidden = setupPlayerFilter === "favorites" && !p.favorite;
             html += `
-                <div class="select-card" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
+                <div class="select-card ${isFilterHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
                     <div class="player-left">
                         <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
                         <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
@@ -585,6 +624,10 @@ function toggleSelectCard(e, cardElement) {
     if (e.target !== checkbox) checkbox.checked = !checkbox.checked;
     cardElement.classList.toggle('selected', checkbox.checked);
     updateDragOrderList();
+    if (setupPlayerFilter === "favorites" && cardElement.dataset.type === "player") {
+        const player = state.players.find(item => Number(item.id) === Number(cardElement.dataset.id));
+        cardElement.classList.toggle("filter-hidden", !player?.favorite && !checkbox.checked);
+    }
 }
 
 function updateDragOrderList() {
@@ -1535,19 +1578,64 @@ async function newGame() {
 // ===============================
 // STATS & RANKING
 // ===============================
+let rankingPlayerFilter = "all";
+
+function setRankingPlayerFilter(filter) {
+    rankingPlayerFilter = filter === "favorites" ? "favorites" : "all";
+    renderRanking();
+}
+
 function renderRanking() {
     let box = document.getElementById("ranking");
-    if(!box) return; box.innerHTML = "";
+    let toolbar = document.getElementById("rankingFilterToolbar");
+    if(!box) return;
+
+    box.innerHTML = "";
+
+    const favoriteCount = state.players.filter(player => player.favorite).length;
+    if (toolbar) {
+        toolbar.innerHTML = `
+            <div class="player-filter" role="group" aria-label="Bestenliste filtern">
+                <button class="player-filter-btn ${rankingPlayerFilter === "all" ? "active" : ""}"
+                        type="button"
+                        aria-pressed="${rankingPlayerFilter === "all"}"
+                        onclick="setRankingPlayerFilter('all')">
+                    Alle <span>${state.players.length}</span>
+                </button>
+                <button class="player-filter-btn ${rankingPlayerFilter === "favorites" ? "active" : ""}"
+                        type="button"
+                        aria-pressed="${rankingPlayerFilter === "favorites"}"
+                        onclick="setRankingPlayerFilter('favorites')">
+                    Favoriten <span>${favoriteCount}</span>
+                </button>
+            </div>`;
+    }
 
     if(state.players.length === 0) {
+        if (toolbar) toolbar.innerHTML = "";
         box.innerHTML = `<p style="color:var(--muted); text-align:center; padding:10px;">Keine Daten verfügbar.</p>`;
         return;
     }
 
-    let sorted = [...state.players].sort((a, b) => b.wins - a.wins);
-    sorted.forEach((p, i) => {
+    const sorted = [...state.players].sort((a, b) => b.wins - a.wins);
+    const rankedPlayers = sorted.map((player, index) => ({ player, overallRank: index + 1 }));
+    const visiblePlayers = rankingPlayerFilter === "favorites"
+        ? rankedPlayers.filter(entry => entry.player.favorite)
+        : rankedPlayers;
+
+    if (visiblePlayers.length === 0) {
+        box.innerHTML = `
+            <div class="player-empty-state ranking-empty-state">
+                <strong>Noch keine Favoriten</strong>
+                <span>Markiere Spieler auf der Spielerseite mit dem Stern.</span>
+                <button type="button" class="secondary" onclick="setRankingPlayerFilter('all')">Gesamte Bestenliste anzeigen</button>
+            </div>`;
+        return;
+    }
+
+    visiblePlayers.forEach(({ player: p, overallRank }) => {
         let winRate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
-        let rank = String(i + 1).padStart(2, "0");
+        let rank = String(overallRank).padStart(2, "0");
 
         box.innerHTML += `
             <div class="rank-card" style="cursor: pointer; transition: background 0.15s ease;" onclick="openPlayerProfileModal(${p.id})">
@@ -2857,6 +2945,7 @@ window.triggerDelete = triggerDelete;
 window.submitDelete = submitDelete;
 window.closeModal = closeModal;
 window.startSetup = startSetup;
+window.setSetupPlayerFilter = setSetupPlayerFilter;
 window.handleGameSelectionChange = handleGameSelectionChange;
 window.setRated = setRated;
 window.cancelSetup = cancelSetup;
@@ -2894,6 +2983,7 @@ window.removeSingleTeam = removeSingleTeam;
 window.triggerRenameHistoryGame = triggerRenameHistoryGame;
 window.submitRenameHistoryGame = submitRenameHistoryGame;
 window.startRematch = startRematch;
+window.setRankingPlayerFilter = setRankingPlayerFilter;
 window.toggleTimerMenu = toggleTimerMenu;
 window.startTimer = startTimer;
 window.stopTimer = stopTimer;
