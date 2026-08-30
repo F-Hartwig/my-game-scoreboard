@@ -13,8 +13,8 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
@@ -22,7 +22,7 @@ jobs:
       - run: npm test
       - run: docker build -t scorebuddy:test .
       - run: |
-          docker run -d --name scorebuddy-test -p 3000:3000 -e DB_PATH=/data/scoreboard.db scorebuddy:test
+          docker run -d --name scorebuddy-test -p 3000:3000 -e DB_PATH=/tmp/scoreboard.db scorebuddy:test
           for attempt in {1..30}; do
             curl --fail --silent http://127.0.0.1:3000/api/health && break
             sleep 1
