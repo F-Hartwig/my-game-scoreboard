@@ -1,0 +1,30 @@
+name: CI
+
+on:
+  push:
+    branches: [staging]
+  pull_request:
+    branches: [staging]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: docker build -t scorebuddy:test .
+      - run: |
+          docker run -d --name scorebuddy-test -p 3000:3000 -e DB_PATH=/data/scoreboard.db scorebuddy:test
+          for attempt in {1..30}; do
+            curl --fail --silent http://127.0.0.1:3000/api/health && break
+            sleep 1
+          done
+          BASE_URL=http://127.0.0.1:3000 npm run smoke

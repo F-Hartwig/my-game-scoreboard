@@ -1,6 +1,7 @@
 import { apiSave } from './api.js';
 import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
+import { createId, escapeHtml } from './security.mjs';
 
 function getWinnerPartyIds(game) {
     if (Array.isArray(game?.winnerPartyIds)) {
@@ -220,7 +221,7 @@ async function addPlayer() {
     let input = document.getElementById("playerInput");
     let name = input.value.trim();
     if(!name) return;
-    state.players.push({ id: Date.now(), name, favorite: false, wins: 0, games: 0, points: 0 });
+    state.players.push({ id: createId(), name, favorite: false, wins: 0, games: 0, points: 0 });
     input.value = "";
     await apiSave('players', state.players);
     renderPlayers();
@@ -241,7 +242,7 @@ function setPlayerListFilter(filter) {
 function triggerRename(id) {
     let p = state.players.find(x => x.id === id);
     state.activeEditPlayerId = id;
-    let body = `<input id="modalInput" value="${p.name}">`;
+    let body = `<input id="modalInput" value="${escapeHtml(p.name)}">`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitRename()">Speichern</button>`;
     openModal("Name ändern", body, actions);
 }
@@ -325,7 +326,7 @@ function renderPlayers() {
                 <div class="player-left">
                     <div class="avatar">${initials}</div>
                     <div>
-                        <div class="player-name">${p.name}</div>
+                        <div class="player-name">${escapeHtml(p.name)}</div>
                         <div class="player-info">${p.wins} Siege · ${p.games} Matches</div>
                     </div>
                 </div>
@@ -394,7 +395,7 @@ function startSetup(prefillGame = null) {
         <div class="card">
             <div class="title">Spiel auswählen</div>
             <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
-                ${selectableGames.map(g => `<option value="${g.id}" ${g.id === firstGame.id ? "selected" : ""}>${g.name}</option>`).join("")}
+                ${selectableGames.map(g => `<option value="${g.id}" ${g.id === firstGame.id ? "selected" : ""}>${escapeHtml(g.name)}</option>`).join("")}
             </select>
             <p id="gameDescriptionText" style="font-size:13px; color:var(--muted); margin-top:-8px; margin-bottom:20px; line-height:1.4; padding:0 4px;">
                 ${firstGame.description}
@@ -533,7 +534,7 @@ function renderSetupPoolHtml() {
                     <div class="player-left" style="flex:1; min-width:0;">
                         <input type="checkbox" value="${t.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
                         <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; background: var(--success-light); color: var(--success);">T</div>
-                        <strong style="word-break: break-all; overflow:hidden; text-overflow:ellipsis;">${t.name}</strong>
+                        <strong style="word-break: break-all; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</strong>
                     </div>
                     <button class="icon-btn delete-btn" style="width:32px; height:32px; font-size:14px; flex-shrink:0; margin-left:8px;" onclick="event.stopPropagation(); removeSingleTeam(${t.id})">×</button>
                 </div>`;
@@ -548,8 +549,8 @@ function renderSetupPoolHtml() {
                 <div class="select-card ${isSelected ? "selected" : ""} ${isFilterHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
                     <div class="player-left">
                         <input type="checkbox" value="${p.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
-                        <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${p.name.substring(0,2).toUpperCase()}</div>
-                        <strong>${p.name}</strong>
+                        <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                        <strong>${escapeHtml(p.name)}</strong>
                     </div>
                 </div>`;
         }
@@ -579,8 +580,8 @@ function openTeamBuilderModal() {
             <div class="select-card" style="margin-bottom:0; padding:10px;" onclick="this.querySelector('input').click(); this.classList.toggle('selected', this.querySelector('input').checked)">
                 <div class="player-left">
                     <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); this.closest('.select-card').classList.toggle('selected', this.checked)">
-                    <div class="avatar" style="width:28px; height:28px; font-size:10px;">${p.name.substring(0,2).toUpperCase()}</div>
-                    <span style="font-weight:600; font-size:14px;">${p.name}</span>
+                    <div class="avatar" style="width:28px; height:28px; font-size:10px;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                    <span style="font-weight:600; font-size:14px;">${escapeHtml(p.name)}</span>
                 </div>
             </div>`;
     });
@@ -605,7 +606,7 @@ function submitTeamBuilderModal() {
     const playerIds = checkedBoxes.map(b => Number(b.value));
     const teamPlayers = state.players.filter(p => playerIds.includes(p.id));
     const teamName = teamPlayers.map(p => p.name).join(" / ");
-    const teamId = Date.now();
+    const teamId = createId();
 
     captureSetupSelection();
     if(!state.tempTeams) state.tempTeams = [];
@@ -754,10 +755,10 @@ function updateDragOrderList() {
         card.dataset.type = item.type;
         card.innerHTML = `
             <div class="player-left">
-                <div class="avatar" style="width:28px; height:28px; font-size:10px; ${isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${isTeam ? 'T' : displayName.substring(0,2).toUpperCase()}</div>
-                <strong>${displayName}</strong>
+                <div class="avatar" style="width:28px; height:28px; font-size:10px; ${isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${isTeam ? 'T' : escapeHtml(displayName.substring(0,2).toUpperCase())}</div>
+                <strong>${escapeHtml(displayName)}</strong>
             </div>
-            <span class="reorder-handle" draggable="true" role="button" tabindex="0" aria-label="${displayName} verschieben" title="Reihenfolge ändern"></span>`;
+            <span class="reorder-handle" draggable="true" role="button" tabindex="0" aria-label="${escapeHtml(displayName)} verschieben" title="Reihenfolge ändern"></span>`;
 
         const reorderHandle = card.querySelector('.reorder-handle');
 
@@ -878,7 +879,7 @@ async function createGame() {
         : gameConfig.rules.winCondition;
 
     state.currentGame = {
-        id: Date.now(),
+        id: createId(),
         gameTypeId: gameConfig.id,
         name: gameName,
         mode: selectedMode,
@@ -1019,15 +1020,15 @@ function renderGame(isSyncUpdate = false) {
                     <div class="active-game-card">
                         <div class="active-game-card-top">
                             <div class="active-game-meta">
-                                <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">${ag.name}${ratedBadge}</strong>
-                                <span style="font-size:11px; font-weight:600;">${ag.date} · ${modeText}</span>
+                                <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">${escapeHtml(ag.name)}${ratedBadge}</strong>
+                                <span style="font-size:11px; font-weight:600;">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
                             <span class="active-game-badge">Pausiert</span>
                         </div>
                         <div class="active-game-players-box">
                             ${ag.players.map(x => `
                                 <div class="active-game-player-line">
-                                    <span>${x.name}</span>
+                                    <span>${escapeHtml(x.name)}</span>
                                     <strong>${x.total} Pkt</strong>
                                 </div>
                             `).join("")}
@@ -1099,7 +1100,7 @@ function renderGame(isSyncUpdate = false) {
             
             let metaBox = document.getElementById(`meta_${p.id}`);
             if (metaBox) {
-                metaBox.innerHTML = `<span>${p.name}</span>${getCanastaPill(p.total)}${getRemainingPointsBadge(p.total)}${isLeading ? '<span class="leader-badge">Führt</span>' : ''}`;
+                metaBox.innerHTML = `<span>${escapeHtml(p.name)}</span>${getCanastaPill(p.total)}${getRemainingPointsBadge(p.total)}${isLeading ? '<span class="leader-badge">Führt</span>' : ''}`;
             }
             
             let totalBadge = document.getElementById(`total_${p.id}`);
@@ -1160,7 +1161,7 @@ function renderGame(isSyncUpdate = false) {
         <div class="card game-status-card">
             <div class="game-status-copy">
                 <span class="focus-mode-kicker">Fokusmodus</span>
-                <span id="gameStatusLabel">${statusText}</span>
+                <span id="gameStatusLabel">${escapeHtml(statusText)}</span>
                 <span id="focusWakeStatus" class="focus-wake-status" aria-live="polite"></span>
             </div>
             <div class="game-status-actions">
@@ -1184,7 +1185,7 @@ function renderGame(isSyncUpdate = false) {
             <div class="scoreboard-row">
                 <div class="scoreboard-player-header">
                     <div class="player-meta" id="meta_${p.id}">
-                        <span>${p.name}</span>
+                        <span>${escapeHtml(p.name)}</span>
                         ${getCanastaPill(p.total)}
                         ${getRemainingPointsBadge(p.total)}
                         ${isLeading ? '<span class="leader-badge">Führt</span>' : ''}
@@ -1241,7 +1242,7 @@ function renderGame(isSyncUpdate = false) {
                 <div class="wizard-turn-card">
                     <div class="wizard-turn-copy">
                         <span>Beginnt diese Runde</span>
-                        <strong>${wizardTurnInfo.starter?.name || "–"}</strong>
+                        <strong>${escapeHtml(wizardTurnInfo.starter?.name || "–")}</strong>
                         <small>Erste Ansage und erster Stich</small>
                     </div>
                 </div>
@@ -1257,7 +1258,7 @@ function renderGame(isSyncUpdate = false) {
         state.currentGame.players.forEach((p, idx) => {
             html += `
                 <div class="round-player-row" style="background:var(--card); border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
-                    <span class="player-name" style="flex:1;">${p.name}</span>
+                    <span class="player-name" style="flex:1;">${escapeHtml(p.name)}</span>
                     <button type="button" id="sign_${p.id}" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleRoundEnter(event, ${idx})">
@@ -1277,7 +1278,7 @@ function renderGame(isSyncUpdate = false) {
         state.currentGame.players.forEach((p, idx) => {
             html += `
                 <div class="round-player-row" style="display:flex; align-items:center; gap:8px;">
-                    <span class="player-name" style="flex:1;">${p.name}</span>
+                    <span class="player-name" style="flex:1;">${escapeHtml(p.name)}</span>
                     <button type="button" id="sign_${p.id}" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
                     <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleSingleEnter(event, ${p.id})">
@@ -1310,7 +1311,7 @@ function showGameRulesModal() {
     let body = `<div style="font-size:14px; color:var(--text); line-height:1.5; padding:4px 0;">${state.currentGame.rules.descriptionLong}</div>`;
     let actions = `<button class="secondary" onclick="closeModal()">Schließen</button>`;
     
-    openModal(`${state.currentGame.name} · Regeln`, body, actions);
+    openModal(`${escapeHtml(state.currentGame.name)} · Regeln`, body, actions);
 }
 
 function toggleSign(playerId) {
@@ -1446,7 +1447,7 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
     let isNegative = Number(displayVal) < 0;
 
     let body = `
-        <p style="color:var(--muted); margin-bottom:10px; font-size:14px;">Korrigiere die Punktzahl für <strong>${p.name}</strong> (${labelText}):</p>
+        <p style="color:var(--muted); margin-bottom:10px; font-size:14px;">Korrigiere die Punktzahl für <strong>${escapeHtml(p.name)}</strong> (${labelText}):</p>
         <div style="display:flex; gap:8px; align-items:center;">
             <button type="button" id="modalSignBtn" onpointerdown="handleModalSignPointerDown(event)" onclick="handleModalSignClick(event)" style="width:44px; height:48px; border-radius:var(--radius-md); font-size:18px; font-weight:800; padding:0; flex-shrink:0;
                 background: ${isNegative ? 'var(--danger-light)' : 'var(--card-raised)'};
@@ -1523,7 +1524,7 @@ let activeDeleteActiveGameId = null;
 function triggerDeleteActiveGame(gameId) {
     activeDeleteActiveGameId = gameId;
     let ag = state.activeGames.find(x => x.id === gameId);
-    let body = `<p style="color:var(--muted)">Möchtest du das pausierte Spiel <strong>${ag.name}</strong> wirklich unwiderruflich verwerfen?</p>`;
+    let body = `<p style="color:var(--muted)">Möchtest du das pausierte Spiel <strong>${escapeHtml(ag.name)}</strong> wirklich unwiderruflich verwerfen?</p>`;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteActiveGame()">Löschen</button>`;
     openModal("Spielstand verwerfen?", body, actions);
 }
@@ -1563,8 +1564,8 @@ function finishGame() {
         html += `
             <div class="winner-select-card ${isBest ? 'selected' : ''}" data-id="${p.id}" onclick="selectWinnerCard(this)">
                 <div class="player-left" style="flex: 1; min-width: 0;">
-                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; ${p.isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${p.isTeam ? 'T' : p.name.substring(0,2).toUpperCase()}</div>
-                    <strong class="player-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${p.name}</strong>
+                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; ${p.isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${p.isTeam ? 'T' : escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                    <strong class="player-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(p.name)}</strong>
                     ${isBest ? '<span class="rec-tag" style="margin-left:8px; flex-shrink:0;">Empfehlung</span>' : ''}
                 </div>
                 <div style="margin-left:auto; padding-left:12px; font-weight:700; font-size:14px; white-space:nowrap; text-align:right; flex-shrink:0;">
@@ -1674,8 +1675,8 @@ function showResult(gameData) {
     let html = `
         <div class="card result-hero-card" style="text-align:center; padding:24px 16px;">
             <div class="result-label">Ergebnis</div>
-            <div style="font-size:22px; font-weight:850; color:var(--success);">${game.winner}</div>
-            <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">${game.name}${textModeInfo} · ${game.date}</p>
+            <div style="font-size:22px; font-weight:850; color:var(--success);">${escapeHtml(game.winner)}</div>
+            <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">${escapeHtml(game.name)}${textModeInfo} · ${escapeHtml(game.date)}</p>
         </div>
 
         <div class="card">
@@ -1696,7 +1697,7 @@ function showResult(gameData) {
 
         html += `
             <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border)">
-                <span style="font-weight:600; font-size:14px;">${currentRank}. ${p.name}</span>
+                <span style="font-weight:600; font-size:14px;">${currentRank}. ${escapeHtml(p.name)}</span>
                 <strong style="color:var(--primary); font-size:15px;">${p.total} Pkt</strong>
             </div>`;
     });
@@ -1725,7 +1726,7 @@ async function startRematch() {
 
     // Erstelle ein neues Spiel mit exakt denselben Parametern
     state.currentGame = {
-        id: Date.now(),
+        id: createId(),
         gameTypeId: lastGame.gameTypeId,
         name: lastGame.name,
         mode: lastGame.mode,
@@ -1803,7 +1804,7 @@ function renderStatsOverview() {
             <div>
                 <span class="stats-eyebrow">Gesamtübersicht</span>
                 <strong>${games.length} ${games.length === 1 ? "Partie" : "Partien"}</strong>
-                <small>${latestGame ? `Letztes Spiel am ${latestGame.date}` : "Noch keine Partie abgeschlossen"}</small>
+                <small>${latestGame ? `Letztes Spiel am ${escapeHtml(latestGame.date)}` : "Noch keine Partie abgeschlossen"}</small>
             </div>
             <div class="stats-overview-balance">
                 <span>${ratedGames.length}</span>
@@ -2030,7 +2031,7 @@ function renderRanking() {
                 <div class="rank-card-header" style="justify-content: space-between;">
                     <div style="display:flex; align-items:center; gap:10px; min-width:0;">
                         <span class="rank-position">${rank}</span>
-                        <span>${p.name}</span>
+                        <span>${escapeHtml(p.name)}</span>
                     </div>
                     <span class="profile-link">Profil</span>
                 </div>
@@ -2106,18 +2107,18 @@ function renderHistory() {
             <div class="history-card" onclick="viewGameDetails(${g.id})">
                 <div class="history-card-top match-history-header">
                     <div class="history-card-info">
-                        <div class="history-card-date">${g.name}${unratedTag}</div>
-                        <div class="history-card-sub">${g.date} · ${g.players.length} Teilnehmer · ${entryCount} ${entryLabel}</div>
+                        <div class="history-card-date">${escapeHtml(g.name)}${unratedTag}</div>
+                        <div class="history-card-sub">${escapeHtml(g.date)} · ${g.players.length} Teilnehmer · ${entryCount} ${entryLabel}</div>
                     </div>
                     <div class="history-winner-summary ${isDraw ? 'is-draw' : ''}">
                         <span>${isDraw ? 'Ergebnis' : 'Gewinner'}</span>
-                        <strong>${g.winner}</strong>
+                        <strong>${escapeHtml(g.winner)}</strong>
                     </div>
                 </div>
                 <div class="history-card-scores">
                     ${g.players.map(p => {
                         const isWinner = isWinningParty(g, p);
-                        return `<span class="history-player-score ${isWinner ? 'is-winner' : ''}">${p.name}: <strong>${p.total}</strong></span>`;
+                        return `<span class="history-player-score ${isWinner ? 'is-winner' : ''}">${escapeHtml(p.name)}: <strong>${p.total}</strong></span>`;
                     }).join("")}
                 </div>
             </div>`;
@@ -2149,7 +2150,7 @@ function viewGameDetails(gameId) {
     
     let html = `
         <p style="color: var(--muted); font-size:13px; margin-bottom:16px; font-weight:500;">
-            Datum: ${g.date} · Typ: ${modeTextInfo}
+            Datum: ${escapeHtml(g.date)} · Typ: ${modeTextInfo}
         </p>
         <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
 
@@ -2161,7 +2162,7 @@ function viewGameDetails(gameId) {
             <div class="modal-player-card">
                 <div class="modal-player-header">
                     <div class="modal-player-meta">
-                        <span>${p.name}</span>
+                        <span>${escapeHtml(p.name)}</span>
                         ${isWinner ? '<span class="leader-badge">Gewinner</span>' : ''}
                     </div>
                     <div class="modal-total-badge">${p.total} Pkt</div>
@@ -2205,7 +2206,7 @@ function viewGameDetails(gameId) {
     html += `</div>`;
     
     // Titel als HTML-String für innerHTML
-    let modalTitle = `<span style="display:flex; align-items:center; gap:8px;">${g.name} <button class="icon-btn edit-btn" style="width:30px; height:28px; font-size:11px; flex-shrink:0;" onclick="triggerRenameHistoryGame(${g.id})" title="Spielnamen ändern" aria-label="Spielnamen ändern">Aa</button></span>`;
+    let modalTitle = `<span style="display:flex; align-items:center; gap:8px;">${escapeHtml(g.name)} <button class="icon-btn edit-btn" style="width:30px; height:28px; font-size:11px; flex-shrink:0;" onclick="triggerRenameHistoryGame(${g.id})" title="Spielnamen ändern" aria-label="Spielnamen ändern">Aa</button></span>`;
 
     let actions = `
         <button class="secondary" onclick="closeModal()" style="flex:1">Schließen</button>
@@ -2231,7 +2232,7 @@ function triggerRenameHistoryGame(gameId) {
     setTimeout(() => {
         let body = `
             <p style="color:var(--muted); font-size:13px; margin-bottom:12px;">Gib einen neuen Namen für das Spiel ein:</p>
-            <input id="historyRenameInput" value="${g.name}" placeholder="z.B. Spieleabend Runde 1...">
+            <input id="historyRenameInput" value="${escapeHtml(g.name)}" placeholder="z.B. Spieleabend Runde 1...">
         `;
         let actions = `
             <button class="secondary" onclick="viewGameDetails(${gameId})">Abbrechen</button>
@@ -2294,7 +2295,7 @@ function triggerDeleteHistoryGame(gameId) {
     closeModal();
     
     setTimeout(() => {
-        let body = `<p style="color:var(--muted)">Möchtest du das Spiel <strong>${g.name}</strong> wirklich löschen? Siege, Spiele und zugehörige Statistikwerte werden korrekt zurückgerechnet.</p>`;
+        let body = `<p style="color:var(--muted)">Möchtest du das Spiel <strong>${escapeHtml(g.name)}</strong> wirklich löschen? Siege, Spiele und zugehörige Statistikwerte werden korrekt zurückgerechnet.</p>`;
         let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDeleteHistoryGame()">Definitiv löschen</button>`;
         openModal("Spiel unwiderruflich löschen?", body, actions);
     }, 300);
@@ -2318,7 +2319,7 @@ function renderRulesPage() {
 
         let playBtnHtml = !g.hideFromSelection
             ? `<button class="rules-start-btn"
-                title="Spiel starten" aria-label="${g.name} starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">Start</button>`
+                title="Spiel starten" aria-label="${escapeHtml(g.name)} starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">Start</button>`
             : '';
 
         box.innerHTML += `
@@ -2326,7 +2327,7 @@ function renderRulesPage() {
                 <div class="history-card-top rules-game-header">
                     <div class="history-card-info rules-game-title">
                         <div class="history-card-date" style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
-                            ${g.name} ${pureRulesBadge}
+                            ${escapeHtml(g.name)} ${pureRulesBadge}
                         </div>
                     </div>
                     ${playBtnHtml}
@@ -2366,7 +2367,7 @@ function openCollectionRulesModal(gameId) {
     let body = `<div style="font-size:14px; color:var(--text); line-height:1.5; padding:4px 0;">${game.rules.descriptionLong}</div>`;
     let actions = `<button class="secondary" onclick="closeModal()">Schließen</button>`;
     
-    openModal(`${game.name} · Regeln`, body, actions);
+    openModal(`${escapeHtml(game.name)} · Regeln`, body, actions);
 }
 
 // ===============================
@@ -2458,8 +2459,8 @@ function openPlayerProfileModal(playerId) {
 
     let bodyHtml = `
         <div style="text-align:center; margin-bottom:16px;">
-            <div class="avatar" style="width:54px; height:54px; font-size:18px; margin:0 auto 8px auto;">${p.name.substring(0,2).toUpperCase()}</div>
-            <h2 style="font-size:20px; font-weight:800;">${p.name}</h2>
+            <div class="avatar" style="width:54px; height:54px; font-size:18px; margin:0 auto 8px auto;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+            <h2 style="font-size:20px; font-weight:800;">${escapeHtml(p.name)}</h2>
             <p style="color:var(--muted); font-size:13px; margin-top:2px;">Gesamt-Erfolgsquote: <strong>${p.games ? Math.round((p.wins / p.games) * 100) : 0}%</strong></p>
         </div>
         
@@ -2643,8 +2644,8 @@ function openStartPlayerSelectorModal() {
             ${players.map(p => `
                 <div class="select-card start-player-card" data-id="${p.id}" onclick="selectStartPlayerDirectly(${p.id})" style="margin-bottom:0; padding:12px;">
                     <div class="player-left">
-                        <div class="avatar" style="width:30px; height:30px; font-size:11px;">${p.isTeam ? 'T' : p.name.substring(0,2).toUpperCase()}</div>
-                        <strong class="start-player-name">${p.name}</strong>
+                        <div class="avatar" style="width:30px; height:30px; font-size:11px;">${p.isTeam ? 'T' : escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                        <strong class="start-player-name">${escapeHtml(p.name)}</strong>
                     </div>
                 </div>
             `).join('')}
@@ -3018,8 +3019,8 @@ function openWizardRoundModal() {
         <div class="wizard-turn-card wizard-turn-card-modal">
             <div class="wizard-turn-copy">
                 <span>Beginnt diese Runde</span>
-                <strong>${turnInfo.starter?.name || "–"}</strong>
-                <small>Geber: ${turnInfo.dealer?.name || "–"}</small>
+                <strong>${escapeHtml(turnInfo.starter?.name || "–")}</strong>
+                <small>Geber: ${escapeHtml(turnInfo.dealer?.name || "–")}</small>
             </div>
             <button class="wizard-change-turn-btn" onclick="openWizardStarterSelector()">Start ändern</button>
         </div>
@@ -3034,7 +3035,7 @@ function openWizardRoundModal() {
                 return `
                     <div class="wizard-player-card" id="wiz_card_${p.id}">
                         <div class="wizard-player-heading">
-                            <strong>${p.name}</strong>
+                            <strong>${escapeHtml(p.name)}</strong>
                             ${orderIndex === 0 ? '<span class="wizard-order-badge">Beginnt</span>' : ''}
                             ${p.id === turnInfo.dealer?.id ? '<span class="wizard-order-badge secondary">Geber</span>' : ''}
                         </div>
@@ -3078,8 +3079,8 @@ function openWizardStarterSelector() {
                 return `
                     <button class="wizard-starter-option ${isSelected ? 'selected' : ''}" onclick="setWizardStarter(${starter.id})">
                         <span>
-                            <strong>${starter.name}</strong>
-                            <small>beginnt · ${dealer.name} gibt</small>
+                            <strong>${escapeHtml(starter.name)}</strong>
+                            <small>beginnt · ${escapeHtml(dealer.name)} gibt</small>
                         </span>
                         <span class="wizard-starter-status">${isSelected ? 'Aktuell' : 'Wählen'}</span>
                     </button>`;
