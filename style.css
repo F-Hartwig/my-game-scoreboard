@@ -2533,7 +2533,10 @@ select option {
     --bg-deep: #e8edf5;
     --text: #19243b;
     --muted: #56637a;
-    --card: rgba(255,255,255,.76);
+    --card: rgba(255,255,255,.9);
+    --control-border: #7d899e;
+    --selection-surface: #eef2fc;
+    --selection-border: #a7b6e0;
     --surface-soft: #f0f3f9;
     --shadow: 0 8px 32px rgba(35,51,85,.055);
     --shadow-soft: 0 2px 8px rgba(35,51,85,.035);
@@ -2551,7 +2554,10 @@ select option {
     --primary-strong: #5f8ee7;
     --success: #72dfbc;
     --danger: #ff91ac;
-    --card: rgba(32,41,58,.86);
+    --card: rgba(32,41,58,.94);
+    --control-border: #8796ad;
+    --selection-surface: #29364e;
+    --selection-border: #647da4;
     --surface-soft: #253147;
     --shadow: 0 8px 32px rgba(0,0,0,.16);
     --shadow-soft: 0 2px 8px rgba(0,0,0,.1);
@@ -2581,7 +2587,7 @@ body {
 .theme-toggle-btn { min-height: 44px; height: auto; border-radius: 999px; font-size: 12px; }
 .toolbar { gap: 8px; flex-wrap: wrap; overflow: visible; margin-bottom: 24px; padding: 0; }
 .tool-chip { border-radius: 999px; padding-inline: 18px; min-height: 44px; font-size: 13px; box-shadow: var(--shadow-soft), var(--shadow-inset); }
-.card { padding: 24px; margin-bottom: 24px; backdrop-filter: none; -webkit-backdrop-filter: none; }
+.card { padding: 24px; margin-bottom: 24px; backdrop-filter: blur(18px) saturate(125%); -webkit-backdrop-filter: blur(18px) saturate(125%); }
 :root:not([data-theme="dark"]) :is(.card,.player-card,.history-card,.active-game-card) { box-shadow: var(--shadow), var(--shadow-inset); }
 :is(.select-card,.winner-select-card,.mode-select-card,.drag-card,.history-card,.player-card) { backdrop-filter: none; -webkit-backdrop-filter: none; }
 .title { font-size: 19px; line-height: 1.3; letter-spacing: -.45px; }
@@ -2593,7 +2599,29 @@ button:active { transform: scale(.98); transition-duration: 80ms; }
 button, [onclick]:not(.modal-overlay):not(.modal), .reorder-handle { touch-action: manipulation; }
 button, .reorder-handle, .round-pill[onclick] { min-width: 44px !important; min-height: 44px !important; }
 select { min-height: 44px; }
-.select-card input[type="checkbox"], .mode-select-card input[type="radio"] { width: 44px; height: 44px; min-width: 44px; max-width: 44px; min-height: 44px; max-height: 44px; flex: 0 0 44px; border-radius: 12px; }
+.select-card, .mode-select-card { min-height: 44px; }
+.select-card.selected, .mode-select-card.selected {
+    background: var(--selection-surface);
+    border-color: var(--selection-border);
+    box-shadow: var(--shadow-inset);
+}
+.select-card input[type="checkbox"], .mode-select-card input[type="radio"] {
+    appearance: none; -webkit-appearance: none;
+    width: 20px; height: 20px; min-width: 20px; max-width: 20px;
+    min-height: 20px; max-height: 20px; flex: 0 0 20px;
+    margin: 0; padding: 0; align-self: center;
+    display: grid; place-content: center;
+    border: 1px solid var(--control-border); border-radius: 5px;
+    background: var(--card-solid); box-shadow: none; cursor: pointer;
+}
+.mode-select-card input[type="radio"] { border-radius: 50%; }
+.select-card input[type="checkbox"]:checked, .mode-select-card input[type="radio"]:checked {
+    background: var(--selection-surface); border-color: var(--primary); box-shadow: none;
+}
+.select-card input[type="checkbox"]::after { width: 4px; height: 8px; border-color: var(--primary); border-width: 0 1.5px 1.5px 0; }
+.mode-select-card input[type="radio"]::after { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--primary); transform: scale(0); }
+.mode-select-card input[type="radio"]:checked::after { transform: scale(1); }
+.select-card input[type="checkbox"]:focus-visible { outline-color: var(--primary); }
 html { scroll-padding-block: 24px 120px; }
 :is(button,input,select,[tabindex]):focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
 input, select { min-width: 0; }
@@ -2622,7 +2650,9 @@ input::placeholder { opacity: 1; }
 .scoreboard-row .player-meta { flex: 1 1 100px; display: flex; flex-wrap: wrap; overflow: visible; white-space: normal; gap: 6px; font-size: 18px; }
 .player-meta > span:first-child { width: 100%; overflow-wrap: anywhere; }
 .scoreboard-row .total-badge { font-size: clamp(24px,3vw,36px); line-height: 1.1; font-weight: 750; letter-spacing: -1.2px; font-variant-numeric: tabular-nums; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; color: var(--text); max-width: 100%; overflow-wrap: anywhere; }
-.leader-badge { margin: 0; font-size: 10px; line-height: 1.2; letter-spacing: .4px; }
+.leader-badge { display: inline-flex; vertical-align: -3px; margin: 0 0 0 6px; padding: 0; width: 18px; height: 18px; color: var(--primary); background: none; border: 0; border-radius: 0; box-shadow: none; }
+.leader-badge svg, .paused-status svg { width: 18px; height: 18px; flex: none; }
+.active-game-badge.paused-status { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 28px; padding: 0; background: var(--surface-soft); color: var(--muted); border: 0; box-shadow: none; }
 .game-limit-badge { margin-left: 0; white-space: normal; }
 .history-scroll { max-width: 100%; padding: 4px; margin: -4px; scrollbar-width: thin; }
 .round-pill { border-radius: 12px; padding-inline: 12px; background: var(--card); font-size: 13px; }
@@ -2693,6 +2723,8 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
     .modal { width: 100%; max-height: calc(100dvh - 24px); padding: 20px; }
     .result-next-actions { grid-template-columns: 1fr; }
 }
+.game-status-actions .game-action-icon { display: inline-flex; align-items: center; justify-content: center; flex: 0 0 44px; width: 44px; height: 44px !important; padding: 0 !important; border-radius: 12px !important; }
+.game-action-icon svg { width: 22px; height: 22px; flex: none; }
 @media (prefers-reduced-transparency: reduce) {
     .card,.tool-chip,.bottom-nav,.modal,.theme-toggle-btn { background: var(--card-solid); backdrop-filter: none; -webkit-backdrop-filter: none; }
 }

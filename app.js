@@ -492,7 +492,7 @@ function startSetup(prefillGame = null) {
         
         <!-- Runden-Modus -->
         <div class="mode-select-card ${initialMode === "round" ? "selected" : ""}" id="modeCardRound" onclick="selectGameMode('round', this)">
-            <input type="radio" name="gameMode" aria-label="Klassischer Runden-Modus" value="round" ${initialMode === "round" ? "checked" : ""} onclick="event.stopPropagation();">
+            <input type="radio" name="gameMode" aria-label="Klassischer Runden-Modus" value="round" ${initialMode === "round" ? "checked" : ""} onclick="event.stopPropagation();" onchange="selectGameMode('round', this.closest('.mode-select-card'))">
             <div class="mode-select-card-content">
                 <span style="font-weight:700;">Klassischer Runden-Modus</span>
                 <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
@@ -501,7 +501,7 @@ function startSetup(prefillGame = null) {
         
         <!-- Einzel-Modus -->
         <div class="mode-select-card ${initialMode === "single" ? "selected" : ""}" id="modeCardSingle" onclick="selectGameMode('single', this)">
-            <input type="radio" name="gameMode" aria-label="Flexibler Einzel-Modus" value="single" ${initialMode === "single" ? "checked" : ""} onclick="event.stopPropagation();">
+            <input type="radio" name="gameMode" aria-label="Flexibler Einzel-Modus" value="single" ${initialMode === "single" ? "checked" : ""} onclick="event.stopPropagation();" onchange="selectGameMode('single', this.closest('.mode-select-card'))">
             <div class="mode-select-card-content">
                 <span style="font-weight:700;">Flexibler Einzel-Modus</span>
                 <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
@@ -1025,6 +1025,10 @@ document.addEventListener("visibilitychange", () => {
     if (!document.hidden && isFocusMode) requestFocusWakeLock();
 });
 
+function renderLeaderIcon() {
+    return '<span class="leader-badge" role="img" aria-label="Führt" title="Führt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 4 4 5-6 5 6 4-4-2 11H5L3 6ZM5 20h14"/></svg></span>';
+}
+
 function renderGame(isSyncUpdate = false) {
     if (state.isSettingUpGame) return; 
 
@@ -1055,7 +1059,7 @@ function renderGame(isSyncUpdate = false) {
                                 <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">${escapeHtml(ag.name)}${ratedBadge}</strong>
                                 <span style="font-size:11px; font-weight:600;">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
-                            <span class="active-game-badge">Pausiert</span>
+                            <span class="active-game-badge paused-status" role="img" aria-label="Pausiert" title="Pausiert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span>
                         </div>
                         <div class="active-game-players-box">
                             ${ag.players.map(x => `
@@ -1132,7 +1136,7 @@ function renderGame(isSyncUpdate = false) {
             
             let metaBox = document.getElementById(`meta_${p.id}`);
             if (metaBox) {
-                metaBox.innerHTML = `<span>${escapeHtml(p.name)}</span>${getCanastaPill(p.total)}${getRemainingPointsBadge(p.total)}${isLeading ? '<span class="leader-badge">Führt</span>' : ''}`;
+                metaBox.innerHTML = `<span>${escapeHtml(p.name)}${isLeading ? renderLeaderIcon() : ''}</span>${getCanastaPill(p.total)}${getRemainingPointsBadge(p.total)}`;
             }
             
             let totalBadge = document.getElementById(`total_${p.id}`);
@@ -1186,7 +1190,7 @@ function renderGame(isSyncUpdate = false) {
 
     const hasLongRules = state.currentGame.rules && state.currentGame.rules.descriptionLong;
     let rulesBtnHtml = hasLongRules 
-        ? `<button class="secondary game-status-secondary" style="width:auto; height:32px; font-size:13px; padding:0 10px; border-radius:8px; flex-shrink:0; font-weight:700;" onclick="showGameRulesModal()">Regeln</button>`
+        ? `<button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Regeln" title="Regeln" onclick="showGameRulesModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6v15M3 4c4-1 6 0 9 2 3-2 5-3 9-2v14c-4-1-6 0-9 2-3-2-5-3-9-2Z"/></svg></button>`
         : '';
 
     let html = `
@@ -1198,7 +1202,7 @@ function renderGame(isSyncUpdate = false) {
             </div>
             <div class="game-status-actions">
                 ${rulesBtnHtml}
-                <button class="secondary game-status-secondary" style="width:auto; height:32px; font-size:12px; padding:0 10px; border-radius:10px;" onclick="pauseCurrentGame()">Pausieren</button>
+                <button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Pausieren" title="Pausieren" onclick="pauseCurrentGame()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button>
                 <button id="focusModeToggle" class="secondary focus-mode-toggle ${isFocusMode ? "active" : ""}"
                         type="button"
                         aria-pressed="${isFocusMode}"
@@ -1218,10 +1222,9 @@ function renderGame(isSyncUpdate = false) {
             <div class="scoreboard-row">
                 <div class="scoreboard-player-header">
                     <div class="player-meta" id="meta_${p.id}">
-                        <span>${escapeHtml(p.name)}</span>
+                        <span>${escapeHtml(p.name)}${isLeading ? renderLeaderIcon() : ''}</span>
                         ${getCanastaPill(p.total)}
                         ${getRemainingPointsBadge(p.total)}
-                        ${isLeading ? '<span class="leader-badge">Führt</span>' : ''}
                     </div>
                     <div class="total-badge" id="total_${p.id}">${p.total} Pkt</div>
                 </div>
