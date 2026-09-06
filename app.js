@@ -117,6 +117,10 @@ async function navigate(pageId, element) {
     
     document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
     element.classList.add("active");
+    document.querySelectorAll(".nav-item").forEach(item => item.setAttribute("aria-current", item === element ? "page" : "false"));
+    const activePage = document.getElementById(pageId);
+    document.querySelector(".skip-link").href = `#${pageId}`;
+    activePage.tabIndex = -1;
 
     const titles = { gamePage: "ScoreBuddy", playersPage: "Spieler", statsPage: "Statistik", rulesPage: "Spielesammlung" };
     document.getElementById("headerTitle").innerText = titles[pageId];
@@ -131,13 +135,18 @@ async function navigate(pageId, element) {
 // ===============================
 // MODAL ENGINE
 // ===============================
+let modalReturnFocus = null;
 function openModal(title, bodyHtml, actionHtml, modalClass = "") {
+    if (!document.getElementById("appModal").classList.contains("open")) modalReturnFocus = document.activeElement;
     const modal = document.querySelector("#appModal .modal");
     document.getElementById("modalTitle").innerHTML = title;
     document.getElementById("modalBody").innerHTML = bodyHtml;
     document.getElementById("modalActions").innerHTML = actionHtml;
     if (modal) modal.className = `modal ${modalClass}`.trim();
     document.getElementById("appModal").classList.add("open");
+    document.querySelectorAll(".header,.app-shell,.bottom-nav,.skip-link").forEach(el => el.inert = true);
+    modal.tabIndex = -1;
+    modal.focus({ preventScroll: true });
 }
 
 
@@ -210,7 +219,30 @@ function handleModalSignClick(event) {
 function closeModal() {
     document.getElementById("appModal").classList.remove("open");
     state.activeEditPlayerId = null;
+    document.querySelectorAll(".header,.app-shell,.bottom-nav,.skip-link").forEach(el => el.inert = false);
+    if (modalReturnFocus?.isConnected) modalReturnFocus.focus({ preventScroll: true });
 }
+
+// Keyboard equivalent for editable round chips.
+document.addEventListener("keydown", event => {
+    if ((event.key === "Enter" || event.key === " ") && event.target.matches(".round-pill[role=button]")) {
+        event.preventDefault();
+        event.target.click();
+    }
+});
+
+// Dialog keyboard handling does not alter scoring or persistence.
+document.addEventListener("keydown", event => {
+    if (!document.getElementById("appModal").classList.contains("open")) return;
+    if (event.key === "Escape") { event.preventDefault(); closeModal(); return; }
+    if (event.key !== "Tab") return;
+    const modal = document.querySelector("#appModal .modal");
+    const controls = [...modal.querySelectorAll("button,input,select,[tabindex='0']")].filter(el => !el.disabled && el.getClientRects().length);
+    const first = controls[0], last = controls.at(-1);
+    if (!first) { event.preventDefault(); modal.focus(); return; }
+    if (event.shiftKey && (document.activeElement === first || document.activeElement === modal)) { event.preventDefault(); last.focus(); }
+    else if (!event.shiftKey && (document.activeElement === last || document.activeElement === modal)) { event.preventDefault(); first.focus(); }
+});
 
 // ===============================
 // PLAYERS MANAGEMENT
@@ -394,7 +426,7 @@ function startSetup(prefillGame = null) {
     let html = `
         <div class="card">
             <div class="title">Spiel auswählen</div>
-            <select id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
+            <select aria-label="Spiel auswählen" id="predefinedGameSelect" onchange="handleGameSelectionChange(this.value)" style="width:100%; height:48px; border-radius:var(--radius-md); border:1px solid var(--border); padding:0 14px; font-size:16px; margin-bottom:14px; background:var(--card); font-weight:600; color:var(--text);">
                 ${selectableGames.map(g => `<option value="${g.id}" ${g.id === firstGame.id ? "selected" : ""}>${escapeHtml(g.name)}</option>`).join("")}
             </select>
             <p id="gameDescriptionText" style="font-size:13px; color:var(--muted); margin-top:-8px; margin-bottom:20px; line-height:1.4; padding:0 4px;">
@@ -460,7 +492,7 @@ function startSetup(prefillGame = null) {
         
         <!-- Runden-Modus -->
         <div class="mode-select-card ${initialMode === "round" ? "selected" : ""}" id="modeCardRound" onclick="selectGameMode('round', this)">
-            <input type="radio" name="gameMode" value="round" ${initialMode === "round" ? "checked" : ""} onclick="event.stopPropagation();">
+            <input type="radio" name="gameMode" aria-label="Klassischer Runden-Modus" value="round" ${initialMode === "round" ? "checked" : ""} onclick="event.stopPropagation();">
             <div class="mode-select-card-content">
                 <span style="font-weight:700;">Klassischer Runden-Modus</span>
                 <span style="font-size:13px; color:var(--muted)">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
@@ -469,7 +501,7 @@ function startSetup(prefillGame = null) {
         
         <!-- Einzel-Modus -->
         <div class="mode-select-card ${initialMode === "single" ? "selected" : ""}" id="modeCardSingle" onclick="selectGameMode('single', this)">
-            <input type="radio" name="gameMode" value="single" ${initialMode === "single" ? "checked" : ""} onclick="event.stopPropagation();">
+            <input type="radio" name="gameMode" aria-label="Flexibler Einzel-Modus" value="single" ${initialMode === "single" ? "checked" : ""} onclick="event.stopPropagation();">
             <div class="mode-select-card-content">
                 <span style="font-weight:700;">Flexibler Einzel-Modus</span>
                 <span style="font-size:13px; color:var(--muted)">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
@@ -532,7 +564,7 @@ function renderSetupPoolHtml() {
             html += `
                 <div class="select-card ${isSelected ? "selected" : ""}" data-type="team" data-id="${t.id}" onclick="toggleSelectCard(event, this)">
                     <div class="player-left" style="flex:1; min-width:0;">
-                        <input type="checkbox" value="${t.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                        <input type="checkbox" aria-label="${escapeHtml(t.name)} auswählen" value="${t.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
                         <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; background: var(--success-light); color: var(--success);">T</div>
                         <strong style="word-break: break-all; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</strong>
                     </div>
@@ -548,7 +580,7 @@ function renderSetupPoolHtml() {
             html += `
                 <div class="select-card ${isSelected ? "selected" : ""} ${isFilterHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
                     <div class="player-left">
-                        <input type="checkbox" value="${p.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                        <input type="checkbox" aria-label="${escapeHtml(p.name)} auswählen" value="${p.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
                         <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
                         <strong>${escapeHtml(p.name)}</strong>
                     </div>
@@ -579,7 +611,7 @@ function openTeamBuilderModal() {
         bodyHtml += `
             <div class="select-card" style="margin-bottom:0; padding:10px;" onclick="this.querySelector('input').click(); this.classList.toggle('selected', this.querySelector('input').checked)">
                 <div class="player-left">
-                    <input type="checkbox" value="${p.id}" onclick="event.stopPropagation(); this.closest('.select-card').classList.toggle('selected', this.checked)">
+                    <input type="checkbox" aria-label="${escapeHtml(p.name)} auswählen" value="${p.id}" onclick="event.stopPropagation(); this.closest('.select-card').classList.toggle('selected', this.checked)">
                     <div class="avatar" style="width:28px; height:28px; font-size:10px;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
                     <span style="font-weight:600; font-size:14px;">${escapeHtml(p.name)}</span>
                 </div>
@@ -1133,7 +1165,7 @@ function renderGame(isSyncUpdate = false) {
                     }
 
                     return `
-                        <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
+                        <div class="round-pill" role="button" tabindex="0" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
                             ${label}
                             <span class="${cls}">${prefix}${displayVal}</span>
                         </div>`;
@@ -1175,6 +1207,7 @@ function renderGame(isSyncUpdate = false) {
         </div>
 
         <div class="card scoreboard-card" style="padding: 14px 12px;">
+            <div class="scoreboard-heading"><h2>Spielstand</h2><span>Runden antippen zum Bearbeiten</span></div>
             <div class="scoreboard-list">`;
 
     state.currentGame.players.forEach(p => {
@@ -1217,7 +1250,7 @@ function renderGame(isSyncUpdate = false) {
                         }
 
                         return `
-                            <div class="round-pill" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
+                            <div class="round-pill" role="button" tabindex="0" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
                                 ${label}
                                 <span class="${cls}">${prefix}${displayVal}</span>
                             </div>`;
@@ -1259,8 +1292,8 @@ function renderGame(isSyncUpdate = false) {
             html += `
                 <div class="round-player-row" style="background:var(--card); border:1px solid var(--border); padding:8px 12px; display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${escapeHtml(p.name)}</span>
-                    <button type="button" id="sign_${p.id}" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
-                    <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
+                    <button type="button" id="sign_${p.id}" aria-label="Vorzeichen für ${escapeHtml(p.name)} wechseln" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
+                    <input type="text" inputmode="numeric" id="inp_${p.id}" aria-label="Punkte für ${escapeHtml(p.name)}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleRoundEnter(event, ${idx})">
                 </div>`;
         });
@@ -1279,8 +1312,8 @@ function renderGame(isSyncUpdate = false) {
             html += `
                 <div class="round-player-row" style="display:flex; align-items:center; gap:8px;">
                     <span class="player-name" style="flex:1;">${escapeHtml(p.name)}</span>
-                    <button type="button" id="sign_${p.id}" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
-                    <input type="text" inputmode="numeric" id="inp_${p.id}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
+                    <button type="button" id="sign_${p.id}" aria-label="Vorzeichen für ${escapeHtml(p.name)} wechseln" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})" style="width:36px; height:38px; border-radius:var(--radius-sm); background:var(--card-raised); color:var(--muted); font-size:16px; font-weight:800; padding:0; flex-shrink:0; box-shadow:var(--shadow-inset);">+</button>
+                    <input type="text" inputmode="numeric" id="inp_${p.id}" aria-label="Punkte für ${escapeHtml(p.name)}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
                     onkeydown="handleSingleEnter(event, ${p.id})">
                     <button class="submit-single-btn" onclick="addSingleScore(${p.id})" style="width:42px; height:38px; font-size:11px;">OK</button>
                 </div>`;
@@ -1295,6 +1328,8 @@ function renderGame(isSyncUpdate = false) {
     updateFocusModeControls();
     
     setTimeout(() => {
+        // The match may have been paused or finished before this visual scroll runs.
+        if (!state.currentGame) return;
         state.currentGame.players.forEach(p => {
             let sd = document.getElementById("scroll_" + p.id);
             if(sd) instantScrollToContainerEnd(sd);
@@ -1948,7 +1983,7 @@ function renderRanking() {
     if (gameToolbar) {
         gameToolbar.innerHTML = `
             <label class="ranking-control-label" for="rankingGameSelect">Spiel</label>
-            <select id="rankingGameSelect" class="ranking-game-select" onchange="setRankingGameFilter(this.value)">
+            <select aria-label="Bestenliste nach Spiel filtern" id="rankingGameSelect" class="ranking-game-select" onchange="setRankingGameFilter(this.value)">
                 <option value="all">Alle Spiele</option>
                 ${gameNames.map(name => `<option value="${escapeStatisticText(name)}" ${rankingGameFilter === name ? "selected" : ""}>${escapeStatisticText(name)}</option>`).join("")}
             </select>`;
