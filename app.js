@@ -946,6 +946,13 @@ async function createGame() {
 let isFocusMode = false;
 let focusWakeLock = null;
 
+function renderFocusIcon() {
+    const path = isFocusMode
+        ? 'M4 9h5V4M15 4v5h5M20 15h-5v5M9 20v-5H4'
+        : 'M9 4H4v5M20 9V4h-5M15 20h5v-5M4 15v5h5';
+    return `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${path}"/></svg>`;
+}
+
 function updateFocusModeControls() {
     document.body.classList.toggle("focus-mode", isFocusMode);
 
@@ -953,7 +960,10 @@ function updateFocusModeControls() {
     if (button) {
         button.classList.toggle("active", isFocusMode);
         button.setAttribute("aria-pressed", String(isFocusMode));
-        button.innerText = isFocusMode ? "Normalansicht" : "Fokusmodus";
+        const label = isFocusMode ? "Fokus deaktivieren" : "Fokus aktivieren";
+        button.setAttribute("aria-label", label);
+        button.setAttribute("title", label);
+        button.innerHTML = renderFocusIcon();
     }
 
     const wakeStatus = document.getElementById("focusWakeStatus");
@@ -1196,17 +1206,18 @@ function renderGame(isSyncUpdate = false) {
     let html = `
         <div class="card game-status-card">
             <div class="game-status-copy">
-                <span class="focus-mode-kicker">Fokusmodus</span>
                 <span id="gameStatusLabel">${escapeHtml(statusText)}</span>
                 <span id="focusWakeStatus" class="focus-wake-status" aria-live="polite"></span>
             </div>
             <div class="game-status-actions">
                 ${rulesBtnHtml}
-                <button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Pausieren" title="Pausieren" onclick="pauseCurrentGame()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button>
-                <button id="focusModeToggle" class="secondary focus-mode-toggle ${isFocusMode ? "active" : ""}"
+                <button id="focusModeToggle" class="secondary focus-mode-toggle game-action-icon ${isFocusMode ? "active" : ""}"
                         type="button"
                         aria-pressed="${isFocusMode}"
-                        onclick="toggleFocusMode()">${isFocusMode ? "Normalansicht" : "Fokusmodus"}</button>
+                        aria-label="${isFocusMode ? "Fokus deaktivieren" : "Fokus aktivieren"}"
+                        title="${isFocusMode ? "Fokus deaktivieren" : "Fokus aktivieren"}"
+                        onclick="toggleFocusMode()">${renderFocusIcon()}</button>
+                <button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Pausieren" title="Pausieren" onclick="pauseCurrentGame()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button>
             </div>
         </div>
 
