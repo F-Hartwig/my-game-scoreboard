@@ -41,6 +41,7 @@ function migrateDatabase(db) {
     if (version < 2) {
         db.exec('BEGIN IMMEDIATE; PRAGMA user_version = 2; COMMIT;');
     }
+    db.prepare('INSERT OR IGNORE INTO state (id, json_data) VALUES (?, ?)').run('gameNights', '[]');
 }
 
 function isValidId(value) {
