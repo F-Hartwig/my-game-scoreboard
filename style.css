@@ -2399,37 +2399,36 @@ select option {
     flex:0 0 20px;
     width:20px;
     height:20px;
+    min-width:20px;
+    max-width:20px;
+    min-height:20px;
+    max-height:20px;
+    padding:0;
     margin:0;
+    box-sizing:border-box;
     border:1px solid var(--border-strong);
     border-radius:7px;
-    background:rgba(255,255,255,.5);
+    background-color:rgba(255,255,255,.5);
+    background-repeat:no-repeat;
+    background-position:center;
+    background-size:12px 12px;
     box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
-    display:grid;
-    place-items:center;
     cursor:pointer;
-}
-.game-night-assignment input::after,
-.game-night-participant input::after {
-    content:"";
-    width:8px;
-    height:4px;
-    border-left:2px solid #fff;
-    border-bottom:2px solid #fff;
-    transform:rotate(-45deg) scale(0);
-    transition:transform .14s ease;
 }
 .game-night-assignment input:checked,
 .game-night-participant input:checked {
     border-color:color-mix(in srgb, var(--primary) 75%, white);
-    background:var(--primary);
+    background-color:var(--primary);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3 8 3 3 7-7' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
 }
-.game-night-assignment input:checked::after,
-.game-night-participant input:checked::after { transform:rotate(-45deg) scale(1); }
 .game-night-assignment input:focus-visible,
 .game-night-participant input:focus-visible { outline:3px solid var(--primary-light); outline-offset:2px; }
 .game-night-assignment > span { min-width:0; display:grid; gap:2px; }
 .game-night-assignment small { color:var(--muted); overflow-wrap:anywhere; }
 .game-night-assignment.disabled { opacity:.55; }
+.modal-copy { margin:0; color:var(--muted); line-height:1.55; }
+.modal-inline-error { margin:12px 0 0; padding:10px 12px; border:1px solid color-mix(in srgb, var(--danger) 35%, transparent); border-radius:var(--radius-sm); background:color-mix(in srgb, var(--danger) 10%, transparent); color:var(--danger); font-size:13px; font-weight:650; line-height:1.4; }
+.modal-inline-error[hidden] { display:none; }
 body.focus-mode .game-night-card { display:none; }
 @media (max-width: 420px) { .game-night-participants { grid-template-columns:1fr; } .game-night-heading { align-items:flex-start; } }
 
