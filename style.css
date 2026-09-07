@@ -2375,6 +2375,10 @@ select option {
     overflow: hidden;
     background: color-mix(in srgb, var(--card) 88%, var(--primary-light));
 }
+.stats-game-nights-section { margin-bottom:16px; }
+.stats-game-nights-section > .stats-section-title { margin-bottom:10px; padding:0 4px; }
+.completed-game-nights-list { display:grid; gap:12px; }
+.completed-game-nights-list .game-night-card { margin-top:0; }
 .game-night-heading { display:flex; gap:12px; justify-content:space-between; align-items:start; min-width:0; }
 .game-night-heading h2 { margin:2px 0 0; font-size:17px; overflow-wrap:anywhere; }
 .game-night-kicker { color:var(--primary); font-size:10px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; }

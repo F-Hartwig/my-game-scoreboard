@@ -463,7 +463,7 @@ async function finishGameNight() {
         if (button) { button.disabled = false; button.textContent = 'Abend beenden'; }
         return;
     }
-    closeModal(); renderGame();
+    closeModal(); renderGame(); renderCompletedGameNights();
 }
 
 function openGameNightDetails(id) {
@@ -503,7 +503,7 @@ async function saveGameNightAssignments(nightId) {
         if (button) { button.disabled = false; button.textContent = 'Speichern & schließen'; }
         return;
     }
-    closeModal(); renderGame();
+    closeModal(); renderGame(); renderCompletedGameNights();
 }
 
 function startSetup(prefillGame = null) {
@@ -1163,8 +1163,9 @@ document.addEventListener("visibilitychange", () => {
     if (!document.hidden && isFocusMode) requestFocusWakeLock();
 });
 
-function renderLeaderIcon() {
-    return '<span class="leader-badge" role="img" aria-label="Führt" title="Führt"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 4 4 5-6 5 6 4-4-2 11H5L3 6ZM5 20h14"/></svg></span>';
+function renderLeaderIcon(label = 'Führt') {
+    const accessibleLabel = escapeHtml(label);
+    return `<span class="leader-badge" role="img" aria-label="${accessibleLabel}" title="${accessibleLabel}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 4 4 5-6 5 6 4-4-2 11H5L3 6ZM5 20h14"/></svg></span>`;
 }
 
 function renderGame(isSyncUpdate = false) {
@@ -1183,8 +1184,7 @@ function renderGame(isSyncUpdate = false) {
                 <button onclick="startSetup()">Spiel anlegen</button>
                 ${activeGameNight() ? '' : `<button class="secondary" style="margin-top:8px;" onclick="openGameNightStartModal()" aria-label="Spieleabend starten" title="Spieleabend starten">Spieleabend starten</button>`}
             </div>
-            ${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}
-            ${state.gameNights.filter(night => night.status === 'completed').slice(-3).reverse().map(night => renderGameNightCard(night, true)).join('')}`;
+            ${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}`;
 
         if(state.activeGames && state.activeGames.length > 0) {
             html += `<div class="title" style="margin-top:20px; padding:0 4px;">Aktive & pausierte Spiele (${state.activeGames.length})</div>`;
@@ -1913,7 +1913,7 @@ async function startRematch() {
         name: lastGame.name,
         mode: lastGame.mode,
         rated: lastGame.rated,
-        gameNightId: lastGame.gameNightId || activeGameNight()?.id,
+        gameNightId: activeGameNight()?.id,
         date: new Date().toLocaleDateString("de-DE"),
         rules: lastGame.rules,
         players: lastGame.players.map(p => ({
@@ -1960,8 +1960,22 @@ let historyGameFilter = "all";
 
 function renderStatsPage() {
     renderStatsOverview();
+    renderCompletedGameNights();
     renderRanking();
     renderHistory();
+}
+
+function renderCompletedGameNights() {
+    const section = document.getElementById('completedGameNightsSection');
+    const box = document.getElementById('completedGameNights');
+    const count = document.getElementById('completedGameNightsCount');
+    if (!section || !box || !count) return;
+    const completed = state.gameNights
+        .filter(night => night.status === 'completed')
+        .sort((a, b) => String(b.endedAt || b.startedAt || '').localeCompare(String(a.endedAt || a.startedAt || '')));
+    section.hidden = completed.length === 0;
+    count.textContent = completed.length ? String(completed.length) : '';
+    box.innerHTML = completed.map(night => renderGameNightCard(night, true)).join('');
 }
 
 function renderStatsOverview() {
@@ -2346,7 +2360,7 @@ function viewGameDetails(gameId) {
                 <div class="modal-player-header">
                     <div class="modal-player-meta">
                         <span>${escapeHtml(p.name)}</span>
-                        ${isWinner ? '<span class="leader-badge">Gewinner</span>' : ''}
+                        ${isWinner ? renderLeaderIcon('Gewinner') : ''}
                     </div>
                     <div class="modal-total-badge">${p.total} Pkt</div>
                 </div>
