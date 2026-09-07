@@ -393,7 +393,12 @@ function gameNightGames(night) {
 function renderGameNightCard(night, completed = false) {
     const games = gameNightGames(night);
     const ranked = rankGameNight(night, games, state.players, night.id);
-    const standings = ranked.slice(0, 3).map(row => `<li><span>${row.position}. ${escapeHtml(row.name)}</span><strong>${row.wins} ${row.wins === 1 ? 'Sieg' : 'Siege'} · ${row.ratedGames} ${row.ratedGames === 1 ? 'Spiel' : 'Spiele'}</strong></li>`).join('') || '<li>Keine Teilnehmerdaten</li>';
+    const renderStanding = row => `<li><span>${row.position}. ${escapeHtml(row.name)}</span><strong>${row.wins} ${row.wins === 1 ? 'Sieg' : 'Siege'} · ${row.ratedGames} ${row.ratedGames === 1 ? 'Spiel' : 'Spiele'}</strong></li>`;
+    const standings = ranked.slice(0, 3).map(renderStanding).join('') || '<li>Keine Teilnehmerdaten</li>';
+    const remainingStandings = ranked.slice(3);
+    const moreStandings = remainingStandings.length
+        ? `<details class="game-night-more"><summary><span class="game-night-more-label">Mehr anzeigen (${remainingStandings.length})</span><span class="game-night-less-label">Weniger anzeigen</span></summary><ol class="game-night-ranking game-night-ranking-more">${remainingStandings.map(renderStanding).join('')}</ol></details>`
+        : '';
     const activeActions = `<div class="game-night-actions">
         ${state.currentGame ? '' : '<button onclick="startSetup()" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button>'}
         <button class="secondary" onclick="openAddGameNightParticipantsModal()" aria-label="Teilnehmer hinzufügen" title="Teilnehmer hinzufügen">Teilnehmer +</button>
@@ -402,6 +407,7 @@ function renderGameNightCard(night, completed = false) {
     return `<section class="card game-night-card ${completed ? 'completed' : ''}" aria-label="${completed ? 'Abgeschlossener' : 'Aktiver'} Spieleabend">
         <div class="game-night-heading"><div><span class="game-night-kicker">${completed ? 'Abgeschlossen' : 'Aktiv · automatisch gespeichert'}</span><h2>${escapeHtml(night.name)}</h2></div><span class="game-night-count">${games.filter(game => game.rated !== false).length}/${games.length} gewertet</span></div>
         <ol class="game-night-ranking">${standings}</ol>
+        ${moreStandings}
         ${completed ? `<div class="game-night-actions"><button class="secondary" onclick="openGameNightDetails('${night.id}')" aria-label="${escapeHtml(night.name)} ansehen" title="Ansehen">Ansehen</button></div>` : activeActions}
     </section>`;
 }
