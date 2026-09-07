@@ -2176,8 +2176,12 @@ function renderRanking() {
     }
     const isGameNightRanking = rankingGameFilter === GAME_NIGHT_RANKING_FILTER;
     const isGameSpecific = rankingGameFilter !== "all" && !isGameNightRanking;
+    const gameNightStatsByPlayerId = new Map(
+        getCompletedGameNightStats(state.gameNights, state.games, state.players)
+            .map(player => [Number(player.id), player])
+    );
     const rankingPlayers = isGameNightRanking
-        ? getCompletedGameNightStats(state.gameNights, state.games, state.players)
+        ? [...gameNightStatsByPlayerId.values()]
         : (isGameSpecific ? getGameSpecificRanking(rankingGameFilter) : [...state.players]);
 
     if (gameToolbar) {
@@ -2260,6 +2264,7 @@ function renderRanking() {
 
     visiblePlayers.forEach(({ player: p, overallRank }) => {
         let winRate = p.games ? Math.round((p.wins / p.games) * 100) : 0;
+        const gameNightWins = gameNightStatsByPlayerId.get(Number(p.id))?.wins || 0;
         let rank = String(overallRank).padStart(2, "0");
 
         box.innerHTML += `
@@ -2271,8 +2276,9 @@ function renderRanking() {
                     </div>
                     <span class="profile-link">Profil</span>
                 </div>
-                <div class="stat-grid ${isGameSpecific ? "is-game-specific" : ""}">
+                <div class="stat-grid ${isGameSpecific ? "is-game-specific" : ""} ${!isGameSpecific && !isGameNightRanking ? "has-game-night-wins" : ""}">
                     <div><strong>${p.wins}</strong><span>${isGameNightRanking ? "Abendsiege" : "Siege"}</span></div>
+                    ${!isGameSpecific && !isGameNightRanking ? `<div><strong>${gameNightWins}</strong><span>Abendsiege</span></div>` : ""}
                     <div><strong>${p.games}</strong><span>${isGameNightRanking ? "Abende" : "Spiele"}</span></div>
                     <div><strong>${winRate}%</strong><span>Quote</span></div>
                     ${isGameSpecific ? `<div><strong>${Number(p.points) || 0}</strong><span>Punkte</span></div>` : ""}

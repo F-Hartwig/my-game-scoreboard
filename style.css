@@ -1676,9 +1676,9 @@ select option {
     margin: 0;
     padding-block: 8px;
     display: grid;
-    grid-template-columns: minmax(80px, 1fr) auto;
-    align-items: center;
-    gap: 10px;
+    grid-template-columns: minmax(0, 1fr);
+    align-items: stretch;
+    gap: 6px;
 }
 
 .ranking-filter-toolbar,
@@ -1694,8 +1694,8 @@ select option {
 
 .ranking-controls .player-filter,
 .ranking-controls .ranking-sort-options {
-    width: min(100%, 280px);
-    justify-self: end;
+    width: 100%;
+    justify-self: stretch;
     background: var(--card-raised);
     border-color: var(--border);
 }
@@ -1708,10 +1708,10 @@ select option {
 }
 
 .ranking-game-select {
-    width: min(100%, 280px);
+    width: 100%;
     height: 36px;
     padding: 0 34px 0 12px;
-    justify-self: end;
+    justify-self: stretch;
     border-radius: 12px;
     font-size: 12px;
     font-weight: 700;
@@ -1774,8 +1774,14 @@ select option {
 
 .history-filter-toolbar {
     margin-bottom: 14px;
-    display: flex;
-    justify-content: flex-end;
+    display: block;
+}
+
+.history-filter-options { width: 100%; }
+.history-filter-options .history-filter-btn {
+    min-width: 0;
+    flex: 1 1 0;
+    justify-content: center;
 }
 
 .history-section-toolbar { margin-bottom: 10px; }
@@ -1898,6 +1904,10 @@ select option {
 }
 
 .stat-grid.is-game-specific {
+    grid-template-columns: repeat(4, 1fr);
+}
+
+.stat-grid.has-game-night-wins {
     grid-template-columns: repeat(4, 1fr);
 }
 
