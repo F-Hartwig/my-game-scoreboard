@@ -442,8 +442,9 @@ function renderGameNightCard(night, completed = false) {
     const games = gameNightGames(night);
     const ranked = rankGameNight(night, games, state.players, night.id);
     const renderStanding = row => `<li><span>${row.position}. ${escapeHtml(row.name)}</span><strong>${row.wins} ${row.wins === 1 ? 'Sieg' : 'Siege'} · ${row.ratedGames} ${row.ratedGames === 1 ? 'Spiel' : 'Spiele'}</strong></li>`;
-    const standings = ranked.slice(0, 3).map(renderStanding).join('') || '<li>Keine Teilnehmerdaten</li>';
-    const remainingStandings = ranked.slice(3);
+    const visibleStandings = IS_PREVIEW_MODE ? ranked : ranked.slice(0, 3);
+    const standings = visibleStandings.map(renderStanding).join('') || '<li>Keine Teilnehmerdaten</li>';
+    const remainingStandings = IS_PREVIEW_MODE ? [] : ranked.slice(3);
     const moreStandings = remainingStandings.length
         ? `<div class="game-night-more"><div class="game-night-ranking-extra" hidden><ol class="game-night-ranking game-night-ranking-more">${remainingStandings.map(renderStanding).join('')}</ol></div><button type="button" class="game-night-more-toggle" aria-expanded="false" onclick="toggleGameNightStandings(this)"><span class="game-night-more-label">Mehr anzeigen (${remainingStandings.length})</span><span class="game-night-less-label">Weniger anzeigen</span></button></div>`
         : '';
@@ -456,7 +457,7 @@ function renderGameNightCard(night, completed = false) {
         <div class="game-night-heading"><div><span class="game-night-kicker">${completed ? 'Abgeschlossen' : 'Aktiv · automatisch gespeichert'}</span><h2>${escapeHtml(night.name)}</h2></div><span class="game-night-count">${games.filter(game => game.rated !== false).length}/${games.length} gewertet</span></div>
         <ol class="game-night-ranking">${standings}</ol>
         ${moreStandings}
-        ${completed ? `<div class="game-night-actions"><button class="secondary" onclick="openGameNightDetails('${night.id}')" aria-label="${escapeHtml(night.name)} ansehen" title="Ansehen">Ansehen</button></div>` : activeActions}
+        ${IS_PREVIEW_MODE ? '' : (completed ? `<div class="game-night-actions"><button class="secondary" onclick="openGameNightDetails('${night.id}')" aria-label="${escapeHtml(night.name)} ansehen" title="Ansehen">Ansehen</button></div>` : activeActions)}
     </section>`;
 }
 

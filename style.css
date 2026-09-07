@@ -2949,3 +2949,129 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 @media (prefers-reduced-motion: reduce) {
     *,*::before,*::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Desktop-Live-Vorschau: laufende Partie vollständig im Viewport. */
+@media (min-width: 901px) {
+    body.preview-mode {
+        height: 100dvh;
+        min-height: 100dvh;
+        padding: clamp(12px, 2vh, 20px) 24px;
+        overflow: hidden;
+    }
+
+    body.preview-mode .header {
+        display: none;
+    }
+
+    body.preview-mode .app-shell,
+    body.preview-mode .page {
+        max-width: 1380px;
+        height: 100%;
+    }
+
+    body.preview-mode #gameContent:has(.scoreboard-card) {
+        height: 100%;
+        min-height: 0;
+        display: grid;
+        grid-template-columns: minmax(0, 2.15fr) minmax(280px, .85fr);
+        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-areas:
+            "status preview-banner"
+            "scoreboard game-night";
+        gap: 12px 16px;
+        align-items: stretch;
+    }
+
+    body.preview-mode #gameContent:has(.scoreboard-card):not(:has(.game-night-card)) {
+        grid-template-areas:
+            "status preview-banner"
+            "scoreboard scoreboard";
+    }
+
+    body.preview-mode .preview-banner {
+        grid-area: preview-banner;
+        margin: 0;
+        padding: 10px 14px;
+    }
+
+    body.preview-mode .game-status-card {
+        grid-area: status;
+        min-height: 58px;
+        padding: 12px 20px;
+        align-content: center;
+    }
+
+    body.preview-mode #gameStatusLabel {
+        font-size: clamp(20px, 1.8vw, 28px);
+        font-weight: 760;
+    }
+
+    body.preview-mode .scoreboard-card {
+        grid-area: scoreboard;
+        min-height: 0;
+        padding: 18px !important;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+    }
+
+    body.preview-mode .scoreboard-heading {
+        margin-bottom: 12px;
+    }
+
+    body.preview-mode .scoreboard-heading h2 {
+        font-size: clamp(22px, 2vw, 30px);
+    }
+
+    body.preview-mode .scoreboard-list {
+        min-height: 0;
+        flex: 1;
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+        grid-auto-rows: minmax(0, 1fr);
+        gap: 10px;
+    }
+
+    body.preview-mode .scoreboard-row {
+        min-height: 0;
+        padding: 14px;
+        gap: 8px;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    body.preview-mode .scoreboard-row .player-meta {
+        font-size: clamp(17px, 1.45vw, 22px);
+    }
+
+    body.preview-mode .scoreboard-row .total-badge {
+        font-size: clamp(30px, 3vw, 44px);
+    }
+
+    body.preview-mode .history-scroll {
+        flex: 0 0 auto;
+        overflow-x: hidden;
+    }
+
+    body.preview-mode .round-pill {
+        padding: 5px 9px;
+        font-size: 12px;
+    }
+
+    body.preview-mode .game-night-card {
+        grid-area: game-night;
+        min-height: 0;
+        margin: 0;
+        padding: 16px;
+        overflow: hidden;
+    }
+
+    body.preview-mode .game-night-ranking {
+        margin: 10px 0 0;
+    }
+
+    body.preview-mode .game-night-ranking li {
+        padding: 6px 0;
+        font-size: 12px;
+    }
+}
