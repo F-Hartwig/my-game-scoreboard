@@ -2,7 +2,7 @@ import { apiSave } from './api.js';
 import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
-import { rankGameNight } from './gameNightRanking.mjs';
+import { getCompletedGameNightStats, mergeGameNightParticipantIds, rankGameNight } from './gameNightRanking.mjs';
 
 function getWinnerPartyIds(game) {
     if (Array.isArray(game?.winnerPartyIds)) {
@@ -81,13 +81,13 @@ function startLiveSync() {
             if (!changes?.loaded) return;
 
             const activePage = document.querySelector(".page.active")?.id;
-            if (activePage === 'gamePage' && (changes.currentGameChanged || changes.activeGamesChanged)) {
+            if (activePage === 'gamePage' && (changes.currentGameChanged || changes.activeGamesChanged || changes.gameNightsChanged)) {
                 renderGame(true);
             }
             if (activePage === 'playersPage' && changes.playersChanged) {
                 renderPlayers();
             }
-            if (activePage === 'statsPage' && (changes.playersChanged || changes.gamesChanged)) {
+            if (activePage === 'statsPage' && (changes.playersChanged || changes.gamesChanged || changes.gameNightsChanged)) {
                 renderStatsPage();
             }
         } finally {
@@ -394,9 +394,11 @@ function renderGameNightCard(night, completed = false) {
     const games = gameNightGames(night);
     const ranked = rankGameNight(night, games, state.players, night.id);
     const standings = ranked.slice(0, 3).map(row => `<li><span>${row.position}. ${escapeHtml(row.name)}</span><strong>${row.wins} ${row.wins === 1 ? 'Sieg' : 'Siege'} · ${row.ratedGames} ${row.ratedGames === 1 ? 'Spiel' : 'Spiele'}</strong></li>`).join('') || '<li>Keine Teilnehmerdaten</li>';
-    const activeActions = state.currentGame
-        ? ''
-        : `<div class="game-night-actions"><button onclick="startSetup()" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button><button class="secondary" onclick="openFinishGameNightModal()" aria-label="Spieleabend beenden" title="Spieleabend beenden">Beenden</button></div>`;
+    const activeActions = `<div class="game-night-actions">
+        ${state.currentGame ? '' : '<button onclick="startSetup()" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button>'}
+        <button class="secondary" onclick="openAddGameNightParticipantsModal()" aria-label="Teilnehmer hinzufügen" title="Teilnehmer hinzufügen">Teilnehmer +</button>
+        ${state.currentGame ? '' : '<button class="secondary" onclick="openFinishGameNightModal()" aria-label="Spieleabend beenden" title="Spieleabend beenden">Beenden</button>'}
+    </div>`;
     return `<section class="card game-night-card ${completed ? 'completed' : ''}" aria-label="${completed ? 'Abgeschlossener' : 'Aktiver'} Spieleabend">
         <div class="game-night-heading"><div><span class="game-night-kicker">${completed ? 'Abgeschlossen' : 'Aktiv · automatisch gespeichert'}</span><h2>${escapeHtml(night.name)}</h2></div><span class="game-night-count">${games.filter(game => game.rated !== false).length}/${games.length} gewertet</span></div>
         <ol class="game-night-ranking">${standings}</ol>
@@ -437,6 +439,51 @@ async function startGameNight() {
     closeModal(); renderGame();
 }
 
+function openAddGameNightParticipantsModal() {
+    const night = activeGameNight();
+    if (!night) return;
+    const participantIds = new Set((night.participantIds || []).map(Number));
+    const currentParticipants = state.players
+        .filter(player => participantIds.has(Number(player.id)))
+        .map(player => `<span class="game-night-participant-chip">${escapeHtml(player.name)}</span>`)
+        .join('');
+    const availablePlayers = state.players.filter(player => !participantIds.has(Number(player.id)));
+    const choices = availablePlayers
+        .map(player => `<label class="game-night-participant"><input type="checkbox" value="${player.id}"> <span>${escapeHtml(player.name)}</span></label>`)
+        .join('');
+    const body = `<div class="game-night-participant-summary"><span class="game-night-name-label">Bereits dabei</span><div class="game-night-participant-chips">${currentParticipants}</div></div>
+        ${availablePlayers.length
+            ? `<div class="game-night-name-label">Weitere bestehende Spieler</div><div class="game-night-participants game-night-add-participants" aria-label="Weitere Teilnehmer auswählen">${choices}</div><p class="modal-inline-error" id="gameNightParticipantError" hidden></p>`
+            : '<p class="modal-copy">Alle vorhandenen Spieler nehmen bereits teil.</p>'}`;
+    const actions = availablePlayers.length
+        ? `<button class="secondary" onclick="closeModal()">Abbrechen</button><button id="saveGameNightParticipantsButton" onclick="addGameNightParticipants()">Hinzufügen</button>`
+        : '<button onclick="closeModal()">Schließen</button>';
+    openModal('Teilnehmer hinzufügen', body, actions);
+}
+
+async function addGameNightParticipants() {
+    const night = activeGameNight();
+    if (!night) return;
+    const addedIds = [...document.querySelectorAll('.game-night-add-participants input:checked')].map(input => Number(input.value));
+    const errorBox = document.getElementById('gameNightParticipantError');
+    if (addedIds.length === 0) {
+        if (errorBox) { errorBox.textContent = 'Wähle mindestens einen weiteren Spieler aus.'; errorBox.hidden = false; }
+        return;
+    }
+    const previousParticipantIds = [...(night.participantIds || [])];
+    night.participantIds = mergeGameNightParticipantIds(previousParticipantIds, addedIds);
+    const button = document.getElementById('saveGameNightParticipantsButton');
+    if (button) { button.disabled = true; button.textContent = 'Wird gespeichert …'; }
+    const saved = await apiSave('gameNights', state.gameNights);
+    if (!saved) {
+        night.participantIds = previousParticipantIds;
+        if (errorBox) { errorBox.textContent = 'Die Teilnehmer konnten nicht gespeichert werden. Bitte versuche es erneut.'; errorBox.hidden = false; }
+        if (button) { button.disabled = false; button.textContent = 'Hinzufügen'; }
+        return;
+    }
+    closeModal(); renderGame();
+}
+
 function openFinishGameNightModal() {
     const night = activeGameNight();
     if (!night) return;
@@ -463,7 +510,7 @@ async function finishGameNight() {
         if (button) { button.disabled = false; button.textContent = 'Abend beenden'; }
         return;
     }
-    closeModal(); renderGame(); renderCompletedGameNights();
+    closeModal(); renderGame(); renderHistory(); renderRanking();
 }
 
 function openGameNightDetails(id) {
@@ -503,7 +550,7 @@ async function saveGameNightAssignments(nightId) {
         if (button) { button.disabled = false; button.textContent = 'Speichern & schließen'; }
         return;
     }
-    closeModal(); renderGame(); renderCompletedGameNights();
+    closeModal(); renderGame(); renderHistory(); renderRanking();
 }
 
 function startSetup(prefillGame = null) {
@@ -1956,26 +2003,14 @@ async function newGame() {
 let rankingPlayerFilter = "all";
 let rankingSortMode = "wins";
 let rankingGameFilter = "all";
+const GAME_NIGHT_RANKING_FILTER = "__game-night-wins__";
+let historySectionFilter = "games";
 let historyGameFilter = "all";
 
 function renderStatsPage() {
     renderStatsOverview();
-    renderCompletedGameNights();
     renderRanking();
     renderHistory();
-}
-
-function renderCompletedGameNights() {
-    const section = document.getElementById('completedGameNightsSection');
-    const box = document.getElementById('completedGameNights');
-    const count = document.getElementById('completedGameNightsCount');
-    if (!section || !box || !count) return;
-    const completed = state.gameNights
-        .filter(night => night.status === 'completed')
-        .sort((a, b) => String(b.endedAt || b.startedAt || '').localeCompare(String(a.endedAt || a.startedAt || '')));
-    section.hidden = completed.length === 0;
-    count.textContent = completed.length ? String(completed.length) : '';
-    box.innerHTML = completed.map(night => renderGameNightCard(night, true)).join('');
 }
 
 function renderStatsOverview() {
@@ -2052,13 +2087,13 @@ function getRankingGameNames() {
 
 function setRankingGameFilter(gameName) {
     const availableNames = getRankingGameNames();
-    rankingGameFilter = availableNames.includes(gameName) ? gameName : "all";
-    if (rankingGameFilter === "all" && rankingSortMode === "points") rankingSortMode = "wins";
+    rankingGameFilter = gameName === GAME_NIGHT_RANKING_FILTER || availableNames.includes(gameName) ? gameName : "all";
+    if ((rankingGameFilter === "all" || rankingGameFilter === GAME_NIGHT_RANKING_FILTER) && rankingSortMode === "points") rankingSortMode = "wins";
     renderRanking();
 }
 
 function setRankingSortMode(mode) {
-    const allowedModes = rankingGameFilter === "all"
+    const allowedModes = rankingGameFilter === "all" || rankingGameFilter === GAME_NIGHT_RANKING_FILTER
         ? ["wins", "rate", "games"]
         : ["wins", "rate", "games", "points"];
     rankingSortMode = allowedModes.includes(mode) ? mode : "wins";
@@ -2070,7 +2105,7 @@ function getPlayerWinRate(player) {
 }
 
 function selectedRankingUsesLowestScore() {
-    if (rankingGameFilter === "all") return false;
+    if (rankingGameFilter === "all" || rankingGameFilter === GAME_NIGHT_RANKING_FILTER) return false;
     const normalizedFilter = rankingGameFilter.toLocaleLowerCase("de");
     const matchingGames = (state.games || []).filter(game => (
         game.rated !== false &&
@@ -2135,18 +2170,22 @@ function renderRanking() {
     box.innerHTML = "";
 
     const gameNames = getRankingGameNames();
-    if (rankingGameFilter !== "all" && !gameNames.includes(rankingGameFilter)) {
+    if (rankingGameFilter !== "all" && rankingGameFilter !== GAME_NIGHT_RANKING_FILTER && !gameNames.includes(rankingGameFilter)) {
         rankingGameFilter = "all";
         if (rankingSortMode === "points") rankingSortMode = "wins";
     }
-    const isGameSpecific = rankingGameFilter !== "all";
-    const rankingPlayers = isGameSpecific ? getGameSpecificRanking(rankingGameFilter) : [...state.players];
+    const isGameNightRanking = rankingGameFilter === GAME_NIGHT_RANKING_FILTER;
+    const isGameSpecific = rankingGameFilter !== "all" && !isGameNightRanking;
+    const rankingPlayers = isGameNightRanking
+        ? getCompletedGameNightStats(state.gameNights, state.games, state.players)
+        : (isGameSpecific ? getGameSpecificRanking(rankingGameFilter) : [...state.players]);
 
     if (gameToolbar) {
         gameToolbar.innerHTML = `
-            <label class="ranking-control-label" for="rankingGameSelect">Spiel</label>
-            <select aria-label="Bestenliste nach Spiel filtern" id="rankingGameSelect" class="ranking-game-select" onchange="setRankingGameFilter(this.value)">
+            <label class="ranking-control-label" for="rankingGameSelect">Kategorie</label>
+            <select aria-label="Bestenliste auswählen" id="rankingGameSelect" class="ranking-game-select" onchange="setRankingGameFilter(this.value)">
                 <option value="all">Alle Spiele</option>
+                <option value="${GAME_NIGHT_RANKING_FILTER}" ${isGameNightRanking ? "selected" : ""}>Spieleabend-Siege</option>
                 ${gameNames.map(name => `<option value="${escapeStatisticText(name)}" ${rankingGameFilter === name ? "selected" : ""}>${escapeStatisticText(name)}</option>`).join("")}
             </select>`;
     }
@@ -2204,11 +2243,11 @@ function renderRanking() {
         : rankedPlayers;
 
     if (visiblePlayers.length === 0) {
-        const emptyTitle = isGameSpecific && rankingPlayerFilter === "all"
-            ? "Noch keine gewertete Partie"
+        const emptyTitle = (isGameSpecific || isGameNightRanking) && rankingPlayerFilter === "all"
+            ? (isGameNightRanking ? "Noch kein abgeschlossener Spieleabend" : "Noch keine gewertete Partie")
             : "Noch keine Favoriten";
-        const emptyDescription = isGameSpecific && rankingPlayerFilter === "all"
-            ? `Für ${escapeStatisticText(rankingGameFilter)} gibt es noch keine auswertbaren Spielerdaten.`
+        const emptyDescription = (isGameSpecific || isGameNightRanking) && rankingPlayerFilter === "all"
+            ? (isGameNightRanking ? "Sobald ein Spieleabend abgeschlossen ist, erscheinen hier seine Erstplatzierten." : `Für ${escapeStatisticText(rankingGameFilter)} gibt es noch keine auswertbaren Spielerdaten.`)
             : "Markiere Spieler auf der Spielerseite mit dem Stern.";
         box.innerHTML = `
             <div class="player-empty-state ranking-empty-state">
@@ -2233,8 +2272,8 @@ function renderRanking() {
                     <span class="profile-link">Profil</span>
                 </div>
                 <div class="stat-grid ${isGameSpecific ? "is-game-specific" : ""}">
-                    <div><strong>${p.wins}</strong><span>Siege</span></div>
-                    <div><strong>${p.games}</strong><span>Spiele</span></div>
+                    <div><strong>${p.wins}</strong><span>${isGameNightRanking ? "Abendsiege" : "Siege"}</span></div>
+                    <div><strong>${p.games}</strong><span>${isGameNightRanking ? "Abende" : "Spiele"}</span></div>
                     <div><strong>${winRate}%</strong><span>Quote</span></div>
                     ${isGameSpecific ? `<div><strong>${Number(p.points) || 0}</strong><span>Punkte</span></div>` : ""}
                 </div>
@@ -2248,8 +2287,15 @@ function setHistoryGameFilter(filter) {
     renderHistory();
 }
 
+function setHistorySectionFilter(filter) {
+    historySectionFilter = filter === "gameNights" ? "gameNights" : "games";
+    state.showAllHistory = false;
+    renderHistory();
+}
+
 function renderHistory() {
     let box = document.getElementById("history");
+    let sectionToolbar = document.getElementById("historySectionToolbar");
     let toolbar = document.getElementById("historyFilterToolbar");
     let countBadge = document.getElementById("historyCountBadge");
     if(!box) return;
@@ -2257,6 +2303,25 @@ function renderHistory() {
     box.innerHTML = "";
 
     const games = Array.isArray(state.games) ? state.games : [];
+    const completedGameNights = (state.gameNights || [])
+        .filter(night => night.status === 'completed')
+        .sort((a, b) => String(b.endedAt || b.startedAt || '').localeCompare(String(a.endedAt || a.startedAt || '')));
+    if (sectionToolbar) {
+        sectionToolbar.innerHTML = `<div class="history-section-options" role="group" aria-label="Historienbereich wählen">
+            <button type="button" class="history-section-btn ${historySectionFilter === "games" ? "active" : ""}" aria-pressed="${historySectionFilter === "games"}" onclick="setHistorySectionFilter('games')">Partien <span>${games.length}</span></button>
+            <button type="button" class="history-section-btn ${historySectionFilter === "gameNights" ? "active" : ""}" aria-pressed="${historySectionFilter === "gameNights"}" onclick="setHistorySectionFilter('gameNights')">Spieleabende <span>${completedGameNights.length}</span></button>
+        </div>`;
+    }
+    if (historySectionFilter === "gameNights") {
+        if (toolbar) toolbar.innerHTML = "";
+        if (countBadge) countBadge.innerText = `${completedGameNights.length} ${completedGameNights.length === 1 ? "Abend" : "Abende"}`;
+        box.classList.add('completed-game-nights-list');
+        box.innerHTML = completedGameNights.length
+            ? completedGameNights.map(night => renderGameNightCard(night, true)).join('')
+            : '<div class="stats-history-empty">Noch keine abgeschlossenen Spieleabende.</div>';
+        return;
+    }
+    box.classList.remove('completed-game-nights-list');
     const filterOptions = [
         ["all", "Alle"],
         ["rated", "Gewertet"],
@@ -3578,6 +3643,8 @@ window.closeModal = closeModal;
 window.startSetup = startSetup;
 window.openGameNightStartModal = openGameNightStartModal;
 window.startGameNight = startGameNight;
+window.openAddGameNightParticipantsModal = openAddGameNightParticipantsModal;
+window.addGameNightParticipants = addGameNightParticipants;
 window.openFinishGameNightModal = openFinishGameNightModal;
 window.finishGameNight = finishGameNight;
 window.openGameNightDetails = openGameNightDetails;
@@ -3626,6 +3693,7 @@ window.customizeLastGame = customizeLastGame;
 window.setRankingGameFilter = setRankingGameFilter;
 window.setRankingPlayerFilter = setRankingPlayerFilter;
 window.setRankingSortMode = setRankingSortMode;
+window.setHistorySectionFilter = setHistorySectionFilter;
 window.setHistoryGameFilter = setHistoryGameFilter;
 window.toggleTimerMenu = toggleTimerMenu;
 window.startTimer = startTimer;

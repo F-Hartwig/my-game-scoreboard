@@ -48,3 +48,36 @@ export function rankGameNight(night, games, players, nightId = night?.id) {
   });
   return rows;
 }
+
+export function getCompletedGameNightStats(gameNights, games, players) {
+  const statsById = new Map((players || []).map(player => [Number(player.id), {
+    ...player,
+    wins: 0,
+    games: 0,
+    points: 0
+  }]));
+
+  for (const night of gameNights || []) {
+    if (night?.status !== 'completed') continue;
+    for (const row of rankGameNight(night, games, players, night.id)) {
+      const stats = statsById.get(Number(row.id));
+      if (!stats) continue;
+      stats.games++;
+      if (row.position === 1) stats.wins++;
+    }
+  }
+
+  return [...statsById.values()].filter(player => player.games > 0);
+}
+
+export function mergeGameNightParticipantIds(currentIds, addedIds) {
+  const merged = [];
+  const seen = new Set();
+  for (const id of [...(currentIds || []), ...(addedIds || [])]) {
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId) || seen.has(numericId)) continue;
+    seen.add(numericId);
+    merged.push(numericId);
+  }
+  return merged;
+}
