@@ -4,6 +4,7 @@ export const state = {
     players: [],
     games: [],
     activeGames: [],
+    gameNights: [],
     currentGame: null,
     activeEditPlayerId: null,
     showAllHistory: false,
@@ -36,6 +37,7 @@ export async function loadAllFromDb() {
         playersChanged: false,
         gamesChanged: false,
         activeGamesChanged: false,
+        gameNightsChanged: false,
         currentGameChanged: false
     };
 
@@ -47,13 +49,15 @@ export async function loadAllFromDb() {
         players: stateSnapshot(state.players),
         games: stateSnapshot(state.games),
         activeGames: stateSnapshot(state.activeGames),
+        gameNights: stateSnapshot(state.gameNights),
         currentGame: currentGameViewSnapshot(state.currentGame)
     };
 
-    const [players, games, activeGames, currentGame] = await Promise.all([
+    const [players, games, activeGames, gameNights, currentGame] = await Promise.all([
         apiFetch('players'),
         apiFetch('games'),
         apiFetch('activeGames'),
+        apiFetch('gameNights'),
         apiFetch('currentGame')
     ]);
 
@@ -68,6 +72,7 @@ export async function loadAllFromDb() {
     if (Array.isArray(players)) state.players = players;
     if (Array.isArray(games)) state.games = games;
     if (Array.isArray(activeGames)) state.activeGames = activeGames;
+    if (Array.isArray(gameNights)) state.gameNights = gameNights;
     if (currentGame !== undefined) state.currentGame = currentGame;
     
     if (Array.isArray(state.currentGame) && state.currentGame.length === 0) state.currentGame = null;
@@ -78,6 +83,7 @@ export async function loadAllFromDb() {
         playersChanged: previousState.players !== stateSnapshot(state.players),
         gamesChanged: previousState.games !== stateSnapshot(state.games),
         activeGamesChanged: previousState.activeGames !== stateSnapshot(state.activeGames),
+        gameNightsChanged: previousState.gameNights !== stateSnapshot(state.gameNights),
         currentGameChanged: previousState.currentGame !== currentGameViewSnapshot(state.currentGame)
     };
 }

@@ -15,6 +15,8 @@ test('legacy-compatible payloads validate and malformed payloads fail', () => {
         points: -10
     }];
     assert.doesNotThrow(() => validatePayload('players', legacy));
+    assert.doesNotThrow(() => validatePayload('gameNights', [{ id: '123e4567-e89b-12d3-a456-426614174000', name: 'Freitagabend', participantIds: [1, 2], status: 'active', startedAt: '2026-01-01T12:00:00.000Z', endedAt: null }]));
+    assert.throws(() => validatePayload('gameNights', [{ id: 1, name: 'x', participantIds: [], status: 'paused', startedAt: 'x' }]), /Status|Teilnehmer/);
     assert.throws(() => validatePayload('players', { bad: true }), /Array/);
     assert.throws(() => validatePayload('players', [{ id: -1, name: 'x' }]), /ID/);
     assert.throws(() => validatePayload('players', [{ id: 1, name: 'x'.repeat(81) }]), /lang/);
@@ -35,7 +37,7 @@ test('API migrates schema, persists state, validates and hides private files', a
     });
 
     const health = await fetch(`${base}/api/health`).then(response => response.json());
-    assert.deepEqual(health, { status: 'ok', schemaVersion: 1 });
+    assert.deepEqual(health, { status: 'ok', schemaVersion: 2 });
 
     const payload = [{ id: 123, name: '<img src=x onerror=alert(1)>', favorite: false }];
     let response = await fetch(`${base}/api/players`, {
@@ -45,6 +47,16 @@ test('API migrates schema, persists state, validates and hides private files', a
     });
     assert.equal(response.status, 200);
     assert.deepEqual(await fetch(`${base}/api/players`).then(value => value.json()), payload);
+
+    const gameNights = [{ id: 456, name: 'Freitagabend', participantIds: [1, 2], status: 'active', startedAt: '2026-01-01T12:00:00.000Z', endedAt: null }];
+    response = await fetch(`${base}/api/gameNights`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(gameNights)
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await fetch(`${base}/api/gameNights`).then(value => value.json()), gameNights);
+    assert.equal((await fetch(`${base}/gameNightRanking.mjs`)).status, 200);
 
     response = await fetch(`${base}/api/players`, {
         method: 'POST',

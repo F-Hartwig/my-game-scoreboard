@@ -5,17 +5,18 @@ const path = require('path');
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'scoreboard.db');
-const SCHEMA_VERSION = 1;
+const SCHEMA_VERSION = 2;
 const JSON_LIMIT = process.env.JSON_LIMIT || '2mb';
 const ENDPOINTS = Object.freeze({
     players: { empty: [], maxItems: 500 },
     games: { empty: [], maxItems: 5000 },
     activeGames: { empty: [], maxItems: 100 },
-    currentGame: { empty: null, maxItems: 1 }
+    currentGame: { empty: null, maxItems: 1 },
+    gameNights: { empty: [], maxItems: 200 }
 });
 const PUBLIC_FILES = new Set([
     'index.html', 'style.css', 'icon.png', 'app.js', 'api.js', 'state.js',
-    'gamesConfig.js', 'security.mjs'
+    'gamesConfig.js', 'security.mjs', 'gameNightRanking.mjs'
 ]);
 
 function migrateDatabase(db) {
@@ -36,6 +37,9 @@ function migrateDatabase(db) {
             PRAGMA user_version = 1;
             COMMIT;
         `);
+    }
+    if (version < 2) {
+        db.exec('BEGIN IMMEDIATE; PRAGMA user_version = 2; COMMIT;');
     }
 }
 
@@ -69,7 +73,7 @@ function validateTree(value, context = { nodes: 0 }, depth = 0, key = '') {
         if (entries.length > 100) throw new Error('Objekt enthält zu viele Felder.');
         for (const [childKey, childValue] of entries) {
             if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(childKey)) throw new Error('Ungültiger Feldname.');
-            if (childKey === 'id' && !isValidId(childValue)) throw new Error('Ungültige ID.');
+            if ((childKey === 'id' || childKey === 'gameNightId') && !isValidId(childValue)) throw new Error('Ungültige ID.');
             validateTree(childValue, context, depth + 1, childKey);
         }
         return;
@@ -89,6 +93,21 @@ function validatePayload(endpoint, payload) {
         if (payload.length > config.maxItems) throw new Error(`${endpoint} enthält zu viele Einträge.`);
     }
     validateTree(payload);
+    if (endpoint === 'gameNights') {
+        const activeNights = payload.filter(night => night && night.status === 'active');
+        if (activeNights.length > 1) throw new Error('Höchstens ein Spieleabend darf aktiv sein.');
+        for (const night of payload) {
+            if (!night || typeof night !== 'object' || Array.isArray(night)) throw new Error('Ungültiger Spieleabend.');
+            if (!isValidId(night.id)) throw new Error('Ungültige ID.');
+            if (typeof night.name !== 'string' || !night.name.trim()) throw new Error('Name des Spieleabends fehlt.');
+            if (!Array.isArray(night.participantIds) || night.participantIds.length < 2 || night.participantIds.length > 100 || night.participantIds.some(id => !isValidId(id))) throw new Error('Teilnehmer sind ungültig.');
+            if (!['active', 'completed'].includes(night.status)) throw new Error('Status des Spieleabends ist ungültig.');
+            if (typeof night.startedAt !== 'string' || Number.isNaN(Date.parse(night.startedAt))) throw new Error('Startzeit ist ungültig.');
+            if (night.endedAt !== null && (typeof night.endedAt !== 'string' || Number.isNaN(Date.parse(night.endedAt)))) throw new Error('Endzeit ist ungültig.');
+            if (night.status === 'active' && night.endedAt !== null) throw new Error('Aktiver Spieleabend darf keine Endzeit haben.');
+            if (night.status === 'completed' && night.endedAt === null) throw new Error('Abgeschlossener Spieleabend braucht eine Endzeit.');
+        }
+    }
 }
 
 async function createRuntime(options = {}) {
