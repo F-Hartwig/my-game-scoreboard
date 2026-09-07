@@ -1,5 +1,6 @@
 const express = require('express');
 const Database = require('better-sqlite3');
+const QRCode = require('qrcode');
 const path = require('path');
 
 const PORT = Number(process.env.PORT) || 3000;
@@ -128,6 +129,25 @@ async function createRuntime(options = {}) {
             res.json({ status: 'ok', schemaVersion: Number(db.pragma('user_version', { simple: true })) });
         } catch (error) {
             res.status(503).json({ status: 'error' });
+        }
+    });
+
+    app.get('/api/preview-qr', async (req, res) => {
+        const host = req.get('host');
+        if (!host || !/^[A-Za-z0-9.:[\]-]+$/.test(host)) return res.status(400).json({ error: 'Ungültiger Host.' });
+        const previewUrl = `${req.secure ? 'https' : 'http'}://${host}/?preview=1`;
+        try {
+            const svg = await QRCode.toString(previewUrl, {
+                type: 'svg',
+                errorCorrectionLevel: 'M',
+                margin: 2,
+                width: 320,
+                color: { dark: '#172033', light: '#ffffff' }
+            });
+            res.set('Cache-Control', 'no-store');
+            return res.type('image/svg+xml').send(svg);
+        } catch {
+            return res.status(500).json({ error: 'QR-Code konnte nicht erstellt werden.' });
         }
     });
 

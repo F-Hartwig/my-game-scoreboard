@@ -1,6 +1,7 @@
 // Automatische Erkennung: Wenn 'localhost' oder '127.0.0.1' in der Adresse steht,
 // nutzen wir den Offline-Modus. Auf dem NAS nutzen wir die echte DB.
 const IS_OFFLINE_TEST = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 let apiSaveVersion = 0;
 let activeApiSaves = 0;
 
@@ -41,6 +42,10 @@ export async function apiFetch(endpoint) {
 }
 
 export async function apiSave(endpoint, data) {
+    if (IS_PREVIEW_MODE) {
+        console.warn('Speichern ist in der Live-Vorschau deaktiviert.');
+        return false;
+    }
     apiSaveVersion++;
     activeApiSaves++;
 

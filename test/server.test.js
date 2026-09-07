@@ -38,6 +38,10 @@ test('API migrates schema, persists state, validates and hides private files', a
 
     const health = await fetch(`${base}/api/health`).then(response => response.json());
     assert.deepEqual(health, { status: 'ok', schemaVersion: 2 });
+    const qrResponse = await fetch(`${base}/api/preview-qr`);
+    assert.equal(qrResponse.status, 200);
+    assert.match(qrResponse.headers.get('content-type'), /image\/svg\+xml/);
+    assert.match(await qrResponse.text(), /<svg/);
     assert.deepEqual(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get('gameNights'), { json_data: '[]' });
 
     const payload = [{ id: 123, name: '<img src=x onerror=alert(1)>', favorite: false }];

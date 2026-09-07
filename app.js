@@ -4,6 +4,8 @@ import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
 import { getCompletedGameNightStats, mergeGameNightParticipantIds, rankGameNight } from './gameNightRanking.mjs';
 
+const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
+
 function getWinnerPartyIds(game) {
     if (Array.isArray(game?.winnerPartyIds)) {
         return game.winnerPartyIds.map(Number).filter(Number.isFinite);
@@ -148,6 +150,52 @@ function openModal(title, bodyHtml, actionHtml, modalClass = "") {
     document.querySelectorAll(".header,.app-shell,.bottom-nav,.skip-link").forEach(el => el.inert = true);
     modal.tabIndex = -1;
     modal.focus({ preventScroll: true });
+}
+
+function getPreviewUrl() {
+    const url = new URL(window.location.href);
+    url.pathname = '/';
+    url.search = '';
+    url.hash = '';
+    url.searchParams.set('preview', '1');
+    return url.toString();
+}
+
+function renderPreviewBanner() {
+    if (!IS_PREVIEW_MODE) return '';
+    return `<section class="preview-banner" aria-label="Live-Vorschau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg><div><strong>Live-Vorschau</strong><span>Nur ansehen · aktualisiert sich automatisch</span></div></section>`;
+}
+
+function openSharePreviewModal() {
+    const previewUrl = getPreviewUrl();
+    const nativeShare = typeof navigator.share === 'function';
+    openModal('Live-Ansicht teilen', `<p class="modal-copy">Der Link zeigt das aktuelle Spiel und den Spieleabend-Zwischenstand ohne Eingabefunktionen.</p><div class="preview-qr"><img src="/api/preview-qr" alt="QR-Code zur Live-Vorschau" width="240" height="240"></div><label class="preview-link-label">Vorschau-Link<input id="previewShareUrl" value="${escapeHtml(previewUrl)}" readonly></label><p class="modal-inline-error" id="previewShareError" hidden></p>`, `<button class="secondary" onclick="closeModal()">Schließen</button><button class="secondary" id="copyPreviewLinkButton" onclick="copyPreviewLink()">Link kopieren</button>${nativeShare ? '<button id="nativePreviewShareButton" onclick="sharePreviewLink()">Teilen</button>' : ''}`, 'share-preview-modal');
+}
+
+async function copyPreviewLink() {
+    const input = document.getElementById('previewShareUrl');
+    if (!input) return;
+    try {
+        if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(input.value);
+        else {
+            input.select();
+            if (!document.execCommand('copy')) throw new Error('copy failed');
+            input.setSelectionRange(0, 0);
+        }
+        const button = document.getElementById('copyPreviewLinkButton');
+        if (button) button.textContent = 'Kopiert';
+    } catch {
+        const error = document.getElementById('previewShareError');
+        if (error) { error.textContent = 'Link konnte nicht kopiert werden. Bitte markiere ihn manuell.'; error.hidden = false; }
+    }
+}
+
+async function sharePreviewLink() {
+    try {
+        await navigator.share({ title: 'ScoreBuddy Live-Vorschau', text: 'Aktueller Spielstand in ScoreBuddy', url: getPreviewUrl() });
+    } catch (error) {
+        if (error?.name !== 'AbortError') await copyPreviewLink();
+    }
 }
 
 
@@ -1237,6 +1285,10 @@ function renderGame(isSyncUpdate = false) {
     if(!state.currentGame) {
         if (isFocusMode) setFocusMode(false);
         state.lastRenderedGameId = null;
+        if (IS_PREVIEW_MODE) {
+            contentBox.innerHTML = `${renderPreviewBanner()}${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}<section class="card preview-empty-card"><strong>Keine aktive Partie</strong><span>Sobald ein Spiel gestartet wird, erscheint der Spielstand automatisch hier.</span></section>`;
+            return;
+        }
         let html = `
             <div class="card welcome-card">
                 <div class="welcome-kicker">Bereit für den Spieleabend?</div>
@@ -1371,7 +1423,7 @@ function renderGame(isSyncUpdate = false) {
                     }
 
                     return `
-                        <div class="round-pill" role="button" tabindex="0" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
+                        <div class="round-pill" ${IS_PREVIEW_MODE ? '' : `role="button" tabindex="0" onclick="triggerEditRound(${p.id}, ${i}, '${val}')"`}>
                             ${label}
                             <span class="${cls}">${prefix}${displayVal}</span>
                         </div>`;
@@ -1395,7 +1447,7 @@ function renderGame(isSyncUpdate = false) {
         ? `<button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Regeln" title="Regeln" onclick="showGameRulesModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6v15M3 4c4-1 6 0 9 2 3-2 5-3 9-2v14c-4-1-6 0-9 2-3-2-5-3-9-2Z"/></svg></button>`
         : '';
 
-    let html = `${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}
+    let html = `${renderPreviewBanner()}${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}
         <div class="card game-status-card">
             <div class="game-status-copy">
                 <span id="gameStatusLabel">${escapeHtml(statusText)}</span>
@@ -1414,7 +1466,7 @@ function renderGame(isSyncUpdate = false) {
         </div>
 
         <div class="card scoreboard-card" style="padding: 14px 12px;">
-            <div class="scoreboard-heading"><h2>Spielstand</h2><span>Runden antippen zum Bearbeiten</span></div>
+            <div class="scoreboard-heading"><h2>Spielstand</h2><div class="scoreboard-heading-actions"><span>${IS_PREVIEW_MODE ? 'Live aktualisiert' : 'Runden antippen zum Bearbeiten'}</span>${IS_PREVIEW_MODE ? '' : `<button type="button" class="secondary scoreboard-share-btn" onclick="openSharePreviewModal()" aria-label="Live-Ansicht teilen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0-12-4 4m4-4 4 4"/><path d="M5 11v8h14v-8"/></svg><span>Teilen</span></button>`}</div></div>
             <div class="scoreboard-list">`;
 
     state.currentGame.players.forEach(p => {
@@ -1456,7 +1508,7 @@ function renderGame(isSyncUpdate = false) {
                         }
 
                         return `
-                            <div class="round-pill" role="button" tabindex="0" onclick="triggerEditRound(${p.id}, ${i}, '${val}')">
+                            <div class="round-pill" ${IS_PREVIEW_MODE ? '' : `role="button" tabindex="0" onclick="triggerEditRound(${p.id}, ${i}, '${val}')"`}>
                                 ${label}
                                 <span class="${cls}">${prefix}${displayVal}</span>
                             </div>`;
@@ -2791,6 +2843,13 @@ async function initApp() {
     const savedTheme = storedTheme === "dark" ? "dark" : "light";
     applyTheme(savedTheme);
 
+    document.body.classList.toggle('preview-mode', IS_PREVIEW_MODE);
+    if (IS_PREVIEW_MODE) {
+        document.getElementById('headerTitle').innerText = 'Live-Vorschau';
+        const eyebrow = document.querySelector('.brand-eyebrow');
+        if (eyebrow) eyebrow.innerText = 'Nur ansehen';
+    }
+
     await loadAllFromDb();
     isFocusMode = sessionStorage.getItem("scorebuddy_focus_mode") === "true" && Boolean(state.currentGame);
     renderGame();
@@ -3660,6 +3719,9 @@ window.submitRename = submitRename;
 window.triggerDelete = triggerDelete;
 window.submitDelete = submitDelete;
 window.closeModal = closeModal;
+window.openSharePreviewModal = openSharePreviewModal;
+window.copyPreviewLink = copyPreviewLink;
+window.sharePreviewLink = sharePreviewLink;
 window.startSetup = startSetup;
 window.openGameNightStartModal = openGameNightStartModal;
 window.toggleGameNightStandings = toggleGameNightStandings;
