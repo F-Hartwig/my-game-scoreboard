@@ -13,9 +13,9 @@ async function request(path, options = {}) {
 const health = await request('/api/health');
 assert.equal(health.response.status, 200);
 assert.equal(health.body.status, 'ok');
-assert.equal(health.body.schemaVersion, 1);
+assert.equal(health.body.schemaVersion, 2);
 
-for (const endpoint of ['players', 'games', 'activeGames', 'currentGame']) {
+for (const endpoint of ['players', 'games', 'activeGames', 'currentGame', 'gameNights']) {
     const result = await request(`/api/${endpoint}`);
     assert.equal(result.response.status, 200, `${endpoint} GET failed`);
 }
@@ -34,4 +34,4 @@ const oversizedName = await request('/api/players', {
 });
 assert.equal(oversizedName.response.status, 400);
 
-console.log(`smoke ok: ${baseUrl}, schema=1, reads=4, validation=2`);
+console.log(`smoke ok: ${baseUrl}, schema=2, reads=5, validation=2`);
