@@ -2425,7 +2425,8 @@ select option {
 .game-night-ranking li { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid var(--border); font-size:13px; }
 .game-night-ranking strong { white-space:nowrap; color:var(--primary); }
 .game-night-more { margin:-8px 0 14px; }
-.game-night-more summary {
+.game-night-more-toggle {
+    width:100%;
     min-height:36px;
     display:flex;
     align-items:center;
@@ -2436,14 +2437,13 @@ select option {
     background:var(--surface-soft);
     font-size:12px;
     font-weight:750;
+    box-shadow:none;
     cursor:pointer;
-    list-style:none;
 }
-.game-night-more summary::-webkit-details-marker { display:none; }
 .game-night-less-label { display:none; }
-.game-night-more[open] .game-night-more-label { display:none; }
-.game-night-more[open] .game-night-less-label { display:inline; }
-.game-night-ranking-more { margin:8px 0 0; }
+.game-night-more-toggle[aria-expanded="true"] .game-night-more-label { display:none; }
+.game-night-more-toggle[aria-expanded="true"] .game-night-less-label { display:inline; }
+.game-night-ranking-more { margin:0 0 8px; }
 .game-night-ranking-more li:first-child { border-top:0; }
 .game-night-actions { display:flex; flex-wrap:wrap; gap:8px; }
 .game-night-actions button { min-height:40px; padding-inline:10px; flex:1 1 105px; min-width:0; font-size:12px; }

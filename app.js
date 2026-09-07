@@ -397,7 +397,7 @@ function renderGameNightCard(night, completed = false) {
     const standings = ranked.slice(0, 3).map(renderStanding).join('') || '<li>Keine Teilnehmerdaten</li>';
     const remainingStandings = ranked.slice(3);
     const moreStandings = remainingStandings.length
-        ? `<details class="game-night-more"><summary><span class="game-night-more-label">Mehr anzeigen (${remainingStandings.length})</span><span class="game-night-less-label">Weniger anzeigen</span></summary><ol class="game-night-ranking game-night-ranking-more">${remainingStandings.map(renderStanding).join('')}</ol></details>`
+        ? `<div class="game-night-more"><div class="game-night-ranking-extra" hidden><ol class="game-night-ranking game-night-ranking-more">${remainingStandings.map(renderStanding).join('')}</ol></div><button type="button" class="game-night-more-toggle" aria-expanded="false" onclick="toggleGameNightStandings(this)"><span class="game-night-more-label">Mehr anzeigen (${remainingStandings.length})</span><span class="game-night-less-label">Weniger anzeigen</span></button></div>`
         : '';
     const activeActions = `<div class="game-night-actions">
         ${state.currentGame ? '' : '<button onclick="startSetup()" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button>'}
@@ -410,6 +410,14 @@ function renderGameNightCard(night, completed = false) {
         ${moreStandings}
         ${completed ? `<div class="game-night-actions"><button class="secondary" onclick="openGameNightDetails('${night.id}')" aria-label="${escapeHtml(night.name)} ansehen" title="Ansehen">Ansehen</button></div>` : activeActions}
     </section>`;
+}
+
+function toggleGameNightStandings(button) {
+    const extra = button.closest('.game-night-more')?.querySelector('.game-night-ranking-extra');
+    if (!extra) return;
+    const expanded = button.getAttribute('aria-expanded') !== 'true';
+    button.setAttribute('aria-expanded', String(expanded));
+    extra.hidden = !expanded;
 }
 
 function openGameNightStartModal() {
@@ -3654,6 +3662,7 @@ window.submitDelete = submitDelete;
 window.closeModal = closeModal;
 window.startSetup = startSetup;
 window.openGameNightStartModal = openGameNightStartModal;
+window.toggleGameNightStandings = toggleGameNightStandings;
 window.startGameNight = startGameNight;
 window.openAddGameNightParticipantsModal = openAddGameNightParticipantsModal;
 window.addGameNightParticipants = addGameNightParticipants;
