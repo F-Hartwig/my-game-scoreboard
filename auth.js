@@ -25,9 +25,9 @@ function validateUsername(value) {
 
 function validatePassword(value) {
     const password = String(value ?? '');
-    if (password.length < 12 || password.length > 128 ||
-        !/[a-zäöü]/u.test(password) || !/[A-ZÄÖÜ]/u.test(password) || !/\d/u.test(password) || !/[^\p{L}\p{N}]/u.test(password)) {
-        throw new Error('Passwort muss 12–128 Zeichen sowie Groß-/Kleinbuchstaben, Zahl und Sonderzeichen enthalten.');
+    if (password.length < 8 || password.length > 128 ||
+        !/[a-zäöü]/u.test(password) || !/[A-ZÄÖÜ]/u.test(password) || !/\d/u.test(password)) {
+        throw new Error('Passwort muss 8–128 Zeichen sowie Groß-/Kleinbuchstaben und eine Zahl enthalten.');
     }
     return password;
 }

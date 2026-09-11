@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const Database = require('better-sqlite3');
 const { createRuntime, validatePayload, SCHEMA_VERSION } = require('../server.js');
-const { verifyPassword, isPrivateAddress } = require('../auth.js');
+const { verifyPassword, validatePassword, isPrivateAddress } = require('../auth.js');
 
 const ADMIN_PASSWORD = 'Admin-Password!42';
 const USER_PASSWORD = 'Player-Password!42';
@@ -71,6 +71,14 @@ test('legacy-compatible payloads validate and malformed payloads fail', () => {
     assert.doesNotThrow(() => validatePayload('gameNights', [{ id: '123e4567-e89b-12d3-a456-426614174000', name: 'Freitagabend', participantIds: [1, 2], status: 'active', startedAt: '2026-01-01T12:00:00.000Z', endedAt: null }]));
     assert.throws(() => validatePayload('players', { bad: true }), /Array/);
     assert.throws(() => validatePayload('players', [{ id: -1, name: 'x' }]), /ID/);
+});
+
+test('password policy accepts eight characters without requiring a special character', () => {
+    assert.equal(validatePassword('Abcdefg1'), 'Abcdefg1');
+    assert.throws(() => validatePassword('Abcdef1'), /8–128/);
+    assert.throws(() => validatePassword('abcdefgh'), /Groß/);
+    assert.throws(() => validatePassword('ABCDEFG1'), /Klein/);
+    assert.throws(() => validatePassword('Abcdefgh'), /Zahl/);
 });
 
 test('migration preserves all five legacy state blocks and adds auth schema', async t => {

@@ -34,7 +34,7 @@ function setupView(message = '') {
     const privateSetup = currentSetupMode === 'private';
     const intro = privateSetup ? 'Richte den ersten Master aus deinem Heimnetz ein.' : 'Richte den ersten Master ein. Remote ist dafür ein separat gesetztes Setup-Token erforderlich.';
     const tokenField = privateSetup ? '' : '<label id="setupTokenLabel">Setup-Token<input name="setupToken" type="password" autocomplete="off"></label>';
-    showGate(`<p class="auth-intro">${intro}</p>${message}<form id="setupForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required minlength="3"></label><label>Passwort<input name="password" type="password" autocomplete="new-password" required minlength="12"></label>${tokenField}<small>Mindestens 12 Zeichen mit Groß-/Kleinbuchstaben, Zahl und Sonderzeichen.</small><button>Master sicher einrichten</button></form>`);
+    showGate(`<p class="auth-intro">${intro}</p>${message}<form id="setupForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required minlength="3"></label><label>Passwort<input name="password" type="password" autocomplete="new-password" required minlength="8"></label>${tokenField}<small>Mindestens 8 Zeichen mit Groß-/Kleinbuchstaben und einer Zahl. Sonderzeichen sind optional.</small><button>Master sicher einrichten</button></form>`);
     document.getElementById('setupForm').addEventListener('submit', submitSetup);
 }
 
@@ -62,7 +62,7 @@ async function submitSetup(event) {
 async function invitationView() {
     try {
         const details = await jsonRequest(`/api/invitations/${encodeURIComponent(invitationToken)}`);
-        showGate(`<p class="auth-intro">Konto für <strong>${String(details.playerName).replace(/[&<>"']/g, '')}</strong> erstellen.</p><form id="inviteForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required minlength="3"></label><label>Passwort<input name="password" type="password" autocomplete="new-password" required minlength="12"></label><small>Mindestens 12 Zeichen mit Groß-/Kleinbuchstaben, Zahl und Sonderzeichen. Die Einladung gilt einmalig.</small><button>Konto erstellen</button></form>`);
+        showGate(`<p class="auth-intro">Konto für <strong>${String(details.playerName).replace(/[&<>"']/g, '')}</strong> erstellen.</p><form id="inviteForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required minlength="3"></label><label>Passwort<input name="password" type="password" autocomplete="new-password" required minlength="8"></label><small>Mindestens 8 Zeichen mit Groß-/Kleinbuchstaben und einer Zahl. Sonderzeichen sind optional. Die Einladung gilt einmalig.</small><button>Konto erstellen</button></form>`);
         document.getElementById('inviteForm').addEventListener('submit', async event => {
             event.preventDefault();
             const values = new FormData(event.currentTarget);
