@@ -41,3 +41,29 @@ export async function apiSave(endpoint, data) {
         activeApiSaves = Math.max(0, activeApiSaves - 1);
     }
 }
+
+async function activeGameRequest(method, gamePath = '', data) {
+    if (IS_PREVIEW_MODE) return false;
+    apiSaveVersion++;
+    activeApiSaves++;
+    try {
+        const suffix = gamePath === '' ? '' : `/${gamePath}`;
+        const res = await fetch(`/api/active-games${suffix}`, {
+            method,
+            headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': authState.csrfToken || '' },
+            ...(data === undefined ? {} : { body: JSON.stringify(data) })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.status === 204 ? true : await res.json();
+    } catch (error) {
+        console.error('Fehler beim Speichern des aktiven Spiels', error);
+        return false;
+    } finally {
+        activeApiSaves = Math.max(0, activeApiSaves - 1);
+    }
+}
+
+export const apiCreateActiveGame = game => activeGameRequest('POST', '', game);
+export const apiUpdateActiveGame = game => activeGameRequest('PUT', encodeURIComponent(game.id), game);
+export const apiDeleteActiveGame = gameId => activeGameRequest('DELETE', encodeURIComponent(gameId));
+export const apiFinishActiveGame = game => activeGameRequest('POST', `${encodeURIComponent(game.id)}/finish`, game);

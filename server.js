@@ -16,7 +16,7 @@ const ENDPOINTS = Object.freeze({
     games: { empty: [], maxItems: 5000, adminWrite: false, userAppendOnly: true },
     activeGames: { empty: [], maxItems: 100, adminWrite: false },
     currentGame: { empty: null, maxItems: 1, adminWrite: false },
-    gameNights: { empty: [], maxItems: 200, adminWrite: true }
+    gameNights: { empty: [], maxItems: 200, adminWrite: false }
 });
 const PUBLIC_FILES = new Set([
     'index.html', 'style.css', 'icon.png', 'app.js', 'api.js', 'auth-client.js', 'state.js',
@@ -69,6 +69,26 @@ function migrateDatabase(db) {
             PRAGMA user_version = 3; COMMIT;`);
     }
     db.prepare('INSERT OR IGNORE INTO state (id, json_data) VALUES (?, ?)').run('gameNights', '[]');
+}
+
+function migrateLegacyCurrentGame(db) {
+    const read = db.prepare('SELECT json_data FROM state WHERE id = ?');
+    const currentRow = read.get('currentGame');
+    if (!currentRow) return;
+    let current;
+    try { current = JSON.parse(currentRow.json_data); } catch { return; }
+    if (!current || Array.isArray(current) || typeof current !== 'object' || current.id === undefined) return;
+    const activeRow = read.get('activeGames');
+    let active = [];
+    try { active = activeRow ? JSON.parse(activeRow.json_data) : []; } catch { active = []; }
+    if (!Array.isArray(active)) active = [];
+    if (!active.some(game => String(game?.id) === String(current.id))) active.push(current);
+    const save = db.prepare(`INSERT INTO state (id, json_data) VALUES (?, ?)
+        ON CONFLICT(id) DO UPDATE SET json_data = excluded.json_data`);
+    db.transaction(() => {
+        save.run('activeGames', JSON.stringify(active));
+        save.run('currentGame', 'null');
+    }).immediate();
 }
 
 function isValidId(value) {
@@ -149,8 +169,6 @@ function validatePayload(endpoint, payload) {
     }
     validateTree(payload);
     if (endpoint === 'gameNights') {
-        const activeNights = payload.filter(night => night && night.status === 'active');
-        if (activeNights.length > 1) throw new Error('Höchstens ein Spieleabend darf aktiv sein.');
         for (const night of payload) {
             if (!night || typeof night !== 'object' || Array.isArray(night)) throw new Error('Ungültiger Spieleabend.');
             if (!isValidId(night.id)) throw new Error('Ungültige ID.');
@@ -169,6 +187,7 @@ async function createRuntime(options = {}) {
     const db = new Database(options.dbPath || DB_PATH);
     db.pragma('foreign_keys = ON');
     migrateDatabase(db);
+    migrateLegacyCurrentGame(db);
     const readState = db.prepare('SELECT json_data FROM state WHERE id = ?');
     const saveState = db.prepare(`INSERT INTO state (id, json_data) VALUES (?, ?)
         ON CONFLICT(id) DO UPDATE SET json_data = excluded.json_data`);
@@ -225,6 +244,93 @@ async function createRuntime(options = {}) {
             const svg = await QRCode.toString(previewUrl, { type: 'svg', errorCorrectionLevel: 'M', margin: 2, width: 320, color: { dark: '#172033', light: '#ffffff' } });
             return res.set('Cache-Control', 'no-store').type('image/svg+xml').send(svg);
         } catch { return res.status(500).json({ error: 'QR-Code konnte nicht erstellt werden.' }); }
+    });
+
+    const readActiveGames = () => {
+        const row = readState.get('activeGames');
+        const value = row ? JSON.parse(row.json_data) : [];
+        if (!Array.isArray(value)) throw new Error('Aktive Spiele sind beschädigt.');
+        return value;
+    };
+    const gameIdMatches = (game, id) => String(game?.id) === String(id);
+
+    app.post('/api/active-games', auth.requireAuth, auth.requireCsrf, (req, res) => {
+        try {
+            validatePayload('currentGame', req.body);
+            const active = readActiveGames();
+            if (active.some(game => gameIdMatches(game, req.body.id))) return res.status(409).json({ error: 'Dieses Spiel existiert bereits.' });
+            active.push(req.body);
+            validatePayload('activeGames', active);
+            saveState.run('activeGames', JSON.stringify(active));
+            return res.status(201).json(req.body);
+        } catch (error) { return res.status(400).json({ error: error.message }); }
+    });
+
+    app.put('/api/active-games/:id', auth.requireAuth, auth.requireCsrf, (req, res) => {
+        try {
+            validatePayload('currentGame', req.body);
+            if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
+            const active = readActiveGames();
+            const index = active.findIndex(game => gameIdMatches(game, req.params.id));
+            if (index < 0) return res.status(404).json({ error: 'Spiel nicht gefunden.' });
+            active[index] = req.body;
+            saveState.run('activeGames', JSON.stringify(active));
+            return res.json(req.body);
+        } catch (error) { return res.status(400).json({ error: error.message }); }
+    });
+
+    app.delete('/api/active-games/:id', auth.requireAuth, auth.requireCsrf, (req, res) => {
+        try {
+            const active = readActiveGames();
+            const next = active.filter(game => !gameIdMatches(game, req.params.id));
+            if (next.length === active.length) return res.status(404).json({ error: 'Spiel nicht gefunden.' });
+            saveState.run('activeGames', JSON.stringify(next));
+            return res.sendStatus(204);
+        } catch (error) { return res.status(400).json({ error: error.message }); }
+    });
+
+    app.post('/api/active-games/:id/finish', auth.requireAuth, auth.requireCsrf, (req, res) => {
+        try {
+            validatePayload('currentGame', req.body);
+            if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
+            const finish = db.transaction(() => {
+                const active = readActiveGames();
+                if (!active.some(game => gameIdMatches(game, req.params.id))) throw new Error('Spiel nicht gefunden.');
+                const gamesRow = readState.get('games');
+                const playersRow = readState.get('players');
+                const games = gamesRow ? JSON.parse(gamesRow.json_data) : [];
+                const players = playersRow ? JSON.parse(playersRow.json_data) : [];
+                if (games.some(game => gameIdMatches(game, req.params.id))) throw new Error('Spiel wurde bereits beendet.');
+                if (req.body.rated !== false) {
+                    const winnerIds = new Set();
+                    for (const party of req.body.players || []) {
+                        if ((req.body.winnerPartyIds || []).some(id => String(id) === String(party.id))) {
+                            for (const id of party.playerIds || [party.id]) winnerIds.add(String(id));
+                        }
+                        for (const id of party.playerIds || [party.id]) {
+                            const player = players.find(item => String(item.id) === String(id));
+                            if (player) {
+                                player.games = Number(player.games || 0) + 1;
+                                player.points = Number(player.points || 0) + Number(party.total || 0);
+                            }
+                        }
+                    }
+                    for (const player of players) if (winnerIds.has(String(player.id))) player.wins = Number(player.wins || 0) + 1;
+                }
+                games.push(req.body);
+                const remaining = active.filter(game => !gameIdMatches(game, req.params.id));
+                validatePayload('players', players);
+                validatePayload('games', games);
+                saveState.run('players', JSON.stringify(players));
+                saveState.run('games', JSON.stringify(games));
+                saveState.run('activeGames', JSON.stringify(remaining));
+                return { players, games, activeGames: remaining };
+            });
+            return res.json(finish.immediate());
+        } catch (error) {
+            const status = error.message === 'Spiel nicht gefunden.' ? 404 : 400;
+            return res.status(status).json({ error: error.message });
+        }
     });
 
     for (const [endpoint, config] of Object.entries(ENDPOINTS)) {

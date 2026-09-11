@@ -41,6 +41,7 @@ class Client {
         return { response, data, text };
     }
     post(url, body = {}, options = {}) { return this.request(url, { method: 'POST', body: JSON.stringify(body), ...options }); }
+    put(url, body = {}, options = {}) { return this.request(url, { method: 'PUT', body: JSON.stringify(body), ...options }); }
     patch(url, body = {}, options = {}) { return this.request(url, { method: 'PATCH', body: JSON.stringify(body), ...options }); }
     delete(url, options = {}) { return this.request(url, { method: 'DELETE', body: '{}', ...options }); }
 }
@@ -75,13 +76,13 @@ test('legacy-compatible payloads validate and malformed payloads fail', () => {
 
 test('password policy accepts eight characters without requiring a special character', () => {
     assert.equal(validatePassword('Abcdefg1'), 'Abcdefg1');
+    assert.equal(validatePassword('abcdefgh'), 'abcdefgh');
+    assert.equal(validatePassword('ABCDEFG1'), 'ABCDEFG1');
+    assert.equal(validatePassword('Abcdefgh'), 'Abcdefgh');
     assert.throws(() => validatePassword('Abcdef1'), /8–128/);
-    assert.throws(() => validatePassword('abcdefgh'), /Groß/);
-    assert.throws(() => validatePassword('ABCDEFG1'), /Klein/);
-    assert.throws(() => validatePassword('Abcdefgh'), /Zahl/);
 });
 
-test('migration preserves all five legacy state blocks and adds auth schema', async t => {
+test('migration preserves legacy data and moves the singleton game into active games', async t => {
     const directory = await fs.mkdtemp(path.join(os.tmpdir(), 'scorebuddy-legacy-'));
     const dbPath = path.join(directory, 'scoreboard.db');
     const db = new Database(dbPath);
@@ -93,7 +94,9 @@ test('migration preserves all five legacy state blocks and adds auth schema', as
     const runtime = await createRuntime({ dbPath, setupToken: crypto.randomBytes(16).toString('hex') });
     t.after(async () => { await runtime.close(); await fs.rm(directory, { recursive: true, force: true }); });
     assert.equal(runtime.db.pragma('user_version', { simple: true }), SCHEMA_VERSION);
-    for (const [id, json] of Object.entries(values)) assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get(id).json_data, json);
+    for (const id of ['players', 'games', 'gameNights']) assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get(id).json_data, values[id]);
+    assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get('activeGames').json_data, '[{"id":3},{"id":4}]');
+    assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get('currentGame').json_data, 'null');
     for (const table of ['users', 'sessions', 'invitations']) assert.ok(runtime.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table));
 });
 
@@ -156,7 +159,7 @@ test('rights matrix: user creates and completes games while player administratio
     assert.equal((await user.post('/api/players', [])).response.status, 400, 'cannot remove players');
     const renamedPlayers = [{ id: 101, name: 'Mallory', favorite: false }, { id: 102, name: 'Bob', favorite: false }, { id: 103, name: 'Cara', favorite: false }];
     assert.equal((await user.post('/api/players', renamedPlayers)).response.status, 400, 'cannot rename players');
-    assert.equal((await user.post('/api/gameNights', [])).response.status, 403, 'cannot manage game nights');
+    assert.equal((await user.post('/api/gameNights', [])).response.status, 200, 'can manage game nights');
     assert.equal((await user.request('/api/users')).response.status, 403);
     assert.equal((await user.delete('/api/users/1')).response.status, 403);
     assert.equal((await user.post('/api/currentGame', { id: 700, name: 'Laufend', players: [] })).response.status, 200, 'can create game');
@@ -171,6 +174,39 @@ test('rights matrix: user creates and completes games while player administratio
         const body = endpoint === 'currentGame' ? {} : [];
         assert.equal((await admin.post(`/api/${endpoint}`, body)).response.status, 200, endpoint);
     }
+});
+
+test('multiple games and game nights run independently for normal users', async t => {
+    const f = await fixture(t);
+    const admin = await setupAdmin(f);
+    await savePlayers(admin);
+    assert.equal((await admin.post('/api/users', { username: 'alice', password: USER_PASSWORD, playerId: 101 })).response.status, 201);
+    const user = await login(f.base, 'alice');
+    const nights = [
+        { id: 801, name: 'Tisch 1', participantIds: [101, 102], status: 'active', startedAt: '2026-09-11T20:00:00.000Z', endedAt: null },
+        { id: 802, name: 'Tisch 2', participantIds: [102, 103], status: 'active', startedAt: '2026-09-11T20:01:00.000Z', endedAt: null }
+    ];
+    assert.equal((await user.post('/api/gameNights', nights)).response.status, 200);
+    const makeGame = (id, gameNightId, first, second) => ({ id, gameNightId, name: `Spiel ${id}`, mode: 'round', rated: true, players: [
+        { id: first, name: first === 101 ? 'Alice' : 'Bob', playerIds: [first], rounds: [], total: 0 },
+        { id: second, name: second === 103 ? 'Cara' : 'Bob', playerIds: [second], rounds: [], total: 0 }
+    ] });
+    const gameA = makeGame(701, 801, 101, 102);
+    const gameB = makeGame(702, 802, 102, 103);
+    assert.equal((await user.post('/api/active-games', gameA)).response.status, 201);
+    assert.equal((await user.post('/api/active-games', gameB)).response.status, 201);
+    gameA.players[0].rounds = [9]; gameA.players[0].total = 9;
+    assert.equal((await user.put('/api/active-games/701', gameA)).response.status, 200);
+    let active = (await user.request('/api/activeGames')).data;
+    assert.equal(active.length, 2);
+    assert.equal(active.find(game => game.id === 702).players[0].total, 0, 'second game stays unchanged');
+    gameA.winner = 'Alice'; gameA.winnerPartyIds = [101];
+    const finished = await user.post('/api/active-games/701/finish', gameA);
+    assert.equal(finished.response.status, 200, finished.text);
+    assert.deepEqual(finished.data.activeGames.map(game => game.id), [702]);
+    assert.equal(finished.data.players.find(player => player.id === 101).wins, 1);
+    assert.equal(finished.data.players.find(player => player.id === 101).points, 9);
+    assert.equal((await user.post('/api/active-games/701/finish', gameA)).response.status, 404, 'cannot finish twice');
 });
 
 test('direct accounts support optional binding changes and enforce atomic uniqueness', async t => {

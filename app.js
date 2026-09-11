@@ -1,4 +1,4 @@
-import { apiSave } from './api.js';
+import { apiSave, apiCreateActiveGame, apiUpdateActiveGame, apiDeleteActiveGame, apiFinishActiveGame } from './api.js';
 import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
@@ -445,9 +445,16 @@ function renderPlayers() {
 // ===============================
 let setupPlayerFilter = "all";
 let setupDraftSelection = [];
+let setupGameNightId = null;
 
-function activeGameNight() {
-    return state.gameNights.find(night => night.status === 'active') || null;
+function activeGameNights() {
+    return state.gameNights.filter(night => night.status === 'active');
+}
+
+function activeGameNight(id = null) {
+    const active = activeGameNights();
+    if (id !== null && id !== undefined) return active.find(night => String(night.id) === String(id)) || null;
+    return active.length === 1 ? active[0] : null;
 }
 
 function gameNightGames(night) {
@@ -465,9 +472,9 @@ function renderGameNightCard(night, completed = false) {
         ? `<div class="game-night-more"><div class="game-night-ranking-extra" hidden><ol class="game-night-ranking game-night-ranking-more">${remainingStandings.map(renderStanding).join('')}</ol></div><button type="button" class="game-night-more-toggle" aria-expanded="false" onclick="toggleGameNightStandings(this)"><span class="game-night-more-label">Mehr anzeigen (${remainingStandings.length})</span><span class="game-night-less-label">Weniger anzeigen</span></button></div>`
         : '';
     const activeActions = `<div class="game-night-actions">
-        ${state.currentGame ? '' : '<button onclick="startSetup()" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button>'}
-        <button class="secondary admin-only" onclick="openAddGameNightParticipantsModal()" aria-label="Teilnehmer hinzufügen" title="Teilnehmer hinzufügen">Teilnehmer +</button>
-        ${state.currentGame ? '' : '<button class="secondary admin-only" onclick="openFinishGameNightModal()" aria-label="Spieleabend beenden" title="Spieleabend beenden">Beenden</button>'}
+        <button onclick="startSetup(null, '${night.id}')" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button>
+        <button class="secondary" onclick="openAddGameNightParticipantsModal('${night.id}')" aria-label="Teilnehmer hinzufügen" title="Teilnehmer hinzufügen">Teilnehmer +</button>
+        <button class="secondary" onclick="openFinishGameNightModal('${night.id}')" aria-label="Spieleabend beenden" title="Spieleabend beenden">Beenden</button>
     </div>`;
     return `<section class="card game-night-card ${completed ? 'completed' : ''}" aria-label="${completed ? 'Abgeschlossener' : 'Aktiver'} Spieleabend">
         <div class="game-night-heading"><div><span class="game-night-kicker">${completed ? 'Abgeschlossen' : 'Aktiv · automatisch gespeichert'}</span><h2>${escapeHtml(night.name)}</h2></div><span class="game-night-count">${games.filter(game => game.rated !== false).length}/${games.length} gewertet</span></div>
@@ -475,6 +482,10 @@ function renderGameNightCard(night, completed = false) {
         ${moreStandings}
         ${IS_PREVIEW_MODE ? '' : (completed ? `<div class="game-night-actions"><button class="secondary" onclick="openGameNightDetails('${night.id}')" aria-label="${escapeHtml(night.name)} ansehen" title="Ansehen">Ansehen</button></div>` : activeActions)}
     </section>`;
+}
+
+function renderActiveGameNights() {
+    return activeGameNights().map(night => renderGameNightCard(night)).join('');
 }
 
 function toggleGameNightStandings(button) {
@@ -486,7 +497,6 @@ function toggleGameNightStandings(button) {
 }
 
 function openGameNightStartModal() {
-    if (activeGameNight()) return;
     const defaultName = `Spieleabend am ${new Date().toLocaleDateString('de-DE')}`;
     const participants = state.players.map(player => `<label class="game-night-participant"><input type="checkbox" value="${player.id}" ${player.favorite ? 'checked' : ''}> <span>${escapeHtml(player.name)}</span></label>`).join('');
     openModal('Spieleabend starten', `<label class="game-night-name-label">Name (optional)<input id="gameNightName" maxlength="80" value="${escapeHtml(defaultName)}"></label><div class="game-night-participants" aria-label="Teilnehmer auswählen">${participants}</div><p class="modal-inline-error" id="gameNightSaveError" hidden></p>`, `<button class="secondary" onclick="closeModal()">Abbrechen</button><button id="saveGameNightButton" onclick="startGameNight()">Speichern & starten</button>`);
@@ -518,8 +528,8 @@ async function startGameNight() {
     closeModal(); renderGame();
 }
 
-function openAddGameNightParticipantsModal() {
-    const night = activeGameNight();
+function openAddGameNightParticipantsModal(nightId) {
+    const night = activeGameNight(nightId);
     if (!night) return;
     const participantIds = new Set((night.participantIds || []).map(Number));
     const currentParticipants = state.players
@@ -535,13 +545,13 @@ function openAddGameNightParticipantsModal() {
             ? `<div class="game-night-name-label">Weitere bestehende Spieler</div><div class="game-night-participants game-night-add-participants" aria-label="Weitere Teilnehmer auswählen">${choices}</div><p class="modal-inline-error" id="gameNightParticipantError" hidden></p>`
             : '<p class="modal-copy">Alle vorhandenen Spieler nehmen bereits teil.</p>'}`;
     const actions = availablePlayers.length
-        ? `<button class="secondary" onclick="closeModal()">Abbrechen</button><button id="saveGameNightParticipantsButton" onclick="addGameNightParticipants()">Hinzufügen</button>`
+        ? `<button class="secondary" onclick="closeModal()">Abbrechen</button><button id="saveGameNightParticipantsButton" onclick="addGameNightParticipants('${night.id}')">Hinzufügen</button>`
         : '<button onclick="closeModal()">Schließen</button>';
     openModal('Teilnehmer hinzufügen', body, actions);
 }
 
-async function addGameNightParticipants() {
-    const night = activeGameNight();
+async function addGameNightParticipants(nightId) {
+    const night = activeGameNight(nightId);
     if (!night) return;
     const addedIds = [...document.querySelectorAll('.game-night-add-participants input:checked')].map(input => Number(input.value));
     const errorBox = document.getElementById('gameNightParticipantError');
@@ -563,19 +573,19 @@ async function addGameNightParticipants() {
     closeModal(); renderGame();
 }
 
-function openFinishGameNightModal() {
-    const night = activeGameNight();
+function openFinishGameNightModal(nightId) {
+    const night = activeGameNight(nightId);
     if (!night) return;
-    const hasLinkedGame = String(state.currentGame?.gameNightId) === String(night.id) || state.activeGames.some(game => String(game.gameNightId) === String(night.id));
+    const hasLinkedGame = state.activeGames.some(game => String(game.gameNightId) === String(night.id));
     if (hasLinkedGame) {
         openModal('Spieleabend noch aktiv', '<p class="modal-copy">Beende oder verwirf zuerst alle laufenden beziehungsweise pausierten Partien dieses Spieleabends.</p>', '<button onclick="closeModal()">Verstanden</button>');
         return;
     }
-    openModal('Spieleabend beenden?', `<p class="modal-copy">Möchtest du <strong>${escapeHtml(night.name)}</strong> wirklich abschließen? Der Abend bleibt anschließend in der Übersicht gespeichert.</p><p class="modal-inline-error" id="finishGameNightError" hidden></p>`, `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" id="confirmFinishGameNightButton" onclick="finishGameNight()">Abend beenden</button>`);
+    openModal('Spieleabend beenden?', `<p class="modal-copy">Möchtest du <strong>${escapeHtml(night.name)}</strong> wirklich abschließen? Der Abend bleibt anschließend in der Übersicht gespeichert.</p><p class="modal-inline-error" id="finishGameNightError" hidden></p>`, `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" id="confirmFinishGameNightButton" onclick="finishGameNight('${night.id}')">Abend beenden</button>`);
 }
 
-async function finishGameNight() {
-    const night = activeGameNight();
+async function finishGameNight(nightId) {
+    const night = activeGameNight(nightId);
     if (!night) return;
     const previousEndedAt = night.endedAt;
     night.status = 'completed'; night.endedAt = new Date().toISOString();
@@ -632,13 +642,15 @@ async function saveGameNightAssignments(nightId) {
     closeModal(); renderGame(); renderHistory(); renderRanking();
 }
 
-function startSetup(prefillGame = null) {
+function startSetup(prefillGame = null, gameNightId = null) {
     if(state.players.length < 2) {
         alert("Bitte lege zuerst mindestens 2 Spieler an!");
         return;
     }
     
     state.isSettingUpGame = true;
+    setupGameNightId = gameNightId ?? prefillGame?.gameNightId ?? activeGameNight()?.id ?? null;
+    const setupNight = activeGameNight(setupGameNightId);
     state.ratedMode = prefillGame ? prefillGame.rated !== false : true;
     state.tempTeams = prefillGame
         ? prefillGame.players
@@ -654,8 +666,8 @@ function startSetup(prefillGame = null) {
             id: Number(party.id),
             type: party.isTeam ? "team" : "player"
         }))
-        : (activeGameNight()
-            ? state.players.filter(player => activeGameNight().participantIds.map(Number).includes(Number(player.id))).map(player => ({ id: Number(player.id), type: "player" }))
+        : (setupNight
+            ? state.players.filter(player => setupNight.participantIds.map(Number).includes(Number(player.id))).map(player => ({ id: Number(player.id), type: "player" }))
             : []);
     setupPlayerFilter = "all";
 
@@ -1169,7 +1181,7 @@ async function createGame() {
         name: gameName,
         mode: selectedMode,
         rated: state.ratedMode,
-        gameNightId: activeGameNight()?.id,
+        gameNightId: setupGameNightId,
         date: new Date().toLocaleDateString("de-DE"),
         rules: {
             ...gameConfig.rules,
@@ -1190,7 +1202,9 @@ async function createGame() {
     
     state.isSettingUpGame = false;
     state.lastRenderedGameId = null; 
-    await apiSave('currentGame', state.currentGame);
+    const createdGame = await apiCreateActiveGame(state.currentGame);
+    if (!createdGame) return;
+    state.activeGames.push(createdGame);
     renderGame();
 }
 
@@ -1304,7 +1318,7 @@ function renderGame(isSyncUpdate = false) {
         if (isFocusMode) setFocusMode(false);
         state.lastRenderedGameId = null;
         if (IS_PREVIEW_MODE) {
-            contentBox.innerHTML = `${renderPreviewBanner()}${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}<section class="card preview-empty-card"><strong>Keine aktive Partie</strong><span>Sobald ein Spiel gestartet wird, erscheint der Spielstand automatisch hier.</span></section>`;
+            contentBox.innerHTML = `${renderPreviewBanner()}${renderActiveGameNights()}<section class="card preview-empty-card"><strong>Keine aktive Partie</strong><span>Sobald ein Spiel gestartet wird, erscheint der Spielstand automatisch hier.</span></section>`;
             return;
         }
         let html = `
@@ -1313,12 +1327,12 @@ function renderGame(isSyncUpdate = false) {
                 <div class="title">Neues Spiel starten</div>
                 <p class="welcome-copy">Wähle eure Mitspieler, das passende Spiel und behalte jeden Punkt entspannt im Blick.</p>
                 <button onclick="startSetup()">Spiel anlegen</button>
-                ${activeGameNight() ? '' : `<button class="secondary admin-only" style="margin-top:8px;" onclick="openGameNightStartModal()" aria-label="Spieleabend starten" title="Spieleabend starten">Spieleabend starten</button>`}
+                <button class="secondary" style="margin-top:8px;" onclick="openGameNightStartModal()" aria-label="Spieleabend starten" title="Spieleabend starten">Spieleabend starten</button>
             </div>
-            ${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}`;
+            ${renderActiveGameNights()}`;
 
         if(state.activeGames && state.activeGames.length > 0) {
-            html += `<div class="title" style="margin-top:20px; padding:0 4px;">Aktive & pausierte Spiele (${state.activeGames.length})</div>`;
+            html += `<div class="title" style="margin-top:20px; padding:0 4px;">Laufende Spiele (${state.activeGames.length})</div>`;
                 
             state.activeGames.forEach(ag => {
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
@@ -1331,7 +1345,7 @@ function renderGame(isSyncUpdate = false) {
                                 <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">${escapeHtml(ag.name)}${ratedBadge}</strong>
                                 <span style="font-size:11px; font-weight:600;">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
-                            <span class="active-game-badge paused-status" role="img" aria-label="Pausiert" title="Pausiert"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></span>
+                            <span class="active-game-badge paused-status" role="img" aria-label="Aktiv" title="Aktiv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/></svg></span>
                         </div>
                         <div class="active-game-players-box">
                             ${ag.players.map(x => `
@@ -1342,7 +1356,7 @@ function renderGame(isSyncUpdate = false) {
                             `).join("")}
                         </div>
                         <div class="active-game-actions">
-                            <button class="resume-btn" onclick="resumeGame(${ag.id})">Fortsetzen</button>
+                            <button class="resume-btn" onclick="resumeGame(${ag.id})">Öffnen</button>
                             <button class="abort-btn" onclick="triggerDeleteActiveGame(${ag.id})" aria-label="Spielstand löschen" title="Spielstand löschen">×</button>
                         </div>
                     </div>`;
@@ -1465,7 +1479,8 @@ function renderGame(isSyncUpdate = false) {
         ? `<button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Regeln" title="Regeln" onclick="showGameRulesModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6v15M3 4c4-1 6 0 9 2 3-2 5-3 9-2v14c-4-1-6 0-9 2-3-2-5-3-9-2Z"/></svg></button>`
         : '';
 
-    let html = `${renderPreviewBanner()}${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}
+    const currentNight = activeGameNight(state.currentGame.gameNightId);
+    let html = `${renderPreviewBanner()}${currentNight ? renderGameNightCard(currentNight) : ''}
         <div class="card game-status-card">
             <div class="game-status-copy">
                 <span id="gameStatusLabel">${escapeHtml(statusText)}</span>
@@ -1479,7 +1494,7 @@ function renderGame(isSyncUpdate = false) {
                         aria-label="${isFocusMode ? "Fokus deaktivieren" : "Fokus aktivieren"}"
                         title="${isFocusMode ? "Fokus deaktivieren" : "Fokus aktivieren"}"
                         onclick="toggleFocusMode()">${renderFocusIcon()}</button>
-                <button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Pausieren" title="Pausieren" onclick="pauseCurrentGame()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="4" width="4" height="16" rx="1"/><rect x="14" y="4" width="4" height="16" rx="1"/></svg></button>
+                <button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Zur Übersicht" title="Zur Übersicht" onclick="pauseCurrentGame()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
             </div>
         </div>
 
@@ -1709,7 +1724,7 @@ async function addRoundRow() {
     state.currentGame.dealerIndex = (state.currentGame.dealerIndex + 1) % state.currentGame.players.length;
     updateDealerUI();
 
-    await apiSave('currentGame', state.currentGame);
+    await apiUpdateActiveGame(state.currentGame);
     renderGame(true); 
 }
 
@@ -1731,7 +1746,7 @@ async function addSingleScore(playerId) {
     if(p) { p.rounds.push(val); p.total += val; }
     
     checkGameRulesAndLimits();
-    await apiSave('currentGame', state.currentGame);
+    await apiUpdateActiveGame(state.currentGame);
     renderGame(true); 
     
     let nextInp = document.getElementById("inp_" + playerId);
@@ -1803,7 +1818,7 @@ async function submitEditRound() {
             if (scrollBox) scrollBox.dataset.len = -1;
             
             checkGameRulesAndLimits();
-            await apiSave('currentGame', state.currentGame);
+            await apiUpdateActiveGame(state.currentGame);
             renderGame(true); 
         }
     }
@@ -1812,11 +1827,7 @@ async function submitEditRound() {
 
 async function pauseCurrentGame() {
     if(!state.currentGame) return;
-    state.activeGames = state.activeGames.filter(x => x.id !== state.currentGame.id);
-    state.activeGames.push(state.currentGame);
     state.currentGame = null;
-    await apiSave('activeGames', state.activeGames);
-    await apiSave('currentGame', {});
     renderGame();
 }
 
@@ -1824,9 +1835,6 @@ async function resumeGame(gameId) {
     let ag = state.activeGames.find(x => x.id === gameId);
     if(ag) {
         state.currentGame = ag;
-        state.activeGames = state.activeGames.filter(x => x.id !== gameId);
-        await apiSave('activeGames', state.activeGames);
-        await apiSave('currentGame', state.currentGame);
         renderGame();
     }
 }
@@ -1842,8 +1850,9 @@ function triggerDeleteActiveGame(gameId) {
 
 async function submitDeleteActiveGame() {
     if(activeDeleteActiveGameId) {
+        const deleted = await apiDeleteActiveGame(activeDeleteActiveGameId);
+        if (!deleted) return;
         state.activeGames = state.activeGames.filter(x => x.id !== activeDeleteActiveGameId);
-        await apiSave('activeGames', state.activeGames);
         renderGame();
     }
     closeModal();
@@ -1933,45 +1942,15 @@ async function saveGame() {
     state.currentGame.winnerPartyIds = winnerPartyIds;
     state.currentGame.date = new Date().toLocaleDateString("de-DE");
 
-    if (state.currentGame.rated !== false) {
-        let individualWinnerPlayerIds = [];
-        if (winnerPartyIds.length > 0) {
-            state.currentGame.players.forEach(cp => {
-                if (winnerPartyIds.includes(cp.id)) {
-                    individualWinnerPlayerIds.push(...cp.playerIds);
-                }
-            });
-        }
-
-        state.players.forEach(p => {
-            if (individualWinnerPlayerIds.includes(p.id)) {
-                p.wins++;
-            }
-        });
-        
-        state.currentGame.players.forEach(cp => {
-            cp.playerIds.forEach(pId => {
-                let p = state.players.find(x => x.id === pId);
-                if(p) { 
-                    p.games++; 
-                    p.points += (typeof cp.total === 'number' ? cp.total : 0); 
-                }
-            });
-        });
-    }
-
-    state.activeGames = state.activeGames.filter(x => x.id !== state.currentGame.id);
-    state.games.push(state.currentGame);
-    
     const finishedGameCopy = state.currentGame;
-    state.currentGame = null; 
+    const finished = await apiFinishActiveGame(finishedGameCopy);
+    if (!finished) return;
+    state.players = finished.players;
+    state.games = finished.games;
+    state.activeGames = finished.activeGames;
+    state.currentGame = null;
     state.lastRenderedGameId = null;
     syncLiveSyncState();
-
-    await apiSave('players', state.players);
-    await apiSave('activeGames', state.activeGames);
-    await apiSave('games', state.games);
-    await apiSave('currentGame', {}); 
 
     showResult(finishedGameCopy);
     } finally {
@@ -1991,7 +1970,7 @@ function showResult(gameData) {
             <p style="color:var(--muted); font-size:13px; font-weight:600; margin-top:4px;">${escapeHtml(game.name)}${textModeInfo} · ${escapeHtml(game.date)}</p>
         </div>
 
-        ${activeGameNight() && String(game.gameNightId) === String(activeGameNight().id) ? renderGameNightCard(activeGameNight()) : ''}
+        ${activeGameNight(game.gameNightId) ? renderGameNightCard(activeGameNight(game.gameNightId)) : ''}
 
         <div class="card">
             <div class="title">Endresultat</div>`;
@@ -2045,7 +2024,7 @@ async function startRematch() {
         name: lastGame.name,
         mode: lastGame.mode,
         rated: lastGame.rated,
-        gameNightId: activeGameNight()?.id,
+        gameNightId: activeGameNight(lastGame.gameNightId)?.id,
         date: new Date().toLocaleDateString("de-DE"),
         rules: lastGame.rules,
         players: lastGame.players.map(p => ({
@@ -2058,7 +2037,9 @@ async function startRematch() {
         }))
     };
 
-    await apiSave('currentGame', state.currentGame);
+    const createdGame = await apiCreateActiveGame(state.currentGame);
+    if (!createdGame) return;
+    state.activeGames.push(createdGame);
     renderGame();
 }
 
@@ -2078,7 +2059,6 @@ function customizeLastGame() {
 async function newGame() {
     state.currentGame = null;
     state.isSettingUpGame = false;
-    await apiSave('currentGame', {});
     renderGame();
 }
 
@@ -3101,7 +3081,7 @@ async function applyNewStartPlayer(playerId) {
     ];
 
     state.lastRenderedGameId = null; // Erzwingt frisches Re-Rendering der Zeilen
-    await apiSave('currentGame', state.currentGame);
+    await apiUpdateActiveGame(state.currentGame);
     renderGame();
     closeModal();
 }
@@ -3146,7 +3126,7 @@ async function advanceDealer() {
     // Sofort die UI im DOM aktualisieren!
     updateDealerUI();
     
-    await apiSave('currentGame', state.currentGame);
+    await apiUpdateActiveGame(state.currentGame);
 }
 
 async function rotateDealerManually() {
@@ -3351,7 +3331,7 @@ function saveWizardDraft(playerId) {
     clearTimeout(wizardDraftSaveTimer);
     wizardDraftSaveTimer = setTimeout(() => {
         if (state.currentGame?.gameTypeId === "wizard") {
-            apiSave('currentGame', state.currentGame);
+            apiUpdateActiveGame(state.currentGame);
         }
     }, 300);
 }
@@ -3465,7 +3445,7 @@ async function setWizardStarter(starterId) {
     state.currentGame.dealerIndex = (starterIndex - 1 + players.length) % players.length;
     isChangingWizardStarter = true;
 
-    const saveSucceeded = await apiSave('currentGame', state.currentGame);
+    const saveSucceeded = await apiUpdateActiveGame(state.currentGame);
     isChangingWizardStarter = false;
 
     if (!saveSucceeded) {
@@ -3633,7 +3613,7 @@ async function submitWizardRound() {
     state.currentGame.dealerIndex = (state.currentGame.dealerIndex + 1) % state.currentGame.players.length;
     updateDealerUI();
 
-    const saveSucceeded = await apiSave('currentGame', state.currentGame);
+    const saveSucceeded = await apiUpdateActiveGame(state.currentGame);
     if (!saveSucceeded) {
         state.currentGame.players.forEach(p => {
             const removedPoints = Number(p.rounds.pop()) || 0;

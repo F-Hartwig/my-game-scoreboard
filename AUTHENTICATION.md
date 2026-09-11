@@ -19,7 +19,7 @@ Keine dieser Variablen enthält ein dauerhaftes Master-Passwort. Das Master-Pass
 ## Rollen
 
 - Ohne Sitzung sind nur Healthcheck, Anmeldung/First-Run, gültige Einladungen und die fünf State-Leseendpunkte mit explizitem `?preview=1` erreichbar.
-- Benutzer dürfen alle fünf State-Blöcke lesen, die Spielerliste jedoch nur ansehen. Sie dürfen mit vorhandenen Spielern neue Partien starten, laufende Partien bedienen, pausieren, fortsetzen und abschließen. Beim Abschluss dürfen sie ausschließlich die Statistikfelder vorhandener Spieler aktualisieren und genau ein Spiel an die unveränderte Historie anhängen. Spieler-, Benutzer- und Spieleabend-Verwaltung bleiben gesperrt.
+- Benutzer dürfen alle fünf State-Blöcke lesen, die Spielerliste jedoch nur ansehen. Alle angemeldeten Benutzer dürfen mehrere Spieleabende und Partien parallel starten, öffnen, aktualisieren und abschließen; Änderungen werden je Spiel-ID gespeichert, damit andere laufende Spiele unverändert bleiben. Spieler- und Benutzerverwaltung bleiben Master-Aufgaben.
 - Der Master darf Spieler, Spiele, Spieleabende, pausierte/laufende Spiele, Benutzer, Zuordnungen, Einladungen und Löschaktionen verwalten.
 - Spieler benötigen kein Konto. Jedes Benutzerkonto einschließlich des Masters kann optional höchstens einem Spieler zugeordnet sein; ein Spieler kann höchstens ein Konto haben. Eine Zuordnung kann geändert oder gelöst werden, ohne die Rolle zu verändern.
 

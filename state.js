@@ -53,12 +53,12 @@ export async function loadAllFromDb() {
         currentGame: currentGameViewSnapshot(state.currentGame)
     };
 
-    const [players, games, activeGames, gameNights, currentGame] = await Promise.all([
+    const selectedGameId = state.currentGame?.id;
+    const [players, games, activeGames, gameNights] = await Promise.all([
         apiFetch('players'),
         apiFetch('games'),
         apiFetch('activeGames'),
-        apiFetch('gameNights'),
-        apiFetch('currentGame')
+        apiFetch('gameNights')
     ]);
 
     const loadBecameStale = (
@@ -71,9 +71,15 @@ export async function loadAllFromDb() {
 
     if (Array.isArray(players)) state.players = players;
     if (Array.isArray(games)) state.games = games;
-    if (Array.isArray(activeGames)) state.activeGames = activeGames;
+    if (Array.isArray(activeGames)) {
+        state.activeGames = activeGames;
+        if (selectedGameId !== undefined) {
+            state.currentGame = activeGames.find(game => String(game.id) === String(selectedGameId)) || null;
+        } else if (new URLSearchParams(window.location.search).get('preview') === '1') {
+            state.currentGame = activeGames[0] || null;
+        }
+    }
     if (Array.isArray(gameNights)) state.gameNights = gameNights;
-    if (currentGame !== undefined) state.currentGame = currentGame;
     
     if (Array.isArray(state.currentGame) && state.currentGame.length === 0) state.currentGame = null;
     if (state.currentGame && Object.keys(state.currentGame).length === 0) state.currentGame = null;
