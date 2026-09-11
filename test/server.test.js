@@ -145,7 +145,7 @@ test('public access is limited to explicit read-only preview', async t => {
     for (const privatePath of ['/server.js', '/auth.js', '/package.json', '/scoreboard.db', '/Dockerfile']) assert.equal((await anonymous.request(privatePath)).response.status, 404, privatePath);
 });
 
-test('rights matrix: user operates an existing running game, master manages all state and deletions', async t => {
+test('rights matrix: user creates and completes games while player administration stays master-only', async t => {
     const f = await fixture(t);
     const admin = await setupAdmin(f);
     await savePlayers(admin);
@@ -153,14 +153,20 @@ test('rights matrix: user operates an existing running game, master manages all 
     const user = await login(f.base, 'alice');
     const endpoints = ['players', 'games', 'activeGames', 'currentGame', 'gameNights'];
     for (const endpoint of endpoints) assert.equal((await user.request(`/api/${endpoint}`)).response.status, 200, endpoint);
-    for (const endpoint of ['players', 'games', 'activeGames', 'gameNights']) assert.equal((await user.post(`/api/${endpoint}`, [])).response.status, 403, endpoint);
+    assert.equal((await user.post('/api/players', [])).response.status, 400, 'cannot remove players');
+    const renamedPlayers = [{ id: 101, name: 'Mallory', favorite: false }, { id: 102, name: 'Bob', favorite: false }, { id: 103, name: 'Cara', favorite: false }];
+    assert.equal((await user.post('/api/players', renamedPlayers)).response.status, 400, 'cannot rename players');
+    assert.equal((await user.post('/api/gameNights', [])).response.status, 403, 'cannot manage game nights');
     assert.equal((await user.request('/api/users')).response.status, 403);
     assert.equal((await user.delete('/api/users/1')).response.status, 403);
-    assert.equal((await user.post('/api/currentGame', { id: 700, name: 'Neu' })).response.status, 403, 'cannot create game');
-    assert.equal((await admin.post('/api/currentGame', { id: 700, name: 'Laufend', players: [] })).response.status, 200);
+    assert.equal((await user.post('/api/currentGame', { id: 700, name: 'Laufend', players: [] })).response.status, 200, 'can create game');
     assert.equal((await user.post('/api/currentGame', { id: 700, name: 'Laufend', players: [], round: 2 })).response.status, 200, 'can score existing game');
-    assert.equal((await user.post('/api/currentGame', {})).response.status, 403, 'cannot delete/finish game');
-    assert.equal((await user.post('/api/currentGame', { id: 701, name: 'Anders' })).response.status, 403, 'cannot replace game');
+    assert.equal((await user.post('/api/activeGames', [{ id: 700, name: 'Laufend', players: [] }])).response.status, 200, 'can pause game');
+    const statsPlayers = [{ id: 101, name: 'Alice', favorite: false, wins: 1, games: 1, points: 12 }, { id: 102, name: 'Bob', favorite: false, wins: 0, games: 1, points: -3 }, { id: 103, name: 'Cara', favorite: false, wins: 0, games: 0, points: 0 }];
+    assert.equal((await user.post('/api/players', statsPlayers)).response.status, 200, 'can update game statistics');
+    assert.equal((await user.post('/api/games', [{ id: 700, name: 'Laufend', players: [], winner: 'Alice' }])).response.status, 200, 'can append completed game');
+    assert.equal((await user.post('/api/games', [])).response.status, 400, 'cannot delete game history');
+    assert.equal((await user.post('/api/currentGame', {})).response.status, 200, 'can finish game');
     for (const endpoint of endpoints) {
         const body = endpoint === 'currentGame' ? {} : [];
         assert.equal((await admin.post(`/api/${endpoint}`, body)).response.status, 200, endpoint);

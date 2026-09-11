@@ -12,9 +12,9 @@ const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'scoreboard.db');
 const SCHEMA_VERSION = 3;
 const JSON_LIMIT = process.env.JSON_LIMIT || '2mb';
 const ENDPOINTS = Object.freeze({
-    players: { empty: [], maxItems: 500, adminWrite: true },
-    games: { empty: [], maxItems: 5000, adminWrite: true },
-    activeGames: { empty: [], maxItems: 100, adminWrite: true },
+    players: { empty: [], maxItems: 500, adminWrite: false, userStatsOnly: true },
+    games: { empty: [], maxItems: 5000, adminWrite: false, userAppendOnly: true },
+    activeGames: { empty: [], maxItems: 100, adminWrite: false },
     currentGame: { empty: null, maxItems: 1, adminWrite: false },
     gameNights: { empty: [], maxItems: 200, adminWrite: true }
 });
@@ -74,6 +74,35 @@ function migrateDatabase(db) {
 function isValidId(value) {
     return (Number.isSafeInteger(value) && value >= 0) ||
         (typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(value));
+}
+
+function validateUserPlayerStatsUpdate(existing, next) {
+    if (!Array.isArray(existing) || !Array.isArray(next) || existing.length !== next.length) {
+        throw new Error('Nur der Master darf Spieler hinzufügen oder entfernen.');
+    }
+    for (let index = 0; index < existing.length; index += 1) {
+        const before = { ...existing[index] };
+        const after = { ...next[index] };
+        for (const key of ['wins', 'games', 'points']) {
+            delete before[key];
+            delete after[key];
+        }
+        if (JSON.stringify(before) !== JSON.stringify(after)) {
+            throw new Error('Nur der Master darf Spielerdaten verwalten.');
+        }
+        for (const key of ['wins', 'games', 'points']) {
+            if (!Number.isFinite(next[index][key])) throw new Error('Ungültige Spielerstatistik.');
+        }
+    }
+}
+
+function validateUserGameAppend(existing, next) {
+    if (!Array.isArray(existing) || !Array.isArray(next) || next.length !== existing.length + 1) {
+        throw new Error('Benutzer dürfen nur ein beendetes Spiel ergänzen.');
+    }
+    if (JSON.stringify(next.slice(0, existing.length)) !== JSON.stringify(existing)) {
+        throw new Error('Nur der Master darf die Spielhistorie ändern.');
+    }
 }
 
 function validateTree(value, context = { nodes: 0 }, depth = 0, key = '') {
@@ -211,14 +240,16 @@ async function createRuntime(options = {}) {
         app.post(`/api/${endpoint}`, auth.requireAuth, auth.requireCsrf, (req, res) => {
             if (config.adminWrite && req.auth.user.role !== 'admin') return res.status(403).json({ error: 'Nur der Master darf diese Daten verwalten.' });
             const payload = endpoint === 'currentGame' && req.body && !Array.isArray(req.body) && Object.keys(req.body).length === 0 ? null : req.body;
-            if (endpoint === 'currentGame' && req.auth.user.role !== 'admin') {
-                const current = readState.get(endpoint);
-                let existing = null;
-                try { existing = current ? JSON.parse(current.json_data) : null; } catch { /* handled below */ }
-                if (!existing || !payload || String(existing.id) !== String(payload.id)) return res.status(403).json({ error: 'Benutzer dürfen nur ein bereits laufendes Spiel bedienen.' });
-            }
             try {
                 validatePayload(endpoint, payload);
+                if (req.auth.user.role !== 'admin' && config.userStatsOnly) {
+                    const current = readState.get(endpoint);
+                    validateUserPlayerStatsUpdate(current ? JSON.parse(current.json_data) : [], payload);
+                }
+                if (req.auth.user.role !== 'admin' && config.userAppendOnly) {
+                    const current = readState.get(endpoint);
+                    validateUserGameAppend(current ? JSON.parse(current.json_data) : [], payload);
+                }
                 if (endpoint === 'players') {
                     const playerIds = new Set(payload.map(player => String(player.id)));
                     const reconcile = db.transaction(() => {

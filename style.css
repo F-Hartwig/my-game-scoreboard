@@ -78,9 +78,6 @@
 .user-row select { height: 38px; min-width: 0; padding-inline: 9px; font-size: 12px; }
 body:not(.is-admin) .admin-only { display: none !important; }
 body.is-preview .account-btn { display: none; }
-body.is-user .game-night-actions,
-body.is-user .active-game-actions,
-body.is-user .welcome-card button,
 body.is-user .scoreboard-share-btn { display: none !important; }
 
 @media (max-width: 520px) {

@@ -70,7 +70,7 @@ function getWizardTurnInfo(game) {
 let isLiveSyncRunning = false;
 
 function startLiveSync() {
-    if(state.autoRefreshInterval) clearInterval(state.autoRefreshInterval);
+    if(state.autoRefreshInterval) return;
     state.autoRefreshInterval = setInterval(async () => {
         const activeElement = document.activeElement;
         const isEditingField = activeElement?.matches?.("input, textarea, select");
@@ -97,6 +97,19 @@ function startLiveSync() {
             isLiveSyncRunning = false;
         }
     }, 2000); 
+}
+
+function stopLiveSync() {
+    if (!state.autoRefreshInterval) return;
+    clearInterval(state.autoRefreshInterval);
+    state.autoRefreshInterval = null;
+}
+
+function syncLiveSyncState() {
+    const activePage = document.querySelector(".page.active")?.id;
+    const shouldSync = IS_PREVIEW_MODE || (activePage === 'gamePage' && Boolean(state.currentGame));
+    if (shouldSync) startLiveSync();
+    else stopLiveSync();
 }
 
 function instantScrollToContainerEnd(element) {
@@ -134,6 +147,7 @@ async function navigate(pageId, element) {
     if(pageId === 'statsPage') { state.showAllHistory = false; renderStatsPage(); }
     if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
     if(pageId === 'rulesPage') renderRulesPage();
+    syncLiveSyncState();
 }
 
 // ===============================
@@ -414,13 +428,13 @@ function renderPlayers() {
                 </div>
                 <div class="actions">
                     <button class="icon-btn edit-btn admin-only" onclick="openPlayerAccount('${String(p.id)}')" aria-label="Konto verwalten" title="Konto verwalten">ID</button>
-                    <button class="icon-btn favorite-btn ${p.favorite ? "is-favorite" : ""}"
+                    <button class="icon-btn favorite-btn admin-only ${p.favorite ? "is-favorite" : ""}"
                             onclick="toggleFav(${p.id})"
                             aria-label="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}"
                             aria-pressed="${Boolean(p.favorite)}"
                             title="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}">${p.favorite ? "★" : "☆"}</button>
-                    <button class="icon-btn edit-btn" onclick="triggerRename(${p.id})" aria-label="Namen ändern" title="Namen ändern">Aa</button>
-                    <button class="icon-btn delete-btn" onclick="triggerDelete(${p.id})" aria-label="Spieler löschen" title="Spieler löschen">×</button>
+                    <button class="icon-btn edit-btn admin-only" onclick="triggerRename(${p.id})" aria-label="Namen ändern" title="Namen ändern">Aa</button>
+                    <button class="icon-btn delete-btn admin-only" onclick="triggerDelete(${p.id})" aria-label="Spieler löschen" title="Spieler löschen">×</button>
                 </div>
             </div>`;
     });
@@ -452,8 +466,8 @@ function renderGameNightCard(night, completed = false) {
         : '';
     const activeActions = `<div class="game-night-actions">
         ${state.currentGame ? '' : '<button onclick="startSetup()" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button>'}
-        <button class="secondary" onclick="openAddGameNightParticipantsModal()" aria-label="Teilnehmer hinzufügen" title="Teilnehmer hinzufügen">Teilnehmer +</button>
-        ${state.currentGame ? '' : '<button class="secondary" onclick="openFinishGameNightModal()" aria-label="Spieleabend beenden" title="Spieleabend beenden">Beenden</button>'}
+        <button class="secondary admin-only" onclick="openAddGameNightParticipantsModal()" aria-label="Teilnehmer hinzufügen" title="Teilnehmer hinzufügen">Teilnehmer +</button>
+        ${state.currentGame ? '' : '<button class="secondary admin-only" onclick="openFinishGameNightModal()" aria-label="Spieleabend beenden" title="Spieleabend beenden">Beenden</button>'}
     </div>`;
     return `<section class="card game-night-card ${completed ? 'completed' : ''}" aria-label="${completed ? 'Abgeschlossener' : 'Aktiver'} Spieleabend">
         <div class="game-night-heading"><div><span class="game-night-kicker">${completed ? 'Abgeschlossen' : 'Aktiv · automatisch gespeichert'}</span><h2>${escapeHtml(night.name)}</h2></div><span class="game-night-count">${games.filter(game => game.rated !== false).length}/${games.length} gewertet</span></div>
@@ -1282,6 +1296,7 @@ function renderLeaderIcon(label = 'Führt') {
 
 function renderGame(isSyncUpdate = false) {
     if (state.isSettingUpGame) return; 
+    syncLiveSyncState();
 
     let contentBox = document.getElementById("gameContent");
     
@@ -1298,7 +1313,7 @@ function renderGame(isSyncUpdate = false) {
                 <div class="title">Neues Spiel starten</div>
                 <p class="welcome-copy">Wähle eure Mitspieler, das passende Spiel und behalte jeden Punkt entspannt im Blick.</p>
                 <button onclick="startSetup()">Spiel anlegen</button>
-                ${activeGameNight() ? '' : `<button class="secondary" style="margin-top:8px;" onclick="openGameNightStartModal()" aria-label="Spieleabend starten" title="Spieleabend starten">Spieleabend starten</button>`}
+                ${activeGameNight() ? '' : `<button class="secondary admin-only" style="margin-top:8px;" onclick="openGameNightStartModal()" aria-label="Spieleabend starten" title="Spieleabend starten">Spieleabend starten</button>`}
             </div>
             ${activeGameNight() ? renderGameNightCard(activeGameNight()) : ''}`;
 
@@ -1951,6 +1966,7 @@ async function saveGame() {
     const finishedGameCopy = state.currentGame;
     state.currentGame = null; 
     state.lastRenderedGameId = null;
+    syncLiveSyncState();
 
     await apiSave('players', state.players);
     await apiSave('activeGames', state.activeGames);
@@ -2857,7 +2873,7 @@ async function initApp() {
     isFocusMode = sessionStorage.getItem("scorebuddy_focus_mode") === "true" && Boolean(state.currentGame);
     renderGame();
     if (isFocusMode) requestFocusWakeLock();
-    startLiveSync(); 
+    syncLiveSyncState();
 }
 
 // ===============================
