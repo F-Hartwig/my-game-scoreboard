@@ -150,7 +150,8 @@ function validateTree(value, context = { nodes: 0 }, depth = 0, key = '') {
         if (entries.length > 100) throw new Error('Objekt enthält zu viele Felder.');
         for (const [childKey, childValue] of entries) {
             if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(childKey)) throw new Error('Ungültiger Feldname.');
-            if ((childKey === 'id' || childKey === 'gameNightId') && !isValidId(childValue)) throw new Error('Ungültige ID.');
+            if (childKey === 'id' && !isValidId(childValue)) throw new Error('Ungültige ID.');
+            if (childKey === 'gameNightId' && childValue !== null && !isValidId(childValue)) throw new Error('Ungültige ID.');
             validateTree(childValue, context, depth + 1, childKey);
         }
         return;

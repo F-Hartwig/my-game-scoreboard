@@ -191,6 +191,11 @@ test('multiple games and game nights run independently for normal users', async 
         { id: first, name: first === 101 ? 'Alice' : 'Bob', playerIds: [first], rounds: [], total: 0 },
         { id: second, name: second === 103 ? 'Cara' : 'Bob', playerIds: [second], rounds: [], total: 0 }
     ] });
+    const standalone = makeGame(700, null, 101, 102);
+    const standaloneResult = await user.post('/api/active-games', standalone);
+    assert.equal(standaloneResult.response.status, 201, 'standalone game is not assigned to a game night');
+    assert.equal(standaloneResult.data.gameNightId, null);
+    assert.equal((await user.delete('/api/active-games/700')).response.status, 204);
     const gameA = makeGame(701, 801, 101, 102);
     const gameB = makeGame(702, 802, 102, 103);
     assert.equal((await user.post('/api/active-games', gameA)).response.status, 201);
