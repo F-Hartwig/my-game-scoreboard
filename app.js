@@ -650,7 +650,9 @@ function startSetup(prefillGame = null, gameNightId = null) {
     
     state.isSettingUpGame = true;
     const requestedGameNightId = gameNightId ?? (prefillGame ? prefillGame.gameNightId : null);
-    const setupNight = activeGameNight(requestedGameNightId);
+    const setupNight = requestedGameNightId === null || requestedGameNightId === undefined
+        ? null
+        : activeGameNight(requestedGameNightId);
     setupGameNightId = setupNight?.id ?? null;
     state.ratedMode = prefillGame ? prefillGame.rated !== false : true;
     state.tempTeams = prefillGame
