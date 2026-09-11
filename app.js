@@ -3,6 +3,7 @@ import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
 import { getCompletedGameNightStats, mergeGameNightParticipantIds, rankGameNight } from './gameNightRanking.mjs';
+import { initializeAuth } from './auth-client.js';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 
@@ -412,6 +413,7 @@ function renderPlayers() {
                     </div>
                 </div>
                 <div class="actions">
+                    <button class="icon-btn edit-btn admin-only" onclick="openPlayerAccount('${String(p.id)}')" aria-label="Konto verwalten" title="Konto verwalten">ID</button>
                     <button class="icon-btn favorite-btn ${p.favorite ? "is-favorite" : ""}"
                             onclick="toggleFav(${p.id})"
                             aria-label="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}"
@@ -3720,6 +3722,7 @@ window.submitRename = submitRename;
 window.triggerDelete = triggerDelete;
 window.submitDelete = submitDelete;
 window.closeModal = closeModal;
+window.openModal = openModal;
 window.openSharePreviewModal = openSharePreviewModal;
 window.copyPreviewLink = copyPreviewLink;
 window.sharePreviewLink = sharePreviewLink;
@@ -3788,4 +3791,4 @@ window.openWizardStarterSelector = openWizardStarterSelector;
 window.setWizardStarter = setWizardStarter;
 
 
-initApp();
+initializeAuth().then(ready => { if (ready) initApp(); });
