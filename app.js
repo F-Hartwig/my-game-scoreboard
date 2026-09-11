@@ -472,7 +472,7 @@ function renderGameNightCard(night, completed = false) {
         ? `<div class="game-night-more"><div class="game-night-ranking-extra" hidden><ol class="game-night-ranking game-night-ranking-more">${remainingStandings.map(renderStanding).join('')}</ol></div><button type="button" class="game-night-more-toggle" aria-expanded="false" onclick="toggleGameNightStandings(this)"><span class="game-night-more-label">Mehr anzeigen (${remainingStandings.length})</span><span class="game-night-less-label">Weniger anzeigen</span></button></div>`
         : '';
     const activeActions = `<div class="game-night-actions">
-        <button onclick="startSetup(null, '${night.id}')" aria-label="Nächstes Spiel starten" title="Nächstes Spiel">Nächstes Spiel</button>
+        <button onclick="startSetup(null, '${night.id}')" aria-label="Nächstes Spiel erstellen" title="Nächstes Spiel">Nächstes Spiel</button>
         <button class="secondary" onclick="openAddGameNightParticipantsModal('${night.id}')" aria-label="Teilnehmer hinzufügen" title="Teilnehmer hinzufügen">Teilnehmer +</button>
         <button class="secondary" onclick="openFinishGameNightModal('${night.id}')" aria-label="Spieleabend beenden" title="Spieleabend beenden">Beenden</button>
     </div>`;
@@ -649,7 +649,7 @@ function startSetup(prefillGame = null, gameNightId = null) {
     }
     
     state.isSettingUpGame = true;
-    setupGameNightId = gameNightId ?? prefillGame?.gameNightId ?? activeGameNight()?.id ?? null;
+    setupGameNightId = gameNightId ?? (prefillGame ? activeGameNight(prefillGame.gameNightId)?.id ?? null : null);
     const setupNight = activeGameNight(setupGameNightId);
     state.ratedMode = prefillGame ? prefillGame.rated !== false : true;
     state.tempTeams = prefillGame
@@ -776,7 +776,7 @@ function startSetup(prefillGame = null, gameNightId = null) {
     </div>
 </div>
 
-        <button onclick="createGame()">Spiel starten</button>
+        <button onclick="createGame()">Spiel erstellen</button>
         <button class="secondary" style="margin-top:8px;" onclick="cancelSetup()">Abbrechen</button>
     </div>`;
 
@@ -1324,7 +1324,7 @@ function renderGame(isSyncUpdate = false) {
         let html = `
             <div class="card welcome-card">
                 <div class="welcome-kicker">Bereit für den Spieleabend?</div>
-                <div class="title">Neues Spiel starten</div>
+                <div class="title">Neues Spiel erstellen</div>
                 <p class="welcome-copy">Wähle eure Mitspieler, das passende Spiel und behalte jeden Punkt entspannt im Blick.</p>
                 <button onclick="startSetup()">Spiel anlegen</button>
                 <button class="secondary" style="margin-top:8px;" onclick="openGameNightStartModal()" aria-label="Spieleabend starten" title="Spieleabend starten">Spieleabend starten</button>
