@@ -477,7 +477,6 @@ body.preview-mode .toolbar,
 body.preview-mode .bottom-nav,
 body.preview-mode .theme-toggle-btn,
 body.preview-mode .game-status-actions,
-body.preview-mode .game-night-actions,
 body.preview-mode .score-entry-card { display:none !important; }
 body.preview-mode .round-pill { cursor:default; }
 
@@ -1898,35 +1897,6 @@ select option {
     justify-content: center;
 }
 
-.history-section-toolbar { margin-bottom: 10px; }
-.history-section-options {
-    padding: 4px;
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 4px;
-    background: var(--surface-soft);
-    border: 1px solid var(--border-strong);
-    border-radius: 15px;
-    box-shadow: inset 0 1px 0 var(--glass-highlight);
-}
-.history-section-btn {
-    min-width: 0;
-    min-height: 36px;
-    padding: 0 10px;
-    color: var(--muted);
-    background: transparent;
-    border: 0;
-    border-radius: 11px;
-    box-shadow: none;
-    font-size: 12px;
-    font-weight: 750;
-}
-.history-section-btn span { margin-left: 4px; font-size: 10px; opacity: .7; }
-.history-section-btn.active {
-    color: var(--primary);
-    background: var(--card-raised);
-    box-shadow: 0 5px 14px rgba(43, 61, 101, .1), var(--shadow-inset);
-}
 
 .stats-history-empty {
     padding: 24px 16px;
@@ -2021,9 +1991,6 @@ select option {
     grid-template-columns: repeat(4, 1fr);
 }
 
-.stat-grid.has-game-night-wins {
-    grid-template-columns: repeat(4, 1fr);
-}
 
 .stat-grid > div + div {
     border-left: 1px solid var(--border-strong);
@@ -2523,94 +2490,9 @@ select option {
     font-weight: 780;
 }
 
-.game-night-card {
-    margin-top: 14px;
-    padding: 16px;
-    overflow: hidden;
-    background: color-mix(in srgb, var(--card) 88%, var(--primary-light));
-}
-.completed-game-nights-list { display:grid; gap:12px; }
-.completed-game-nights-list .game-night-card { margin-top:0; }
-.game-night-heading { display:flex; gap:12px; justify-content:space-between; align-items:start; min-width:0; }
-.game-night-heading h2 { margin:2px 0 0; font-size:17px; overflow-wrap:anywhere; }
-.game-night-kicker { color:var(--primary); font-size:10px; font-weight:800; letter-spacing:.8px; text-transform:uppercase; }
-.game-night-count { flex:0 0 auto; padding:5px 8px; border-radius:999px; background:var(--card-raised); border:1px solid var(--border); font-size:11px; font-weight:750; white-space:nowrap; }
-.game-night-ranking, .game-night-detail-ranking { list-style:none; padding:0; margin:14px 0; }
-.game-night-ranking li { display:flex; justify-content:space-between; gap:12px; padding:7px 0; border-top:1px solid var(--border); font-size:13px; }
-.game-night-ranking strong { white-space:nowrap; color:var(--primary); }
-.game-night-more { margin:-14px 0 14px; }
-.game-night-more-toggle {
-    width:100%;
-    min-height:36px;
-    margin-top:8px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    color:var(--primary);
-    border:1px solid var(--border);
-    border-radius:12px;
-    background:var(--surface-soft);
-    font-size:12px;
-    font-weight:750;
-    box-shadow:none;
-    cursor:pointer;
-}
-.game-night-less-label { display:none; }
-.game-night-more-toggle[aria-expanded="true"] .game-night-more-label { display:none; }
-.game-night-more-toggle[aria-expanded="true"] .game-night-less-label { display:inline; }
-.game-night-ranking-more { margin:0; }
-.game-night-actions { display:flex; flex-wrap:wrap; gap:8px; }
-.game-night-actions button { min-height:40px; padding-inline:10px; flex:1 1 105px; min-width:0; font-size:12px; }
-.game-night-name-label { display:grid; gap:7px; font-size:13px; font-weight:700; color:var(--muted); }
-.game-night-participants { display:grid; grid-template-columns:repeat(2, minmax(0,1fr)); gap:8px; margin-top:14px; }
-.game-night-participant { display:flex; align-items:center; gap:7px; min-width:0; min-height:44px; padding:8px; border:1px solid var(--border); border-radius:var(--radius-sm); font-size:13px; overflow:hidden; }
-.game-night-participant span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.game-night-participant-summary { margin-bottom:16px; }
-.game-night-participant-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:7px; }
-.game-night-participant-chip { max-width:100%; padding:5px 9px; overflow:hidden; color:var(--primary); background:var(--primary-light); border:1px solid color-mix(in srgb, var(--primary) 18%, transparent); border-radius:999px; font-size:11px; font-weight:720; text-overflow:ellipsis; white-space:nowrap; }
-.game-night-detail-ranking li { display:flex; flex-direction:column; gap:3px; padding:10px 0; border-bottom:1px solid var(--border); font-size:13px; }
-.game-night-detail-ranking span { color:var(--muted); }
-.game-night-assignments { display:grid; gap:8px; margin-top:8px; max-height:280px; overflow:auto; }
-.game-night-assignment { display:flex; align-items:center; gap:10px; min-height:48px; padding:8px 10px; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-soft); }
-.game-night-assignment input,
-.game-night-participant input {
-    appearance:none;
-    -webkit-appearance:none;
-    flex:0 0 20px;
-    width:20px;
-    height:20px;
-    min-width:20px;
-    max-width:20px;
-    min-height:20px;
-    max-height:20px;
-    padding:0;
-    margin:0;
-    box-sizing:border-box;
-    border:1px solid var(--border-strong);
-    border-radius:7px;
-    background-color:rgba(255,255,255,.5);
-    background-repeat:no-repeat;
-    background-position:center;
-    background-size:12px 12px;
-    box-shadow:inset 0 1px 0 rgba(255,255,255,.55);
-    cursor:pointer;
-}
-.game-night-assignment input:checked,
-.game-night-participant input:checked {
-    border-color:color-mix(in srgb, var(--primary) 75%, white);
-    background-color:var(--primary);
-    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='m3 8 3 3 7-7' fill='none' stroke='%23fff' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-}
-.game-night-assignment input:focus-visible,
-.game-night-participant input:focus-visible { outline:3px solid var(--primary-light); outline-offset:2px; }
-.game-night-assignment > span { min-width:0; display:grid; gap:2px; }
-.game-night-assignment small { color:var(--muted); overflow-wrap:anywhere; }
-.game-night-assignment.disabled { opacity:.55; }
 .modal-copy { margin:0; color:var(--muted); line-height:1.55; }
 .modal-inline-error { margin:12px 0 0; padding:10px 12px; border:1px solid color-mix(in srgb, var(--danger) 35%, transparent); border-radius:var(--radius-sm); background:color-mix(in srgb, var(--danger) 10%, transparent); color:var(--danger); font-size:13px; font-weight:650; line-height:1.4; }
 .modal-inline-error[hidden] { display:none; }
-body.focus-mode .game-night-card { display:none; }
-@media (max-width: 420px) { .game-night-participants { grid-template-columns:1fr; } .game-night-heading { align-items:flex-start; } }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
     .header,
@@ -3022,20 +2904,15 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
         height: 100%;
         min-height: 0;
         display: grid;
-        grid-template-columns: minmax(0, 2.15fr) minmax(280px, .85fr);
+        grid-template-columns: minmax(0, 1fr) minmax(280px, .35fr);
         grid-template-rows: auto minmax(0, 1fr);
         grid-template-areas:
             "status preview-banner"
-            "scoreboard game-night";
+            "scoreboard scoreboard";
         gap: 12px 16px;
         align-items: stretch;
     }
 
-    body.preview-mode #gameContent:has(.scoreboard-card):not(:has(.game-night-card)) {
-        grid-template-areas:
-            "status preview-banner"
-            "scoreboard scoreboard";
-    }
 
     body.preview-mode .preview-banner {
         grid-area: preview-banner;
@@ -3107,20 +2984,4 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
         font-size: 12px;
     }
 
-    body.preview-mode .game-night-card {
-        grid-area: game-night;
-        min-height: 0;
-        margin: 0;
-        padding: 16px;
-        overflow: hidden;
-    }
-
-    body.preview-mode .game-night-ranking {
-        margin: 10px 0 0;
-    }
-
-    body.preview-mode .game-night-ranking li {
-        padding: 6px 0;
-        font-size: 12px;
-    }
 }

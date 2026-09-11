@@ -55,7 +55,7 @@ Damit ist für V2 keine Datenmigration und kein Frontend-Build erforderlich. Die
 
 ## 1. Ziel und Einsatz
 
-ScoreBuddy ist eine mobile, deutschsprachige Web-App für Spieleabende. Sie verwaltet Spieler, laufende beziehungsweise pausierte Partien, Spielergebnisse, Ranglisten und Spielregeln. Die Anwendung soll im lokalen Netz auf einem Ugreen NAS DXP4800 GT in Docker laufen und von Smartphones oder anderen Geräten im Browser verwendet werden.
+ScoreBuddy ist eine mobile, deutschsprachige Web-App für gemeinsame Partien. Sie verwaltet Spieler, mehrere eigenständige laufende beziehungsweise pausierte Partien, Spielergebnisse, Ranglisten und Spielregeln. Die Anwendung soll im lokalen Netz auf einem Ugreen NAS DXP4800 GT in Docker laufen und von Smartphones oder anderen Geräten im Browser verwendet werden. Frühere `gameNights`-Daten bleiben serverseitig erhalten, werden vom Client aber nicht mehr geladen oder verwendet.
 
 Vom Besitzer bestätigter Betriebszustand:
 

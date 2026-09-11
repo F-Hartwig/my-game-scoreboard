@@ -145,7 +145,7 @@ test('public access is limited to explicit read-only preview', async t => {
         assert.equal((await anonymous.post(`/api/${endpoint}?preview=1`, endpoint === 'currentGame' ? {} : [])).response.status, 401, endpoint);
     }
     assert.equal((await anonymous.request('/api/preview-qr')).response.status, 401);
-    for (const privatePath of ['/server.js', '/auth.js', '/package.json', '/scoreboard.db', '/Dockerfile']) assert.equal((await anonymous.request(privatePath)).response.status, 404, privatePath);
+    for (const privatePath of ['/server.js', '/auth.js', '/package.json', '/scoreboard.db', '/Dockerfile', '/gameNightRanking.mjs']) assert.equal((await anonymous.request(privatePath)).response.status, 404, privatePath);
 });
 
 test('rights matrix: user creates and completes games while player administration stays master-only', async t => {
@@ -159,7 +159,7 @@ test('rights matrix: user creates and completes games while player administratio
     assert.equal((await user.post('/api/players', [])).response.status, 400, 'cannot remove players');
     const renamedPlayers = [{ id: 101, name: 'Mallory', favorite: false }, { id: 102, name: 'Bob', favorite: false }, { id: 103, name: 'Cara', favorite: false }];
     assert.equal((await user.post('/api/players', renamedPlayers)).response.status, 400, 'cannot rename players');
-    assert.equal((await user.post('/api/gameNights', [])).response.status, 200, 'can manage game nights');
+    assert.equal((await user.post('/api/gameNights', [])).response.status, 200, 'legacy game-night state remains compatible');
     assert.equal((await user.request('/api/users')).response.status, 403);
     assert.equal((await user.delete('/api/users/1')).response.status, 403);
     assert.equal((await user.post('/api/currentGame', { id: 700, name: 'Laufend', players: [] })).response.status, 200, 'can create game');
@@ -176,28 +176,18 @@ test('rights matrix: user creates and completes games while player administratio
     }
 });
 
-test('multiple games and game nights run independently for normal users', async t => {
+test('multiple standalone games run independently for normal users', async t => {
     const f = await fixture(t);
     const admin = await setupAdmin(f);
     await savePlayers(admin);
     assert.equal((await admin.post('/api/users', { username: 'alice', password: USER_PASSWORD, playerId: 101 })).response.status, 201);
     const user = await login(f.base, 'alice');
-    const nights = [
-        { id: 801, name: 'Tisch 1', participantIds: [101, 102], status: 'active', startedAt: '2026-09-11T20:00:00.000Z', endedAt: null },
-        { id: 802, name: 'Tisch 2', participantIds: [102, 103], status: 'active', startedAt: '2026-09-11T20:01:00.000Z', endedAt: null }
-    ];
-    assert.equal((await user.post('/api/gameNights', nights)).response.status, 200);
-    const makeGame = (id, gameNightId, first, second) => ({ id, gameNightId, name: `Spiel ${id}`, mode: 'round', rated: true, players: [
+    const makeGame = (id, first, second) => ({ id, name: `Spiel ${id}`, mode: 'round', rated: true, players: [
         { id: first, name: first === 101 ? 'Alice' : 'Bob', playerIds: [first], rounds: [], total: 0 },
         { id: second, name: second === 103 ? 'Cara' : 'Bob', playerIds: [second], rounds: [], total: 0 }
     ] });
-    const standalone = makeGame(700, null, 101, 102);
-    const standaloneResult = await user.post('/api/active-games', standalone);
-    assert.equal(standaloneResult.response.status, 201, 'standalone game is not assigned to a game night');
-    assert.equal(standaloneResult.data.gameNightId, null);
-    assert.equal((await user.delete('/api/active-games/700')).response.status, 204);
-    const gameA = makeGame(701, 801, 101, 102);
-    const gameB = makeGame(702, 802, 102, 103);
+    const gameA = makeGame(701, 101, 102);
+    const gameB = makeGame(702, 102, 103);
     assert.equal((await user.post('/api/active-games', gameA)).response.status, 201);
     assert.equal((await user.post('/api/active-games', gameB)).response.status, 201);
     gameA.players[0].rounds = [9]; gameA.players[0].total = 9;

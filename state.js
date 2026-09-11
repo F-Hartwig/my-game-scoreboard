@@ -4,7 +4,6 @@ export const state = {
     players: [],
     games: [],
     activeGames: [],
-    gameNights: [],
     currentGame: null,
     activeEditPlayerId: null,
     showAllHistory: false,
@@ -37,7 +36,6 @@ export async function loadAllFromDb() {
         playersChanged: false,
         gamesChanged: false,
         activeGamesChanged: false,
-        gameNightsChanged: false,
         currentGameChanged: false
     };
 
@@ -49,16 +47,14 @@ export async function loadAllFromDb() {
         players: stateSnapshot(state.players),
         games: stateSnapshot(state.games),
         activeGames: stateSnapshot(state.activeGames),
-        gameNights: stateSnapshot(state.gameNights),
         currentGame: currentGameViewSnapshot(state.currentGame)
     };
 
     const selectedGameId = state.currentGame?.id;
-    const [players, games, activeGames, gameNights] = await Promise.all([
+    const [players, games, activeGames] = await Promise.all([
         apiFetch('players'),
         apiFetch('games'),
-        apiFetch('activeGames'),
-        apiFetch('gameNights')
+        apiFetch('activeGames')
     ]);
 
     const loadBecameStale = (
@@ -79,8 +75,6 @@ export async function loadAllFromDb() {
             state.currentGame = activeGames[0] || null;
         }
     }
-    if (Array.isArray(gameNights)) state.gameNights = gameNights;
-    
     if (Array.isArray(state.currentGame) && state.currentGame.length === 0) state.currentGame = null;
     if (state.currentGame && Object.keys(state.currentGame).length === 0) state.currentGame = null;
 
@@ -89,7 +83,6 @@ export async function loadAllFromDb() {
         playersChanged: previousState.players !== stateSnapshot(state.players),
         gamesChanged: previousState.games !== stateSnapshot(state.games),
         activeGamesChanged: previousState.activeGames !== stateSnapshot(state.activeGames),
-        gameNightsChanged: previousState.gameNights !== stateSnapshot(state.gameNights),
         currentGameChanged: previousState.currentGame !== currentGameViewSnapshot(state.currentGame)
     };
 }

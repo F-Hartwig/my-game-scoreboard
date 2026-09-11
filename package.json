@@ -2,7 +2,7 @@
   "name": "scorebuddy",
   "version": "2.0.0",
   "private": true,
-  "description": "ScoreBuddy game-night scoreboard",
+  "description": "ScoreBuddy game scoreboard",
   "engines": {
     "node": ">=24 <25"
   },
