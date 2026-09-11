@@ -13,25 +13,27 @@ async function request(path, options = {}) {
 const health = await request('/api/health');
 assert.equal(health.response.status, 200);
 assert.equal(health.body.status, 'ok');
-assert.equal(health.body.schemaVersion, 2);
+assert.equal(health.body.schemaVersion, 3);
 
 for (const endpoint of ['players', 'games', 'activeGames', 'currentGame', 'gameNights']) {
-    const result = await request(`/api/${endpoint}`);
-    assert.equal(result.response.status, 200, `${endpoint} GET failed`);
+    const privateResult = await request(`/api/${endpoint}`);
+    assert.equal(privateResult.response.status, 401, `${endpoint} anonymous GET must be private`);
+    const previewResult = await request(`/api/${endpoint}?preview=1`);
+    assert.equal(previewResult.response.status, 200, `${endpoint} preview GET failed`);
 }
 
-const invalid = await request('/api/players', {
+const anonymousWrite = await request('/api/players', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ not: 'an array' })
+    body: JSON.stringify([])
 });
-assert.equal(invalid.response.status, 400);
+assert.equal(anonymousWrite.response.status, 401);
 
-const oversizedName = await request('/api/players', {
+const oversized = await request('/api/players', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify([{ id: 1, name: 'x'.repeat(81) }])
+    body: JSON.stringify([{ id: 1, name: 'x'.repeat(2_100_000) }])
 });
-assert.equal(oversizedName.response.status, 400);
+assert.equal(oversized.response.status, 413);
 
-console.log(`smoke ok: ${baseUrl}, schema=2, reads=5, validation=2`);
+console.log(`smoke ok: ${baseUrl}, schema=3, private=5, preview=5, anonymous-write=blocked, payload-limit=ok`);
