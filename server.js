@@ -169,6 +169,7 @@ async function createRuntime(options = {}) {
         now: options.now,
         setupToken: options.setupToken,
         allowLocalSetup: options.allowLocalSetup,
+        allowPrivateSetup: options.allowPrivateSetup,
         secureCookies: options.secureCookies
     });
     app.use(auth.sessionMiddleware);

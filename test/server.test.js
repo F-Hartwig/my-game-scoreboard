@@ -6,7 +6,7 @@ const os = require('node:os');
 const path = require('node:path');
 const Database = require('better-sqlite3');
 const { createRuntime, validatePayload, SCHEMA_VERSION } = require('../server.js');
-const { verifyPassword } = require('../auth.js');
+const { verifyPassword, isPrivateAddress } = require('../auth.js');
 
 const ADMIN_PASSWORD = 'Admin-Password!42';
 const USER_PASSWORD = 'Player-Password!42';
@@ -109,6 +109,20 @@ test('first-run setup, password hashing, secure session cookie and CSRF', async 
     assert.equal((await admin.post('/api/players', [])).response.status, 200);
     assert.equal((await anonymous.request('/api/users')).response.status, 401);
     assert.equal((await admin.request('/api/users')).response.status, 200);
+});
+
+test('temporary private-network setup needs no token and rejects public address ranges', async t => {
+    assert.equal(isPrivateAddress('127.0.0.1'), true);
+    assert.equal(isPrivateAddress('::ffff:172.18.0.1'), true);
+    assert.equal(isPrivateAddress('192.168.178.50'), true);
+    assert.equal(isPrivateAddress('fd7a:115c:a1e0::1'), true);
+    assert.equal(isPrivateAddress('8.8.8.8'), false);
+    assert.equal(isPrivateAddress('2001:4860:4860::8888'), false);
+    const f = await fixture(t, { setupToken: '', allowPrivateSetup: true });
+    const client = new Client(f.base);
+    assert.deepEqual((await client.request('/api/auth/status')).data, { setupRequired: true, setupMode: 'private' });
+    assert.equal((await client.post('/api/auth/setup', { username: 'master', password: ADMIN_PASSWORD })).response.status, 201);
+    assert.equal((await new Client(f.base).post('/api/auth/setup', { username: 'other', password: ADMIN_PASSWORD })).response.status, 409);
 });
 
 test('public access is limited to explicit read-only preview', async t => {

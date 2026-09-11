@@ -73,10 +73,25 @@ function isLoopback(address) {
     return normalized === '127.0.0.1' || normalized === '::1';
 }
 
+function isPrivateAddress(address) {
+    const normalized = String(address || '').replace(/^::ffff:/, '').toLowerCase();
+    if (isLoopback(normalized)) return true;
+    const match = normalized.match(/^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/);
+    if (match) {
+        const octets = match.slice(1).map(Number);
+        if (octets.some(value => value > 255)) return false;
+        return octets[0] === 10 ||
+            (octets[0] === 172 && octets[1] >= 16 && octets[1] <= 31) ||
+            (octets[0] === 192 && octets[1] === 168);
+    }
+    return normalized.startsWith('fc') || normalized.startsWith('fd');
+}
+
 function createAuth(db, options = {}) {
     const now = options.now || (() => Date.now());
     const setupToken = options.setupToken ?? process.env.SCOREBUDDY_SETUP_TOKEN ?? '';
     const allowLocalSetup = options.allowLocalSetup ?? process.env.ALLOW_LOCAL_SETUP === '1';
+    const allowPrivateSetup = options.allowPrivateSetup ?? process.env.ALLOW_PRIVATE_SETUP === '1';
     const secureCookies = options.secureCookies ?? process.env.COOKIE_SECURE === '1';
     const attempts = new Map();
     const findUserByName = db.prepare('SELECT * FROM users WHERE username = ? COLLATE NOCASE');
@@ -142,9 +157,10 @@ function createAuth(db, options = {}) {
     function setupAllowed(req) {
         if (setupToken) {
             const supplied = req.get('x-setup-token') || '';
-            return supplied.length === setupToken.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(setupToken));
+            if (supplied.length === setupToken.length && crypto.timingSafeEqual(Buffer.from(supplied), Buffer.from(setupToken))) return true;
         }
-        return allowLocalSetup && isLoopback(req.socket.remoteAddress);
+        return (allowLocalSetup && isLoopback(req.socket.remoteAddress)) ||
+            (allowPrivateSetup && isPrivateAddress(req.socket.remoteAddress));
     }
 
     function rateKey(req, username) {
@@ -176,7 +192,8 @@ function createAuth(db, options = {}) {
     function installRoutes(app, helpers) {
         app.get('/api/auth/status', (req, res) => {
             const setupRequired = db.prepare("SELECT 1 FROM users WHERE role = 'admin' LIMIT 1").get() === undefined;
-            res.set('Cache-Control', 'no-store').json({ setupRequired, setupMode: setupToken ? 'token' : (allowLocalSetup ? 'local' : 'disabled') });
+            const setupMode = allowPrivateSetup ? 'private' : (setupToken ? 'token' : (allowLocalSetup ? 'local' : 'disabled'));
+            res.set('Cache-Control', 'no-store').json({ setupRequired, setupMode });
         });
 
         app.post('/api/auth/setup', async (req, res, next) => {
@@ -355,4 +372,4 @@ function createAuth(db, options = {}) {
     return { sessionMiddleware, requireAuth, requireAdmin, requireCsrf, installRoutes };
 }
 
-module.exports = { createAuth, hashPassword, verifyPassword, validatePassword, validateUsername, SESSION_COOKIE };
+module.exports = { createAuth, hashPassword, verifyPassword, validatePassword, validateUsername, isPrivateAddress, SESSION_COOKIE };

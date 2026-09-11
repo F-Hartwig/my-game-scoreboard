@@ -2,6 +2,7 @@ export const authState = { user: null, csrfToken: null };
 const params = new URLSearchParams(window.location.search);
 const isPreview = params.get('preview') === '1';
 const invitationToken = params.get('invite');
+let currentSetupMode = 'disabled';
 
 async function jsonRequest(url, options = {}) {
     const headers = { ...(options.body ? { 'Content-Type': 'application/json' } : {}), ...(options.headers || {}) };
@@ -30,7 +31,10 @@ function loginView(message = '') {
 }
 
 function setupView(message = '') {
-    showGate(`<p class="auth-intro">Richte den ersten Master ein. Remote ist dafür ein separat gesetztes Setup-Token erforderlich.</p>${message}<form id="setupForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required minlength="3"></label><label>Passwort<input name="password" type="password" autocomplete="new-password" required minlength="12"></label><label id="setupTokenLabel">Setup-Token<input name="setupToken" type="password" autocomplete="off"></label><small>Mindestens 12 Zeichen mit Groß-/Kleinbuchstaben, Zahl und Sonderzeichen.</small><button>Master sicher einrichten</button></form>`);
+    const privateSetup = currentSetupMode === 'private';
+    const intro = privateSetup ? 'Richte den ersten Master aus deinem Heimnetz ein.' : 'Richte den ersten Master ein. Remote ist dafür ein separat gesetztes Setup-Token erforderlich.';
+    const tokenField = privateSetup ? '' : '<label id="setupTokenLabel">Setup-Token<input name="setupToken" type="password" autocomplete="off"></label>';
+    showGate(`<p class="auth-intro">${intro}</p>${message}<form id="setupForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required minlength="3"></label><label>Passwort<input name="password" type="password" autocomplete="new-password" required minlength="12"></label>${tokenField}<small>Mindestens 12 Zeichen mit Groß-/Kleinbuchstaben, Zahl und Sonderzeichen.</small><button>Master sicher einrichten</button></form>`);
     document.getElementById('setupForm').addEventListener('submit', submitSetup);
 }
 
@@ -48,7 +52,8 @@ async function submitSetup(event) {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     try {
-        const result = await jsonRequest('/api/auth/setup', { method: 'POST', headers: values.get('setupToken') ? { 'X-Setup-Token': values.get('setupToken') } : {}, body: JSON.stringify({ username: values.get('username'), password: values.get('password') }) });
+        const setupToken = values.get('setupToken');
+        const result = await jsonRequest('/api/auth/setup', { method: 'POST', headers: setupToken ? { 'X-Setup-Token': setupToken } : {}, body: JSON.stringify({ username: values.get('username'), password: values.get('password') }) });
         finishAuth(result);
         window.location.reload();
     } catch (error) { setupView(errorText(error)); }
@@ -97,6 +102,7 @@ export async function initializeAuth() {
         if (error.status !== 401) { loginView(errorText(error)); return false; }
         try {
             const status = await jsonRequest('/api/auth/status');
+            currentSetupMode = status.setupMode;
             if (status.setupRequired) setupView(); else loginView();
         } catch (statusError) { loginView(errorText(statusError)); }
         return false;

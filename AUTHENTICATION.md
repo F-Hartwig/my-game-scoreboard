@@ -6,6 +6,8 @@ Solange noch kein Master existiert, ist die normale Anwendung gesperrt. Für ein
 
 `ALLOW_LOCAL_SETUP=1` erlaubt alternativ eine Einrichtung über eine direkte Loopback-Verbindung. Diese Option ist nur für lokale Entwicklung vorgesehen und bleibt standardmäßig aus. Hinter einem Reverse Proxy darf sie nicht gesetzt werden.
 
+`ALLOW_PRIVATE_SETUP=1` erlaubt vorübergehend eine tokenlose Ersteinrichtung aus Loopback-, RFC1918- oder lokalen IPv6-ULA-Netzen. Die Option ist ausschließlich für ein noch nicht öffentlich erreichbares Staging vorgesehen und muss unmittelbar nach der Master-Einrichtung wieder entfernt werden. Sie darf niemals zusammen mit Funnel, Portfreigaben oder einem nicht vertrauenswürdigen Reverse Proxy aktiv sein.
+
 Für HTTPS hinter einem vertrauenswürdigen Reverse Proxy:
 
 - `TRUST_PROXY=1`, damit Express das weitergereichte HTTPS-Protokoll erkennt.
