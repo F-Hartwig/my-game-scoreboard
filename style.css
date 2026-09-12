@@ -86,8 +86,11 @@ body.is-user .scoreboard-share-btn { display: none !important; }
     .user-row { grid-template-columns: 1fr 36px 36px; }
     .user-row > div { grid-column: 1 / -1; }
     .player-list-toolbar,
-    .player-list-toolbar .player-filter { width: 100%; }
-    .player-list-toolbar .player-filter-btn {
+    .player-list-toolbar .player-filter,
+    .setup-player-filter-toolbar,
+    .setup-player-filter-toolbar .player-filter { width: 100%; }
+    .player-list-toolbar .player-filter-btn,
+    .setup-player-filter-toolbar .player-filter-btn {
         flex: 1 1 50%;
         justify-content: center;
     }
