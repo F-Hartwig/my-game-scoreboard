@@ -57,8 +57,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
   assert.match(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=score-grid-1/);
-  assert.match(indexSource, /app\.js\?v=score-grid-1/);
+  assert.match(indexSource, /style\.css\?v=score-grid-2/);
+  assert.match(indexSource, /app\.js\?v=score-grid-2/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -72,4 +72,6 @@ test('scoreboard can switch to a persistent compact three-column grid', async ()
   assert.match(appSource, /Kompakte Übersicht ohne Runden/);
   assert.match(styleSource, /\.scoreboard-list\.is-grid-view \{ display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
   assert.match(styleSource, /\.scoreboard-list\.is-grid-view \.history-scroll \{ display: none; \}/);
+  assert.match(styleSource, /\.scoreboard-list:not\(\.is-grid-view\) \.round-pill \{ min-width: 36px !important; min-height: 36px !important;/);
+  assert.match(styleSource, /\.scoreboard-list:not\(\.is-grid-view\) \.scoreboard-row \{ padding: 12px 14px; gap: 7px; \}/);
 });
