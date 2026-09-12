@@ -1,4 +1,5 @@
 import { apiFetch, getApiSaveVersion, hasActiveApiSaves } from './api.js';
+import { findPreviewGame } from './preview-selection.mjs';
 
 export const state = {
     players: [],
@@ -69,10 +70,10 @@ export async function loadAllFromDb() {
     if (Array.isArray(games)) state.games = games;
     if (Array.isArray(activeGames)) {
         state.activeGames = activeGames;
-        if (selectedGameId !== undefined) {
+        if (new URLSearchParams(window.location.search).get('preview') === '1') {
+            state.currentGame = findPreviewGame(activeGames, selectedGameId);
+        } else if (selectedGameId !== undefined) {
             state.currentGame = activeGames.find(game => String(game.id) === String(selectedGameId)) || null;
-        } else if (new URLSearchParams(window.location.search).get('preview') === '1') {
-            state.currentGame = activeGames[0] || null;
         }
     }
     if (Array.isArray(state.currentGame) && state.currentGame.length === 0) state.currentGame = null;

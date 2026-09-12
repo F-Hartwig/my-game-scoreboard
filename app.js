@@ -3,6 +3,7 @@ import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
 import { initializeAuth } from './auth-client.js';
+import { findPreviewGame } from './preview-selection.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 
@@ -178,6 +179,42 @@ function getPreviewUrl() {
 function renderPreviewBanner() {
     if (!IS_PREVIEW_MODE) return '';
     return `<section class="preview-banner" aria-label="Live-Vorschau"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6S2 12 2 12Z"/><circle cx="12" cy="12" r="2.5"/></svg><div><strong>Live-Vorschau</strong><span>Nur ansehen · aktualisiert sich automatisch</span></div></section>`;
+}
+
+function ensurePreviewGameSelection() {
+    if (!IS_PREVIEW_MODE) return;
+    state.currentGame = findPreviewGame(state.activeGames, state.currentGame?.id);
+}
+
+function renderPreviewGameTabs() {
+    if (!IS_PREVIEW_MODE || !state.currentGame || state.activeGames.length === 0) return '';
+
+    const signature = JSON.stringify(state.activeGames.map(game => [String(game.id), String(game.name)]));
+    const tabs = state.activeGames.map(game => {
+        const isSelected = String(game.id) === String(state.currentGame.id);
+        const gameId = escapeHtml(JSON.stringify(String(game.id)));
+        return `<button type="button" class="preview-game-tab${isSelected ? ' active' : ''}" aria-pressed="${isSelected}" onclick="selectPreviewGame(${gameId})">${escapeHtml(game.name)}</button>`;
+    }).join('');
+
+    return `<nav class="preview-game-tabs" data-signature="${escapeHtml(signature)}" aria-label="Laufende Spiele">${tabs}</nav>`;
+}
+
+function refreshPreviewGameTabs() {
+    if (!IS_PREVIEW_MODE) return;
+    const currentTabs = document.querySelector('.preview-game-tabs');
+    const signature = JSON.stringify(state.activeGames.map(game => [String(game.id), String(game.name)]));
+    if (currentTabs && currentTabs.dataset.signature !== signature) {
+        currentTabs.outerHTML = renderPreviewGameTabs();
+    }
+}
+
+function selectPreviewGame(gameId) {
+    if (!IS_PREVIEW_MODE) return;
+    const selectedGame = findPreviewGame(state.activeGames, gameId);
+    if (!selectedGame || String(selectedGame.id) === String(state.currentGame?.id)) return;
+    state.currentGame = selectedGame;
+    state.lastRenderedGameId = null;
+    renderGame();
 }
 
 function openSharePreviewModal() {
@@ -1110,6 +1147,7 @@ function renderLeaderIcon(label = 'Führt') {
 function renderGame(isSyncUpdate = false) {
     if (state.isSettingUpGame) return; 
     syncLiveSyncState();
+    ensurePreviewGameSelection();
 
     let contentBox = document.getElementById("gameContent");
     
@@ -1212,6 +1250,7 @@ function renderGame(isSyncUpdate = false) {
     // --- PARTIELLES RE-RENDERING BEI FAST-SYNC ---
     const canUsePartialRender = state.currentGame.gameTypeId !== "wizard";
     if (canUsePartialRender && state.lastRenderedGameId === state.currentGame.id && document.getElementById("gameStatusLabel")) {
+        refreshPreviewGameTabs();
         document.getElementById("gameStatusLabel").innerText = statusText;
         
         state.currentGame.players.forEach(p => {
@@ -1276,7 +1315,7 @@ function renderGame(isSyncUpdate = false) {
         ? `<button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Regeln" title="Regeln" onclick="showGameRulesModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 6v15M3 4c4-1 6 0 9 2 3-2 5-3 9-2v14c-4-1-6 0-9 2-3-2-5-3-9-2Z"/></svg></button>`
         : '';
 
-    let html = `${renderPreviewBanner()}
+    let html = `${renderPreviewGameTabs()}${renderPreviewBanner()}
         <div class="card game-status-card">
             <div class="game-status-copy">
                 <span id="gameStatusLabel">${escapeHtml(statusText)}</span>
@@ -3478,6 +3517,7 @@ window.openModal = openModal;
 window.openSharePreviewModal = openSharePreviewModal;
 window.copyPreviewLink = copyPreviewLink;
 window.sharePreviewLink = sharePreviewLink;
+window.selectPreviewGame = selectPreviewGame;
 window.startSetup = startSetup;
 
 window.toggleFocusMode = toggleFocusMode;

@@ -455,6 +455,38 @@ button,
 .preview-banner div { min-width:0; display:grid; gap:2px; }
 .preview-banner strong { font-size:13px; }
 .preview-banner span { color:var(--muted); font-size:11px; }
+.preview-game-tabs {
+    margin:0 0 10px;
+    padding:4px;
+    display:flex;
+    gap:5px;
+    overflow-x:auto;
+    scrollbar-width:none;
+    border:1px solid var(--border);
+    border-radius:var(--radius-md);
+    background:color-mix(in srgb, var(--card) 90%, transparent);
+    box-shadow:var(--shadow-inset);
+    backdrop-filter:var(--blur);
+    -webkit-backdrop-filter:var(--blur);
+}
+.preview-game-tabs::-webkit-scrollbar { display:none; }
+.preview-game-tab {
+    flex:0 0 auto;
+    width:auto;
+    min-height:38px;
+    padding:0 14px;
+    color:var(--muted);
+    background:transparent;
+    border:1px solid transparent;
+    border-radius:calc(var(--radius-md) - 4px);
+    box-shadow:none;
+    white-space:nowrap;
+}
+.preview-game-tab.active {
+    color:var(--primary);
+    background:var(--primary-light);
+    border-color:color-mix(in srgb, var(--primary) 24%, var(--border));
+}
 .preview-empty-card { display:grid; gap:5px; text-align:center; }
 .preview-empty-card strong { font-size:16px; }
 .preview-empty-card span { color:var(--muted); font-size:12px; line-height:1.45; }
@@ -2905,14 +2937,19 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
         min-height: 0;
         display: grid;
         grid-template-columns: minmax(0, 1fr) minmax(280px, .35fr);
-        grid-template-rows: auto minmax(0, 1fr);
+        grid-template-rows: auto auto minmax(0, 1fr);
         grid-template-areas:
+            "preview-tabs preview-tabs"
             "status preview-banner"
             "scoreboard scoreboard";
         gap: 12px 16px;
         align-items: stretch;
     }
 
+    body.preview-mode .preview-game-tabs {
+        grid-area: preview-tabs;
+        margin: 0;
+    }
 
     body.preview-mode .preview-banner {
         grid-area: preview-banner;
