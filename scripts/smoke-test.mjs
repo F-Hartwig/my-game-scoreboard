@@ -13,7 +13,7 @@ async function request(path, options = {}) {
 const health = await request('/api/health');
 assert.equal(health.response.status, 200);
 assert.equal(health.body.status, 'ok');
-assert.equal(health.body.schemaVersion, 3);
+assert.equal(health.body.schemaVersion, 4);
 
 for (const endpoint of ['players', 'games', 'activeGames', 'currentGame', 'gameNights']) {
     const privateResult = await request(`/api/${endpoint}`);
@@ -36,4 +36,4 @@ const oversized = await request('/api/players', {
 });
 assert.equal(oversized.response.status, 413);
 
-console.log(`smoke ok: ${baseUrl}, schema=3, private=5, preview=5, anonymous-write=blocked, payload-limit=ok`);
+console.log(`smoke ok: ${baseUrl}, schema=4, private=5, preview=5, anonymous-write=blocked, payload-limit=ok`);
