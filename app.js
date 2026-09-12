@@ -73,6 +73,10 @@ let isLiveSyncRunning = false;
 let collaborationInterval = null;
 let collaborationPresence = [];
 let collaborationActivity = [];
+let scoreboardViewMode = 'list';
+try {
+    scoreboardViewMode = localStorage.getItem('scorebuddy-scoreboard-view') === 'grid' ? 'grid' : 'list';
+} catch {}
 
 function isEnteringScores() {
     return Boolean(document.activeElement?.closest?.('#roundInputs, .wizard-score-grid')) || hasScoreEntryDraft();
@@ -1226,6 +1230,34 @@ function renderLeaderIcon(label = 'Führt') {
     return `<span class="leader-badge" role="img" aria-label="${accessibleLabel}" title="${accessibleLabel}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 4 4 5-6 5 6 4-4-2 11H5L3 6ZM5 20h14"/></svg></span>`;
 }
 
+function renderScoreboardViewIcon() {
+    return scoreboardViewMode === 'grid'
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M5 7h14M5 12h14M5 17h14"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/></svg>';
+}
+
+function applyScoreboardViewMode() {
+    const list = document.querySelector('.scoreboard-list');
+    const button = document.getElementById('scoreboardViewToggle');
+    const hint = document.querySelector('.scoreboard-heading-hint');
+    const isGrid = scoreboardViewMode === 'grid';
+    list?.classList.toggle('is-grid-view', isGrid);
+    if (button) {
+        button.innerHTML = renderScoreboardViewIcon();
+        button.classList.toggle('active', isGrid);
+        button.setAttribute('aria-pressed', String(isGrid));
+        button.setAttribute('aria-label', isGrid ? 'Listenansicht aktivieren' : 'Rasteransicht aktivieren');
+        button.setAttribute('title', isGrid ? 'Listenansicht' : 'Rasteransicht');
+    }
+    if (hint && !IS_PREVIEW_MODE) hint.textContent = isGrid ? 'Kompakte Übersicht ohne Runden' : 'Runden antippen zum Bearbeiten';
+}
+
+function toggleScoreboardView() {
+    scoreboardViewMode = scoreboardViewMode === 'grid' ? 'list' : 'grid';
+    try { localStorage.setItem('scorebuddy-scoreboard-view', scoreboardViewMode); } catch {}
+    applyScoreboardViewMode();
+}
+
 function renderPersonalDashboardCard() {
     if (IS_PREVIEW_MODE || !authState.user?.playerId) return '';
     const dashboard = buildPersonalDashboard(authState.user.playerId, state.players, state.activeGames, state.games);
@@ -1444,10 +1476,13 @@ function renderGame(isSyncUpdate = false) {
         <div class="card scoreboard-card" style="padding: 14px 12px;">
             <div class="scoreboard-heading">
                 <h2>Spielstand</h2>
-                ${IS_PREVIEW_MODE ? '' : `<button type="button" class="secondary scoreboard-share-btn" onclick="openSharePreviewModal()" aria-label="Live-Ansicht teilen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0-12-4 4m4-4 4 4"/><path d="M5 11v8h14v-8"/></svg><span>Teilen</span></button>`}
-                <span class="scoreboard-heading-hint">${IS_PREVIEW_MODE ? 'Live aktualisiert' : 'Runden antippen zum Bearbeiten'}</span>
+                <div class="scoreboard-heading-actions">
+                    <button id="scoreboardViewToggle" type="button" class="secondary scoreboard-view-toggle ${scoreboardViewMode === 'grid' ? 'active' : ''}" onclick="toggleScoreboardView()" aria-pressed="${scoreboardViewMode === 'grid'}" aria-label="${scoreboardViewMode === 'grid' ? 'Listenansicht aktivieren' : 'Rasteransicht aktivieren'}" title="${scoreboardViewMode === 'grid' ? 'Listenansicht' : 'Rasteransicht'}">${renderScoreboardViewIcon()}</button>
+                    ${IS_PREVIEW_MODE ? '' : `<button type="button" class="secondary scoreboard-share-btn" onclick="openSharePreviewModal()" aria-label="Live-Ansicht teilen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0-12-4 4m4-4 4 4"/><path d="M5 11v8h14v-8"/></svg><span>Teilen</span></button>`}
+                </div>
+                <span class="scoreboard-heading-hint">${IS_PREVIEW_MODE ? 'Live aktualisiert' : (scoreboardViewMode === 'grid' ? 'Kompakte Übersicht ohne Runden' : 'Runden antippen zum Bearbeiten')}</span>
             </div>
-            <div class="scoreboard-list">`;
+            <div class="scoreboard-list ${scoreboardViewMode === 'grid' ? 'is-grid-view' : ''}">`;
 
     state.currentGame.players.forEach(p => {
         const isLeading = p.total === leadingScore && anyRoundsPlayed && leadsCount === 1;
@@ -3705,6 +3740,7 @@ window.selectPreviewGame = selectPreviewGame;
 window.startSetup = startSetup;
 
 window.toggleFocusMode = toggleFocusMode;
+window.toggleScoreboardView = toggleScoreboardView;
 window.setSetupPlayerFilter = setSetupPlayerFilter;
 window.handleGameSelectionChange = handleGameSelectionChange;
 window.setCustomWinCondition = setCustomWinCondition;

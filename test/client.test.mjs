@@ -57,8 +57,19 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
   assert.match(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=multi-user-4/);
-  assert.match(indexSource, /app\.js\?v=multi-user-3/);
+  assert.match(indexSource, /style\.css\?v=score-grid-1/);
+  assert.match(indexSource, /app\.js\?v=score-grid-1/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
+});
+
+test('scoreboard can switch to a persistent compact three-column grid', async () => {
+  const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(appSource, /localStorage\.getItem\('scorebuddy-scoreboard-view'\)/);
+  assert.match(appSource, /function toggleScoreboardView\(\)/);
+  assert.match(appSource, /id="scoreboardViewToggle"/);
+  assert.match(appSource, /Kompakte Übersicht ohne Runden/);
+  assert.match(styleSource, /\.scoreboard-list\.is-grid-view \{ display: grid; grid-template-columns: repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(styleSource, /\.scoreboard-list\.is-grid-view \.history-scroll \{ display: none; \}/);
 });
