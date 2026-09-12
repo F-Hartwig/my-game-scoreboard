@@ -85,6 +85,12 @@ body.is-user .scoreboard-share-btn { display: none !important; }
     .account-btn, .theme-toggle-btn { padding-inline: 9px; }
     .user-row { grid-template-columns: 1fr 36px 36px; }
     .user-row > div { grid-column: 1 / -1; }
+    .player-list-toolbar,
+    .player-list-toolbar .player-filter { width: 100%; }
+    .player-list-toolbar .player-filter-btn {
+        flex: 1 1 50%;
+        justify-content: center;
+    }
 }
 
 [data-theme="dark"] {
