@@ -111,6 +111,7 @@ function startCollaborationSync() {
 function renderCollaborationPanel() {
     const panel = document.getElementById('collaborationPanel');
     if (!panel) return;
+    const activityWasOpen = Boolean(panel.querySelector('.activity-card')?.open);
     const editors = collaborationPresence.filter(entry => entry.editing && !entry.self);
     const avatars = collaborationPresence.map(entry => `
         <span class="presence-person ${entry.editing ? 'is-editing' : ''}" title="${escapeHtml(entry.username)}${entry.editing ? ' trägt gerade Punkte ein' : ' ist online'}">
@@ -129,7 +130,7 @@ function renderCollaborationPanel() {
             <div class="presence-people">${avatars || '<small>Nur du bist hier</small>'}</div>
         </div>
         ${editors.length ? `<div class="editing-notice">${escapeHtml(editors.map(entry => entry.username).join(', '))} ${editors.length === 1 ? 'trägt' : 'tragen'} gerade Punkte ein</div>` : ''}
-        <details class="activity-card">
+        <details class="activity-card"${activityWasOpen ? ' open' : ''}>
             <summary>Aktivitätsverlauf <span>${collaborationActivity.length}</span></summary>
             ${events ? `<ol>${events}</ol>` : '<p>Noch keine Änderungen in dieser Partie.</p>'}
         </details>`;
@@ -1230,22 +1231,30 @@ function renderPersonalDashboardCard() {
     const dashboard = buildPersonalDashboard(authState.user.playerId, state.players, state.activeGames, state.games);
     const stats = buildPersonalStats(authState.user.playerId, state.players, state.games);
     if (!dashboard || !stats) return '';
-    const resultLabels = { win: 'Sieg', loss: 'Niederlage', draw: 'Unentschieden', friendly: 'Freundschaftsspiel' };
+    const formLabels = { win: 'S', loss: 'N', draw: 'U' };
+    const formTitles = { win: 'Sieg', loss: 'Niederlage', draw: 'Unentschieden' };
     const openGames = dashboard.openGames.length
         ? dashboard.openGames.map(game => `<button class="dashboard-game" onclick="resumeGame(${Number(game.id)})"><span>${escapeHtml(game.name)}</span><strong>Öffnen</strong></button>`).join('')
         : '<small>Keine eigene Partie läuft gerade.</small>';
-    const completed = dashboard.completed.length
-        ? dashboard.completed.map(game => `<li><span><strong>${escapeHtml(game.name)}</strong><small>${escapeHtml(game.date)}</small></span><em class="dashboard-result is-${game.result}">${resultLabels[game.result]}</em></li>`).join('')
-        : '<li><small>Noch keine Partie abgeschlossen.</small></li>';
+    const recentForm = stats.recentForm.length
+        ? stats.recentForm.map(result => `<span class="dashboard-form-result is-${result}" title="${formTitles[result]}">${formLabels[result]}</span>`).join('')
+        : '<small>Noch keine gewertete Partie.</small>';
     const frequent = dashboard.frequentPlayers.length
         ? dashboard.frequentPlayers.map(entry => `<span>${escapeHtml(entry.player.name)} · ${entry.count}×</span>`).join('')
         : '<small>Noch keine gemeinsamen Partien.</small>';
     return `<section class="personal-dashboard-card" aria-label="Dein persönliches Dashboard">
-        <div class="personal-dashboard-head"><div><span class="stats-eyebrow">Dein Dashboard</span><strong>Hallo ${escapeHtml(dashboard.player.name)}</strong></div><span>${stats.winRate}% Siege</span></div>
+        <div class="personal-dashboard-head"><div><span class="dashboard-eyebrow">Für dich</span><strong>Hallo ${escapeHtml(dashboard.player.name)}</strong></div><span class="dashboard-win-rate">${stats.winRate}% Siege</span></div>
         <div class="personal-dashboard-metrics"><div><strong>${dashboard.openGames.length}</strong><span>offen</span></div><div><strong>${stats.games}</strong><span>gewertet</span></div><div><strong>${stats.currentWinStreak}</strong><span>Serie</span></div></div>
         <div class="dashboard-section"><span>Laufende eigene Spiele</span>${openGames}</div>
-        <div class="dashboard-section"><span>Letzte Ergebnisse</span><ul>${completed}</ul></div>
+        <div class="dashboard-section dashboard-form-section"><span>Letzte Form</span><div class="dashboard-form" aria-label="Letzte Form">${recentForm}</div></div>
         <div class="dashboard-section"><span>Oft gemeinsam gespielt</span><div class="dashboard-people">${frequent}</div></div>
+    </section>`;
+}
+
+function renderNewGameAction() {
+    return `<section class="card new-game-action" aria-label="Neue Partie anlegen">
+        <div><span class="new-game-action-label">Neue Partie</span><strong>Bereit zu spielen?</strong></div>
+        <button onclick="startSetup()">Spiel anlegen</button>
     </section>`;
 }
 
@@ -1263,13 +1272,7 @@ function renderGame(isSyncUpdate = false) {
             contentBox.innerHTML = `${renderPreviewBanner()}<section class="card preview-empty-card"><strong>Keine aktive Partie</strong><span>Sobald ein Spiel gestartet wird, erscheint der Spielstand automatisch hier.</span></section>`;
             return;
         }
-        let html = `${renderPersonalDashboardCard()}
-            <div class="card welcome-card">
-                <div class="welcome-kicker">Bereit für ein Spiel?</div>
-                <div class="title">Neues Spiel erstellen</div>
-                <p class="welcome-copy">Wähle eure Mitspieler, das passende Spiel und behalte jeden Punkt entspannt im Blick.</p>
-                <button onclick="startSetup()">Spiel anlegen</button>
-            </div>`;
+        let html = `${renderNewGameAction()}${renderPersonalDashboardCard()}`;
 
         if(state.activeGames && state.activeGames.length > 0) {
             html += `<div class="title" style="margin-top:20px; padding:0 4px;">Laufende Spiele (${state.activeGames.length})</div>`;

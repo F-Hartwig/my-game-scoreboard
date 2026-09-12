@@ -3190,13 +3190,15 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
     border-radius: var(--radius-lg);
     box-shadow: var(--shadow-soft), var(--shadow-inset);
 }
-.personal-dashboard-card { display: grid; gap: 14px; background: linear-gradient(145deg, var(--primary-light), var(--card)); border-color: rgba(54, 91, 216, .2); }
+.personal-dashboard-card { display: grid; gap: 12px; background: linear-gradient(145deg, var(--primary-light), var(--card)); border-color: rgba(54, 91, 216, .2); }
 .personal-dashboard-head,
 .personal-comparison-head,
 .collaboration-presence { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .personal-dashboard-head > div,
 .personal-comparison-head > div { display: grid; gap: 3px; }
-.personal-dashboard-head > span { padding: 7px 10px; color: var(--primary); background: var(--card-raised); border: 1px solid var(--border-strong); border-radius: 999px; font-size: 12px; font-weight: 800; }
+.dashboard-eyebrow { color: var(--muted); font-size: 10px; font-weight: 760; letter-spacing: .55px; text-transform: uppercase; }
+.personal-dashboard-head strong { font-size: 18px; line-height: 1.2; }
+.dashboard-win-rate { padding: 6px 9px; color: var(--primary); background: var(--card-raised); border: 1px solid var(--border-strong); border-radius: 999px; font-size: 11px; font-weight: 800; white-space: nowrap; }
 .personal-dashboard-metrics,
 .personal-comparison-grid { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-deep); border: 1px solid var(--border-strong); border-radius: var(--radius-md); }
 .personal-dashboard-metrics > div,
@@ -3207,7 +3209,7 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 .personal-comparison-grid strong { font-size: 18px; }
 .personal-dashboard-metrics span,
 .personal-comparison-grid span { color: var(--muted); font-size: 10px; }
-.dashboard-section { display: grid; gap: 7px; }
+.dashboard-section { display: grid; gap: 6px; padding-top: 2px; }
 .dashboard-section > span { color: var(--muted); font-size: 11px; font-weight: 760; text-transform: uppercase; letter-spacing: .5px; }
 .dashboard-section ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
 .dashboard-section li,
@@ -3223,6 +3225,17 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 .dashboard-result.is-friendly { color: var(--muted); }
 .dashboard-people { display: flex; flex-wrap: wrap; gap: 6px; }
 .dashboard-people > span { padding: 6px 9px; background: var(--card-raised); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 700; }
+.dashboard-form-section { grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; }
+.dashboard-form { min-height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
+.dashboard-form-result { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 50%; font-size: 10px; font-weight: 850; }
+.dashboard-form-result.is-win { color: var(--success); background: var(--success-light); border-color: color-mix(in srgb, var(--success) 28%, transparent); }
+.dashboard-form-result.is-loss { color: var(--danger); background: var(--danger-light); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
+.dashboard-form-result.is-draw { color: var(--muted); background: var(--surface-deep); border-color: var(--border); }
+.new-game-action { padding: 14px 16px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.new-game-action > div { min-width: 0; display: grid; gap: 2px; }
+.new-game-action-label { color: var(--muted); font-size: 10px; font-weight: 760; letter-spacing: .55px; text-transform: uppercase; }
+.new-game-action strong { font-size: 15px; line-height: 1.2; }
+.new-game-action > button { width: auto; min-width: 128px; min-height: 42px; padding: 8px 15px; border-radius: 999px; white-space: nowrap; }
 .collaboration-panel { padding: 12px 14px; display: grid; gap: 10px; }
 .collaboration-presence > div:first-child { display: flex; align-items: center; gap: 7px; font-size: 12px; }
 .presence-dot { width: 8px; height: 8px; display: inline-block; background: var(--success); border-radius: 50%; box-shadow: 0 0 0 4px var(--success-light); }
@@ -3259,4 +3272,6 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
     .presence-person small { display: none; }
     .activity-entry { grid-template-columns: 1fr auto; }
     .activity-undo { grid-column: 1 / -1; width: 100%; }
+    .new-game-action { padding: 12px 14px; }
+    .new-game-action > button { min-width: 120px; }
 }
