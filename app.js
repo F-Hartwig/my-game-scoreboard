@@ -1296,7 +1296,7 @@ function renderGame(isSyncUpdate = false) {
                             <span class="${cls}">${prefix}${displayVal}</span>
                         </div>`;
                 }).join("");
-                if(p.rounds.length === 0) pillsHtml = '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>';
+                if(p.rounds.length === 0) pillsHtml = '<div class="round-pill empty-round-pill">0 Einträge</div>';
                 
                 if (scrollBox.dataset.len != p.rounds.length) {
                     scrollBox.innerHTML = pillsHtml;
@@ -1334,7 +1334,11 @@ function renderGame(isSyncUpdate = false) {
         </div>
 
         <div class="card scoreboard-card" style="padding: 14px 12px;">
-            <div class="scoreboard-heading"><h2>Spielstand</h2><div class="scoreboard-heading-actions"><span>${IS_PREVIEW_MODE ? 'Live aktualisiert' : 'Runden antippen zum Bearbeiten'}</span>${IS_PREVIEW_MODE ? '' : `<button type="button" class="secondary scoreboard-share-btn" onclick="openSharePreviewModal()" aria-label="Live-Ansicht teilen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0-12-4 4m4-4 4 4"/><path d="M5 11v8h14v-8"/></svg><span>Teilen</span></button>`}</div></div>
+            <div class="scoreboard-heading">
+                <h2>Spielstand</h2>
+                ${IS_PREVIEW_MODE ? '' : `<button type="button" class="secondary scoreboard-share-btn" onclick="openSharePreviewModal()" aria-label="Live-Ansicht teilen"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0-12-4 4m4-4 4 4"/><path d="M5 11v8h14v-8"/></svg><span>Teilen</span></button>`}
+                <span class="scoreboard-heading-hint">${IS_PREVIEW_MODE ? 'Live aktualisiert' : 'Runden antippen zum Bearbeiten'}</span>
+            </div>
             <div class="scoreboard-list">`;
 
     state.currentGame.players.forEach(p => {
@@ -1381,7 +1385,7 @@ function renderGame(isSyncUpdate = false) {
                                 <span class="${cls}">${prefix}${displayVal}</span>
                             </div>`;
                     }).join("")}
-                    ${p.rounds.length === 0 ? '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>' : ''}
+                    ${p.rounds.length === 0 ? '<div class="round-pill empty-round-pill">0 Einträge</div>' : ''}
                 </div>
             </div>`;
     });
@@ -2326,7 +2330,7 @@ function viewGameDetails(gameId) {
                                 <span class="${cls}">${prefix}${displayVal}</span>
                             </div>`;
                     }).join("")}
-                    ${p.rounds.length === 0 ? '<div class="round-pill" style="color:var(--muted); border:none; background:transparent; padding:0;">0 Einträge</div>' : ''}
+                    ${p.rounds.length === 0 ? '<div class="round-pill empty-round-pill">0 Einträge</div>' : ''}
                 </div>
             </div>`;
     });

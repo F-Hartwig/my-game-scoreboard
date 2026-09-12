@@ -430,14 +430,6 @@ button,
     gap: 6px;
 }
 
-.scoreboard-heading-actions {
-    min-width:0;
-    display:flex;
-    align-items:center;
-    justify-content:flex-end;
-    gap:8px;
-}
-
 .scoreboard-share-btn {
     width:auto;
     min-height:36px;
@@ -2832,9 +2824,9 @@ body.focus-mode .game-status-card { position: sticky; top: max(6px, env(safe-are
 .game-status-actions { width: 148px; flex-wrap: nowrap; align-items: flex-start; justify-content: flex-end; gap: 8px; }
 .game-status-actions button { min-height: 44px; height: auto !important; border-radius: 999px !important; }
 .scoreboard-card { padding: 24px !important; }
-.scoreboard-heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 24px; }
+.scoreboard-heading { display: grid; grid-template-columns: minmax(0,1fr) auto; align-items: center; gap: 10px 12px; margin-bottom: 24px; }
 .scoreboard-heading h2 { font-size: 24px; line-height: 1.2; letter-spacing: -.7px; }
-.scoreboard-heading > span { color: var(--muted); font-size: 12px; }
+.scoreboard-heading-hint { grid-column: 1 / -1; color: var(--muted); font-size: 12px; }
 .scoreboard-list { gap: 12px; }
 .scoreboard-row { padding: 20px; gap: 12px; border-radius: 20px; border: 1px solid var(--border-strong); }
 .scoreboard-row:has(.leader-badge) { background: var(--primary-light) !important; border-color: var(--primary); }
@@ -2848,6 +2840,7 @@ body.focus-mode .game-status-card { position: sticky; top: max(6px, env(safe-are
 .game-limit-badge { margin-left: 0; white-space: normal; }
 .history-scroll { max-width: 100%; padding: 4px; margin: -4px; scrollbar-width: thin; }
 .round-pill { border-radius: 12px; padding-inline: 12px; background: var(--card); font-size: 13px; }
+.empty-round-pill { padding: 7px 11px; color: var(--muted); cursor: default; }
 .round-player-row { background: var(--surface-soft) !important; border: 0 !important; padding: 10px 12px !important; min-height: 64px; }
 .round-player-row .player-name { white-space: normal; overflow: visible; overflow-wrap: anywhere; }
 .round-player-row > button { min-width: 44px; min-height: 44px; height: 44px !important; }
