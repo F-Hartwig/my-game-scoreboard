@@ -3177,3 +3177,86 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
     }
 
 }
+
+/* Multi-user collaboration */
+.personal-dashboard-card,
+.collaboration-panel,
+.personal-comparison-card {
+    margin-bottom: 14px;
+    padding: 16px;
+    color: var(--text);
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-soft), var(--shadow-inset);
+}
+.personal-dashboard-card { display: grid; gap: 14px; background: linear-gradient(145deg, var(--primary-light), var(--card)); border-color: rgba(54, 91, 216, .2); }
+.personal-dashboard-head,
+.personal-comparison-head,
+.collaboration-presence { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.personal-dashboard-head > div,
+.personal-comparison-head > div { display: grid; gap: 3px; }
+.personal-dashboard-head > span { padding: 7px 10px; color: var(--primary); background: var(--card-raised); border: 1px solid var(--border-strong); border-radius: 999px; font-size: 12px; font-weight: 800; }
+.personal-dashboard-metrics,
+.personal-comparison-grid { display: grid; grid-template-columns: repeat(3, 1fr); background: var(--surface-deep); border: 1px solid var(--border-strong); border-radius: var(--radius-md); }
+.personal-dashboard-metrics > div,
+.personal-comparison-grid > div { padding: 10px 6px; display: grid; gap: 2px; text-align: center; }
+.personal-dashboard-metrics > div + div,
+.personal-comparison-grid > div + div { border-left: 1px solid var(--border-strong); }
+.personal-dashboard-metrics strong,
+.personal-comparison-grid strong { font-size: 18px; }
+.personal-dashboard-metrics span,
+.personal-comparison-grid span { color: var(--muted); font-size: 10px; }
+.dashboard-section { display: grid; gap: 7px; }
+.dashboard-section > span { color: var(--muted); font-size: 11px; font-weight: 760; text-transform: uppercase; letter-spacing: .5px; }
+.dashboard-section ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.dashboard-section li,
+.dashboard-game { min-height: 42px; padding: 8px 10px; display: flex; align-items: center; justify-content: space-between; gap: 10px; background: var(--card-raised); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.dashboard-section li > span { display: grid; gap: 2px; }
+.dashboard-section li small { color: var(--muted); }
+.dashboard-game { width: 100%; color: var(--text); box-shadow: none; }
+.dashboard-game strong { color: var(--primary); font-size: 11px; }
+.dashboard-result { font-size: 11px; font-style: normal; font-weight: 760; }
+.dashboard-result.is-win { color: var(--success); }
+.dashboard-result.is-loss { color: var(--danger); }
+.dashboard-result.is-draw,
+.dashboard-result.is-friendly { color: var(--muted); }
+.dashboard-people { display: flex; flex-wrap: wrap; gap: 6px; }
+.dashboard-people > span { padding: 6px 9px; background: var(--card-raised); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; font-weight: 700; }
+.collaboration-panel { padding: 12px 14px; display: grid; gap: 10px; }
+.collaboration-presence > div:first-child { display: flex; align-items: center; gap: 7px; font-size: 12px; }
+.presence-dot { width: 8px; height: 8px; display: inline-block; background: var(--success); border-radius: 50%; box-shadow: 0 0 0 4px var(--success-light); }
+.presence-people { display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
+.presence-person { display: flex; align-items: center; gap: 4px; }
+.presence-person > span { width: 25px; height: 25px; display: grid; place-items: center; color: var(--primary); background: var(--primary-light); border: 1px solid var(--border-strong); border-radius: 50%; font-size: 9px; font-weight: 850; }
+.presence-person.is-editing > span { color: var(--warning); background: var(--warning-light); }
+.presence-person small { color: var(--muted); font-size: 10px; }
+.editing-notice { padding: 8px 10px; color: var(--warning); background: var(--warning-light); border: 1px solid rgba(255, 192, 102, .25); border-radius: var(--radius-sm); font-size: 12px; font-weight: 700; }
+.activity-card { border-top: 1px solid var(--border); padding-top: 9px; }
+.activity-card summary { cursor: pointer; display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; font-weight: 750; list-style: none; }
+.activity-card summary::-webkit-details-marker { display: none; }
+.activity-card summary span { min-width: 22px; padding: 2px 6px; text-align: center; background: var(--surface-deep); border-radius: 999px; }
+.activity-card ol { margin: 9px 0 0; padding: 0; list-style: none; display: grid; gap: 6px; }
+.activity-card > p { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+.activity-entry { min-height: 38px; padding: 7px 8px; display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 8px; background: var(--surface-deep); border-radius: var(--radius-sm); font-size: 11px; }
+.activity-entry > small { color: var(--muted); }
+.activity-entry.is-undone > span { color: var(--muted); text-decoration: line-through; }
+.activity-undo { width: auto; min-height: 28px; padding: 5px 8px; font-size: 10px; }
+.personal-comparison-card { margin-top: 10px; margin-bottom: 0; display: grid; gap: 12px; }
+.personal-comparison-head select { width: min(180px, 48%); min-height: 38px; }
+.personal-comparison-grid { grid-template-columns: repeat(4, 1fr); }
+.personal-comparison-card.is-empty { gap: 4px; }
+.personal-comparison-card.is-empty small { color: var(--muted); }
+
+@media (max-width: 520px) {
+    .personal-dashboard-head,
+    .personal-comparison-head { align-items: stretch; }
+    .personal-comparison-head select { width: 50%; }
+    .personal-comparison-grid { grid-template-columns: repeat(2, 1fr); }
+    .personal-comparison-grid > div:nth-child(3) { border-left: 0; border-top: 1px solid var(--border-strong); }
+    .personal-comparison-grid > div:nth-child(4) { border-top: 1px solid var(--border-strong); }
+    .collaboration-presence { align-items: flex-start; }
+    .presence-person small { display: none; }
+    .activity-entry { grid-template-columns: 1fr auto; }
+    .activity-undo { grid-column: 1 / -1; width: 100%; }
+}

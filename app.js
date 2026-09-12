@@ -2,10 +2,10 @@ import { apiSave, apiCreateActiveGame, apiUpdateActiveGame, apiDeleteActiveGame,
 import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
-import { authState, initializeAuth } from './auth-client.js';
+import { authState, authRequest, initializeAuth } from './auth-client.js';
 import { findPreviewGame } from './preview-selection.mjs';
 import { hasScoreEntryDraft } from './score-entry-draft.mjs';
-import { buildPersonalStats } from './personal-stats.mjs';
+import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from './personal-stats.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 
@@ -70,6 +70,84 @@ function getWizardTurnInfo(game) {
 // CORE TIMING & LIVE SYNC
 // ===============================
 let isLiveSyncRunning = false;
+let collaborationInterval = null;
+let collaborationPresence = [];
+let collaborationActivity = [];
+
+function isEnteringScores() {
+    return Boolean(document.activeElement?.closest?.('#roundInputs, .wizard-score-grid')) || hasScoreEntryDraft();
+}
+
+async function refreshCollaboration() {
+    if (IS_PREVIEW_MODE || !authState.user) return;
+    const gameId = state.currentGame?.id ?? null;
+    try {
+        await authRequest('/api/presence', {
+            method: 'POST',
+            body: JSON.stringify({ gameId, page: gameId ? 'game' : 'home', editing: Boolean(gameId && isEnteringScores()) })
+        });
+        if (gameId === null) return;
+        const encodedId = encodeURIComponent(gameId);
+        [collaborationPresence, collaborationActivity] = await Promise.all([
+            authRequest(`/api/presence?gameId=${encodedId}`),
+            authRequest(`/api/active-games/${encodedId}/activity`)
+        ]);
+        if (String(state.currentGame?.id) === String(gameId)) renderCollaborationPanel();
+    } catch {
+        collaborationPresence = [];
+        collaborationActivity = [];
+        renderCollaborationPanel();
+    }
+}
+
+function startCollaborationSync() {
+    if (IS_PREVIEW_MODE || collaborationInterval) return;
+    void refreshCollaboration();
+    collaborationInterval = setInterval(() => {
+        if (!document.hidden) void refreshCollaboration();
+    }, 5000);
+}
+
+function renderCollaborationPanel() {
+    const panel = document.getElementById('collaborationPanel');
+    if (!panel) return;
+    const editors = collaborationPresence.filter(entry => entry.editing && !entry.self);
+    const avatars = collaborationPresence.map(entry => `
+        <span class="presence-person ${entry.editing ? 'is-editing' : ''}" title="${escapeHtml(entry.username)}${entry.editing ? ' trägt gerade Punkte ein' : ' ist online'}">
+            <span aria-hidden="true">${escapeHtml(entry.username.slice(0, 2).toUpperCase())}</span>
+            <small>${entry.self ? 'Du' : escapeHtml(entry.username)}</small>
+        </span>`).join('');
+    const events = collaborationActivity.slice(0, 6).map(event => `
+        <li class="activity-entry ${event.undone ? 'is-undone' : ''}">
+            <span><strong>${escapeHtml(event.username)}</strong> ${escapeHtml(event.summary)}</span>
+            <small>${new Date(event.createdAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</small>
+            ${event.canUndo ? `<button class="secondary activity-undo" onclick="undoActivity(${event.id})">Rückgängig</button>` : ''}
+        </li>`).join('');
+    panel.innerHTML = `
+        <div class="collaboration-presence">
+            <div><span class="presence-dot"></span><strong>${collaborationPresence.length} online</strong></div>
+            <div class="presence-people">${avatars || '<small>Nur du bist hier</small>'}</div>
+        </div>
+        ${editors.length ? `<div class="editing-notice">${escapeHtml(editors.map(entry => entry.username).join(', '))} ${editors.length === 1 ? 'trägt' : 'tragen'} gerade Punkte ein</div>` : ''}
+        <details class="activity-card">
+            <summary>Aktivitätsverlauf <span>${collaborationActivity.length}</span></summary>
+            ${events ? `<ol>${events}</ol>` : '<p>Noch keine Änderungen in dieser Partie.</p>'}
+        </details>`;
+}
+
+async function undoActivity(activityId) {
+    if (!window.confirm('Die letzte Änderung an diesem Spielstand rückgängig machen?')) return;
+    try {
+        await authRequest(`/api/activity/${encodeURIComponent(activityId)}/undo`, { method: 'POST', body: '{}' });
+        await loadAllFromDb();
+        state.lastRenderedGameId = null;
+        renderGame();
+        await refreshCollaboration();
+    } catch (error) {
+        alert(error.message || 'Die Änderung konnte nicht rückgängig gemacht werden.');
+        await refreshCollaboration();
+    }
+}
 
 function startLiveSync() {
     if(state.autoRefreshInterval) return;
@@ -1147,6 +1225,30 @@ function renderLeaderIcon(label = 'Führt') {
     return `<span class="leader-badge" role="img" aria-label="${accessibleLabel}" title="${accessibleLabel}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 6 4 4 5-6 5 6 4-4-2 11H5L3 6ZM5 20h14"/></svg></span>`;
 }
 
+function renderPersonalDashboardCard() {
+    if (IS_PREVIEW_MODE || !authState.user?.playerId) return '';
+    const dashboard = buildPersonalDashboard(authState.user.playerId, state.players, state.activeGames, state.games);
+    const stats = buildPersonalStats(authState.user.playerId, state.players, state.games);
+    if (!dashboard || !stats) return '';
+    const resultLabels = { win: 'Sieg', loss: 'Niederlage', draw: 'Unentschieden', friendly: 'Freundschaftsspiel' };
+    const openGames = dashboard.openGames.length
+        ? dashboard.openGames.map(game => `<button class="dashboard-game" onclick="resumeGame(${Number(game.id)})"><span>${escapeHtml(game.name)}</span><strong>Öffnen</strong></button>`).join('')
+        : '<small>Keine eigene Partie läuft gerade.</small>';
+    const completed = dashboard.completed.length
+        ? dashboard.completed.map(game => `<li><span><strong>${escapeHtml(game.name)}</strong><small>${escapeHtml(game.date)}</small></span><em class="dashboard-result is-${game.result}">${resultLabels[game.result]}</em></li>`).join('')
+        : '<li><small>Noch keine Partie abgeschlossen.</small></li>';
+    const frequent = dashboard.frequentPlayers.length
+        ? dashboard.frequentPlayers.map(entry => `<span>${escapeHtml(entry.player.name)} · ${entry.count}×</span>`).join('')
+        : '<small>Noch keine gemeinsamen Partien.</small>';
+    return `<section class="personal-dashboard-card" aria-label="Dein persönliches Dashboard">
+        <div class="personal-dashboard-head"><div><span class="stats-eyebrow">Dein Dashboard</span><strong>Hallo ${escapeHtml(dashboard.player.name)}</strong></div><span>${stats.winRate}% Siege</span></div>
+        <div class="personal-dashboard-metrics"><div><strong>${dashboard.openGames.length}</strong><span>offen</span></div><div><strong>${stats.games}</strong><span>gewertet</span></div><div><strong>${stats.currentWinStreak}</strong><span>Serie</span></div></div>
+        <div class="dashboard-section"><span>Laufende eigene Spiele</span>${openGames}</div>
+        <div class="dashboard-section"><span>Letzte Ergebnisse</span><ul>${completed}</ul></div>
+        <div class="dashboard-section"><span>Oft gemeinsam gespielt</span><div class="dashboard-people">${frequent}</div></div>
+    </section>`;
+}
+
 function renderGame(isSyncUpdate = false) {
     if (state.isSettingUpGame) return; 
     syncLiveSyncState();
@@ -1161,7 +1263,7 @@ function renderGame(isSyncUpdate = false) {
             contentBox.innerHTML = `${renderPreviewBanner()}<section class="card preview-empty-card"><strong>Keine aktive Partie</strong><span>Sobald ein Spiel gestartet wird, erscheint der Spielstand automatisch hier.</span></section>`;
             return;
         }
-        let html = `
+        let html = `${renderPersonalDashboardCard()}
             <div class="card welcome-card">
                 <div class="welcome-kicker">Bereit für ein Spiel?</div>
                 <div class="title">Neues Spiel erstellen</div>
@@ -1335,6 +1437,7 @@ function renderGame(isSyncUpdate = false) {
                 <button type="button" class="secondary game-status-secondary game-action-icon" aria-label="Zur Übersicht" title="Zur Übersicht" onclick="pauseCurrentGame()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button>
             </div>
         </div>
+        ${IS_PREVIEW_MODE ? '' : '<section id="collaborationPanel" class="collaboration-panel" aria-live="polite"></section>'}
 
         <div class="card scoreboard-card" style="padding: 14px 12px;">
             <div class="scoreboard-heading">
@@ -1458,6 +1561,8 @@ function renderGame(isSyncUpdate = false) {
     }
 
     contentBox.innerHTML = html;
+    renderCollaborationPanel();
+    if (!IS_PREVIEW_MODE) void refreshCollaboration();
     updateFocusModeControls();
     
     setTimeout(() => {
@@ -1908,6 +2013,7 @@ let rankingPlayerFilter = "all";
 let rankingSortMode = "wins";
 let rankingGameFilter = "all";
 let historyGameFilter = "all";
+let personalComparisonPlayerId = null;
 
 function renderStatsPage() {
     renderPersonalStats();
@@ -1937,6 +2043,23 @@ function renderPersonalStats() {
     const recentForm = stats.recentForm.length
         ? stats.recentForm.map(result => `<span class="personal-form-dot is-${result}" role="img" aria-label="${formLabels[result]}" title="${formLabels[result]}"></span>`).join("")
         : '<small>Noch keine gewertete Partie</small>';
+    const comparisons = state.players
+        .filter(player => String(player.id) !== String(stats.player.id))
+        .map(player => ({ player, stats: buildHeadToHeadStats(stats.player.id, player.id, state.games) }))
+        .filter(entry => entry.stats.games > 0)
+        .sort((a, b) => b.stats.games - a.stats.games || String(a.player.name).localeCompare(String(b.player.name), 'de'));
+    if (!comparisons.some(entry => String(entry.player.id) === String(personalComparisonPlayerId))) {
+        personalComparisonPlayerId = comparisons[0]?.player.id ?? null;
+    }
+    const selectedComparison = comparisons.find(entry => String(entry.player.id) === String(personalComparisonPlayerId));
+    const comparisonHtml = selectedComparison ? `
+        <section class="personal-comparison-card" aria-label="Direkter Mitspieler-Vergleich">
+            <div class="personal-comparison-head"><div><span class="stats-eyebrow">Direkter Vergleich</span><strong>Du gegen</strong></div>
+                <select aria-label="Mitspieler auswählen" onchange="setPersonalComparison(this.value)">${comparisons.map(entry => `<option value="${entry.player.id}" ${String(entry.player.id) === String(personalComparisonPlayerId) ? 'selected' : ''}>${escapeHtml(entry.player.name)}</option>`).join('')}</select>
+            </div>
+            <div class="personal-comparison-grid"><div><strong>${selectedComparison.stats.games}</strong><span>Duelle</span></div><div><strong>${selectedComparison.stats.wins}</strong><span>Deine Siege</span></div><div><strong>${selectedComparison.stats.losses}</strong><span>Siege ${escapeHtml(selectedComparison.player.name)}</span></div><div><strong>${selectedComparison.stats.draws}</strong><span>Remis</span></div></div>
+        </section>` : `
+        <section class="personal-comparison-card is-empty"><span class="stats-eyebrow">Direkter Vergleich</span><strong>Noch keine gewerteten Duelle</strong><small>Sobald du gegen einen verknüpften Spieler spielst, erscheint hier euer Vergleich.</small></section>`;
 
     box.hidden = false;
     box.innerHTML = `
@@ -1958,7 +2081,12 @@ function renderPersonalStats() {
                 <div><span>Meistgespielt</span><strong>${favoriteLabel}</strong></div>
                 <div class="personal-form"><span>Letzte Form</span><div>${recentForm}</div></div>
             </div>
-        </section>`;
+        </section>${comparisonHtml}`;
+}
+
+function setPersonalComparison(playerId) {
+    personalComparisonPlayerId = playerId;
+    renderPersonalStats();
 }
 
 function renderStatsOverview() {
@@ -2702,6 +2830,7 @@ async function initApp() {
     renderGame();
     if (isFocusMode) requestFocusWakeLock();
     syncLiveSyncState();
+    startCollaborationSync();
 }
 
 // ===============================
@@ -3614,6 +3743,8 @@ window.triggerRenameHistoryGame = triggerRenameHistoryGame;
 window.submitRenameHistoryGame = submitRenameHistoryGame;
 window.startRematch = startRematch;
 window.customizeLastGame = customizeLastGame;
+window.undoActivity = undoActivity;
+window.setPersonalComparison = setPersonalComparison;
 window.setRankingGameFilter = setRankingGameFilter;
 window.setRankingPlayerFilter = setRankingPlayerFilter;
 window.setRankingSortMode = setRankingSortMode;

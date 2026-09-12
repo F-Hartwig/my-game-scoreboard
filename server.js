@@ -5,11 +5,12 @@ const Database = require('better-sqlite3');
 const QRCode = require('qrcode');
 const path = require('node:path');
 const { createAuth } = require('./auth.js');
+const { createCollaboration, migrateCollaboration } = require('./collaboration.js');
 
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'scoreboard.db');
-const SCHEMA_VERSION = 3;
+const SCHEMA_VERSION = 4;
 const JSON_LIMIT = process.env.JSON_LIMIT || '2mb';
 const ENDPOINTS = Object.freeze({
     players: { empty: [], maxItems: 500, adminWrite: false, userStatsOnly: true },
@@ -69,6 +70,7 @@ function migrateDatabase(db) {
             CREATE INDEX IF NOT EXISTS invitations_player ON invitations(player_id);
             PRAGMA user_version = 3; COMMIT;`);
     }
+    if (version < 4) migrateCollaboration(db);
     db.prepare('INSERT OR IGNORE INTO state (id, json_data) VALUES (?, ?)').run('gameNights', '[]');
 }
 
@@ -95,6 +97,12 @@ function migrateLegacyCurrentGame(db) {
 function isValidId(value) {
     return (Number.isSafeInteger(value) && value >= 0) ||
         (typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f-]{27,}$/.test(value));
+}
+
+function gameActivitySnapshot(game) {
+    if (!game || typeof game !== 'object' || Array.isArray(game)) return game;
+    const { wizardDraft, ...persistentScoreState } = game;
+    return persistentScoreState;
 }
 
 function validateUserPlayerStatsUpdate(existing, next) {
@@ -150,7 +158,8 @@ function validateTree(value, context = { nodes: 0 }, depth = 0, key = '') {
         const entries = Object.entries(value);
         if (entries.length > 100) throw new Error('Objekt enthält zu viele Felder.');
         for (const [childKey, childValue] of entries) {
-            if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(childKey)) throw new Error('Ungültiger Feldname.');
+            const wizardPlayerKey = key === 'wizardDraft' && /^\d+$/.test(childKey);
+            if (!/^[A-Za-z][A-Za-z0-9_]*$/.test(childKey) && !wizardPlayerKey) throw new Error('Ungültiger Feldname.');
             if (childKey === 'id' && !isValidId(childValue)) throw new Error('Ungültige ID.');
             if (childKey === 'gameNightId' && childValue !== null && !isValidId(childValue)) throw new Error('Ungültige ID.');
             validateTree(childValue, context, depth + 1, childKey);
@@ -255,40 +264,64 @@ async function createRuntime(options = {}) {
         return value;
     };
     const gameIdMatches = (game, id) => String(game?.id) === String(id);
+    const saveActiveGames = active => saveState.run('activeGames', JSON.stringify(active));
+    const collaboration = createCollaboration({
+        db,
+        auth,
+        readActiveGames,
+        saveActiveGames,
+        now: options.now || Date.now
+    });
+    collaboration.installRoutes(app);
 
     app.post('/api/active-games', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
-            const active = readActiveGames();
-            if (active.some(game => gameIdMatches(game, req.body.id))) return res.status(409).json({ error: 'Dieses Spiel existiert bereits.' });
-            active.push(req.body);
-            validatePayload('activeGames', active);
-            saveState.run('activeGames', JSON.stringify(active));
+            const create = db.transaction(() => {
+                const active = readActiveGames();
+                if (active.some(game => gameIdMatches(game, req.body.id))) throw Object.assign(new Error('Dieses Spiel existiert bereits.'), { status: 409 });
+                active.push(req.body);
+                validatePayload('activeGames', active);
+                saveActiveGames(active);
+                collaboration.recordCreated(req, req.body);
+            });
+            create.immediate();
             return res.status(201).json(req.body);
-        } catch (error) { return res.status(400).json({ error: error.message }); }
+        } catch (error) { return res.status(error.status || 400).json({ error: error.message }); }
     });
 
     app.put('/api/active-games/:id', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
             if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
-            const active = readActiveGames();
-            const index = active.findIndex(game => gameIdMatches(game, req.params.id));
-            if (index < 0) return res.status(404).json({ error: 'Spiel nicht gefunden.' });
-            active[index] = req.body;
-            saveState.run('activeGames', JSON.stringify(active));
+            const update = db.transaction(() => {
+                const active = readActiveGames();
+                const index = active.findIndex(game => gameIdMatches(game, req.params.id));
+                if (index < 0) throw Object.assign(new Error('Spiel nicht gefunden.'), { status: 404 });
+                const before = active[index];
+                active[index] = req.body;
+                saveActiveGames(active);
+                if (JSON.stringify(gameActivitySnapshot(before)) !== JSON.stringify(gameActivitySnapshot(req.body))) {
+                    collaboration.recordUpdated(req, before, req.body);
+                }
+            });
+            update.immediate();
             return res.json(req.body);
-        } catch (error) { return res.status(400).json({ error: error.message }); }
+        } catch (error) { return res.status(error.status || 400).json({ error: error.message }); }
     });
 
     app.delete('/api/active-games/:id', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
-            const active = readActiveGames();
-            const next = active.filter(game => !gameIdMatches(game, req.params.id));
-            if (next.length === active.length) return res.status(404).json({ error: 'Spiel nicht gefunden.' });
-            saveState.run('activeGames', JSON.stringify(next));
+            const remove = db.transaction(() => {
+                const active = readActiveGames();
+                const game = active.find(item => gameIdMatches(item, req.params.id));
+                if (!game) throw Object.assign(new Error('Spiel nicht gefunden.'), { status: 404 });
+                saveActiveGames(active.filter(item => !gameIdMatches(item, req.params.id)));
+                collaboration.recordDeleted(req, game);
+            });
+            remove.immediate();
             return res.sendStatus(204);
-        } catch (error) { return res.status(400).json({ error: error.message }); }
+        } catch (error) { return res.status(error.status || 400).json({ error: error.message }); }
     });
 
     app.post('/api/active-games/:id/finish', auth.requireAuth, auth.requireCsrf, (req, res) => {
@@ -325,7 +358,8 @@ async function createRuntime(options = {}) {
                 validatePayload('games', games);
                 saveState.run('players', JSON.stringify(players));
                 saveState.run('games', JSON.stringify(games));
-                saveState.run('activeGames', JSON.stringify(remaining));
+                saveActiveGames(remaining);
+                collaboration.recordFinished(req, req.body);
                 return { players, games, activeGames: remaining };
             });
             return res.json(finish.immediate());

@@ -97,7 +97,7 @@ test('migration preserves legacy data and moves the singleton game into active g
     for (const id of ['players', 'games', 'gameNights']) assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get(id).json_data, values[id]);
     assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get('activeGames').json_data, '[{"id":3},{"id":4}]');
     assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get('currentGame').json_data, 'null');
-    for (const table of ['users', 'sessions', 'invitations']) assert.ok(runtime.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table));
+    for (const table of ['users', 'sessions', 'invitations', 'activity_log']) assert.ok(runtime.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table));
 });
 
 test('first-run setup, password hashing, secure session cookie and CSRF', async t => {
@@ -198,6 +198,21 @@ test('multiple standalone games run independently for normal users', async t => 
     let active = (await user.request('/api/activeGames')).data;
     assert.equal(active.length, 2);
     assert.equal(active.find(game => game.id === 702).players[0].total, 0, 'second game stays unchanged');
+    const activity = await user.request('/api/active-games/701/activity');
+    assert.equal(activity.response.status, 200);
+    assert.equal(activity.data[0].summary, 'Punkte für Alice eingetragen');
+    assert.equal(activity.data[0].canUndo, true);
+    assert.equal(activity.data[0].undone, false);
+    const updateId = activity.data[0].id;
+    assert.equal((await user.post(`/api/activity/${updateId}/undo`)).response.status, 200);
+    active = (await user.request('/api/activeGames')).data;
+    assert.equal(active.find(game => game.id === 701).players[0].total, 0, 'undo restores only the matching game');
+    assert.equal((await user.post(`/api/activity/${updateId}/undo`)).response.status, 409, 'undo cannot be repeated');
+    const afterUndo = await user.request('/api/active-games/701/activity');
+    assert.equal(afterUndo.data[0].action, 'undo');
+    assert.equal(afterUndo.data.some(event => event.canUndo), false, 'older actions stay locked after undo');
+    assert.equal(afterUndo.data.find(event => event.id === updateId).undone, true);
+    assert.equal((await user.put('/api/active-games/701', gameA)).response.status, 200);
     gameA.winner = 'Alice'; gameA.winnerPartyIds = [101];
     const finished = await user.post('/api/active-games/701/finish', gameA);
     assert.equal(finished.response.status, 200, finished.text);
@@ -205,6 +220,36 @@ test('multiple standalone games run independently for normal users', async t => 
     assert.equal(finished.data.players.find(player => player.id === 101).wins, 1);
     assert.equal(finished.data.players.find(player => player.id === 101).points, 9);
     assert.equal((await user.post('/api/active-games/701/finish', gameA)).response.status, 404, 'cannot finish twice');
+});
+
+test('presence shows active editors and expires stale sessions', async t => {
+    let clock = Date.now();
+    const f = await fixture(t, { now: () => clock });
+    const admin = await setupAdmin(f);
+    await savePlayers(admin);
+    assert.equal((await admin.post('/api/users', { username: 'alice', password: USER_PASSWORD, playerId: 101 })).response.status, 201);
+    const user = await login(f.base, 'alice');
+    const game = { id: 801, name: 'Live', mode: 'round', rated: true, players: [
+        { id: 101, name: 'Alice', playerIds: [101], rounds: [], total: 0 },
+        { id: 102, name: 'Bob', playerIds: [102], rounds: [], total: 0 }
+    ] };
+    assert.equal((await admin.post('/api/active-games', game)).response.status, 201);
+    game.wizardDraft = { 101: { bid: '2' } };
+    assert.equal((await admin.put('/api/active-games/801', game)).response.status, 200);
+    const draftActivity = await admin.request('/api/active-games/801/activity');
+    assert.deepEqual(draftActivity.data.map(event => event.action), ['created'], 'wizard draft autosaves do not flood activity');
+    assert.equal((await admin.post('/api/presence', { gameId: 801, page: 'game', editing: false })).response.status, 200);
+    assert.equal((await user.post('/api/presence', { gameId: 801, page: 'game', editing: true })).response.status, 200);
+    let presence = await admin.request('/api/presence?gameId=801');
+    assert.equal(presence.response.status, 200);
+    assert.equal(presence.data.length, 2);
+    assert.equal(presence.data.find(entry => entry.username === 'alice').editing, true);
+    assert.equal(presence.data.find(entry => entry.username === 'master').self, true);
+    assert.equal(presence.data.find(entry => entry.username === 'alice').self, false);
+    clock += 20001;
+    assert.equal((await admin.post('/api/presence', { gameId: 801, page: 'game', editing: false })).response.status, 200);
+    presence = await admin.request('/api/presence?gameId=801');
+    assert.deepEqual(presence.data.map(entry => entry.username), ['master']);
 });
 
 test('direct accounts support optional binding changes and enforce atomic uniqueness', async t => {

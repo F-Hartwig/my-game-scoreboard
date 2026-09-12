@@ -34,3 +34,17 @@ test('user bindings save directly from the select without a confirmation button'
   assert.doesNotMatch(source, /class="icon-btn edit-btn"/);
   assert.match(source, /select\.value = previousValue/);
 });
+
+test('multi-user UI wires presence, safe undo, dashboard and comparison without feature five', async () => {
+  const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const serverSource = await fs.readFile(new URL('../server.js', import.meta.url), 'utf8');
+  const collaborationSource = await fs.readFile(new URL('../collaboration.js', import.meta.url), 'utf8');
+
+  assert.match(appSource, /\/api\/presence/);
+  assert.match(appSource, /function undoActivity/);
+  assert.match(appSource, /buildPersonalDashboard/);
+  assert.match(appSource, /buildHeadToHeadStats/);
+  assert.match(serverSource, /SCHEMA_VERSION = 4/);
+  assert.match(collaborationSource, /Nur die letzte Änderung kann rückgängig gemacht werden/);
+  assert.doesNotMatch(appSource, /Revanche-Abstimmung|achievement-card|Erfolge freigeschaltet/i);
+});

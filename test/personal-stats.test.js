@@ -32,3 +32,19 @@ test('personal stats stay hidden for an unlinked or unknown player', async () =>
     assert.equal(buildPersonalStats(null, [{ id: 1, name: 'Anna' }], []), null);
     assert.equal(buildPersonalStats(2, [{ id: 1, name: 'Anna' }], []), null);
 });
+
+test('dashboard and head-to-head use the linked player across teams', async () => {
+    const { buildPersonalDashboard, buildHeadToHeadStats } = await import('../personal-stats.mjs');
+    const players = [{ id: 1, name: 'Anna' }, { id: 2, name: 'Ben' }, { id: 3, name: 'Cara' }];
+    const active = [{ id: 9, name: 'Offen', players: [{ id: 10, playerIds: [1, 3] }, { id: 2, playerIds: [2] }] }];
+    const games = [
+        { id: 1, name: 'Cabo', rated: true, winnerPartyIds: [1], players: [{ id: 1, name: 'Anna', playerIds: [1] }, { id: 2, name: 'Ben', playerIds: [2] }] },
+        { id: 2, name: 'Wizard', rated: true, winnerPartyIds: [20], players: [{ id: 20, name: 'Team', playerIds: [1, 2] }, { id: 3, name: 'Cara', playerIds: [3] }] },
+        { id: 3, name: 'Cabo', rated: true, winner: 'Unentschieden', players: [{ id: 1, name: 'Anna', playerIds: [1] }, { id: 2, name: 'Ben', playerIds: [2] }] }
+    ];
+    const dashboard = buildPersonalDashboard(1, players, active, games);
+    assert.deepEqual(dashboard.openGames.map(game => game.id), [9]);
+    assert.equal(dashboard.completed.length, 3);
+    assert.equal(dashboard.frequentPlayers[0].player.name, 'Ben');
+    assert.deepEqual(buildHeadToHeadStats(1, 2, games), { games: 2, wins: 1, losses: 0, draws: 1 });
+});
