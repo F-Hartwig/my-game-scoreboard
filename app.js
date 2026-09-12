@@ -1243,7 +1243,7 @@ function renderPersonalDashboardCard() {
         ? dashboard.frequentPlayers.map(entry => `<span>${escapeHtml(entry.player.name)} · ${entry.count}×</span>`).join('')
         : '<small>Noch keine gemeinsamen Partien.</small>';
     return `<section class="personal-dashboard-card" aria-label="Dein persönliches Dashboard">
-        <div class="personal-dashboard-head"><div><span class="dashboard-eyebrow">Für dich</span><strong>Hallo ${escapeHtml(dashboard.player.name)}</strong></div><span class="dashboard-win-rate">${stats.winRate}% Siege</span></div>
+        <div class="personal-dashboard-head"><div><span class="dashboard-eyebrow">Für dich</span><strong>Hallo ${escapeHtml(dashboard.player.name)}</strong></div><span class="dashboard-win-rate">${stats.winRate} % Siege</span></div>
         <div class="personal-dashboard-metrics"><div><strong>${dashboard.openGames.length}</strong><span>offen</span></div><div><strong>${stats.games}</strong><span>gewertet</span></div><div><strong>${stats.currentWinStreak}</strong><span>Serie</span></div></div>
         <div class="dashboard-section"><span>Laufende eigene Spiele</span>${openGames}</div>
         <div class="dashboard-section dashboard-form-section"><span>Letzte Form</span><div class="dashboard-form" aria-label="Letzte Form">${recentForm}</div></div>
@@ -1288,7 +1288,6 @@ function renderGame(isSyncUpdate = false) {
                                 <strong style="color:var(--text); font-size:15px; display:block; margin-bottom:2px;">${escapeHtml(ag.name)}${ratedBadge}</strong>
                                 <span style="font-size:11px; font-weight:600;">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
-                            <span class="active-game-badge paused-status" role="img" aria-label="Aktiv" title="Aktiv"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/></svg></span>
                         </div>
                         <div class="active-game-players-box">
                             ${ag.players.map(x => `
