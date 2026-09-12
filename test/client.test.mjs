@@ -51,9 +51,12 @@ test('multi-user UI wires presence, safe undo, dashboard and comparison without 
 
 test('collaboration refresh preserves activity disclosure and home keeps a compact primary action first', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const indexSource = await fs.readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(source, /activityWasOpen = Boolean\(panel\.querySelector\('\.activity-card'\)\?\.open\)/);
   assert.match(source, /<details class="activity-card"\$\{activityWasOpen \? ' open' : ''\}>/);
   assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
   assert.match(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
+  assert.match(indexSource, /style\.css\?v=multi-user-2/);
+  assert.match(indexSource, /app\.js\?v=multi-user-2/);
 });
