@@ -17,3 +17,12 @@ test('new and repeated games have no game-night assignment', async () => {
   assert.match(source, /function startSetup\(prefillGame = null\)/);
   assert.match(source, /function startRematch\(\)/);
 });
+
+test('app and API share one auth module instance for CSRF state', async () => {
+  const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const apiSource = await fs.readFile(new URL('../api.js', import.meta.url), 'utf8');
+  const authImport = /from ['"](\.\/auth-client\.js[^'"]*)['"]/;
+
+  assert.equal(appSource.match(authImport)?.[1], './auth-client.js');
+  assert.equal(apiSource.match(authImport)?.[1], './auth-client.js');
+});
