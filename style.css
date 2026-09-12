@@ -91,6 +91,11 @@ body.is-user .scoreboard-share-btn { display: none !important; }
         flex: 1 1 50%;
         justify-content: center;
     }
+    .player-account-modal #modalActions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .player-account-modal #modalActions > button { width: 100%; }
 }
 
 [data-theme="dark"] {
