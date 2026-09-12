@@ -349,6 +349,7 @@ test('favorite migration copies legacy favorites to every existing account', asy
     db.prepare('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)').run(1, 'master', 'hash', 'admin', '101', 1);
     db.prepare('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)').run(2, 'alice', 'hash', 'user', '102', 1);
     migrateDatabase(db);
+    migrateDatabase(db);
     assert.equal(db.pragma('user_version', { simple: true }), 5);
     assert.deepEqual(db.prepare('SELECT user_id, player_id FROM user_favorites ORDER BY user_id').all(), [
         { user_id: 1, player_id: '101' },
@@ -366,20 +367,23 @@ test('each account manages an independent player favorite list', async t => {
 
     assert.deepEqual((await admin.request('/api/favorites')).data, []);
     assert.deepEqual((await alice.request('/api/favorites')).data, []);
-    assert.equal((await admin.post('/api/favorites', [101])).response.status, 200);
-    assert.equal((await alice.post('/api/favorites', [102])).response.status, 200);
-    assert.deepEqual((await admin.request('/api/favorites')).data, ['101']);
+    assert.equal((await admin.put('/api/favorites/101', { favorite: true })).response.status, 200);
+    assert.equal((await alice.put('/api/favorites/102', { favorite: true })).response.status, 200);
+    const adminFavorites = await admin.request('/api/favorites');
+    assert.deepEqual(adminFavorites.data, ['101']);
+    assert.equal(adminFavorites.response.headers.get('cache-control'), 'no-store');
     assert.deepEqual((await alice.request('/api/favorites')).data, ['102']);
-    assert.equal((await alice.post('/api/favorites', [999])).response.status, 400);
-    assert.equal((await alice.post('/api/favorites', [102], { csrf: false })).response.status, 403);
+    assert.equal((await alice.put('/api/favorites/999', { favorite: true })).response.status, 404);
+    assert.equal((await alice.put('/api/favorites/102', { favorite: false }, { csrf: false })).response.status, 403);
     assert.equal((await anonymous.request('/api/favorites')).response.status, 401);
-    assert.equal((await anonymous.post('/api/favorites', [101])).response.status, 401);
+    assert.equal((await anonymous.put('/api/favorites/101', { favorite: true })).response.status, 401);
 
     const playerUpdate = [{ id: 101, name: 'Alice', favorite: true, wins: 1, games: 1, points: 5 }, { id: 102, name: 'Bob', favorite: false, wins: 0, games: 1, points: 0 }, { id: 103, name: 'Cara', favorite: false, wins: 0, games: 0, points: 0 }];
     assert.equal((await alice.post('/api/players', playerUpdate)).response.status, 200, 'favorite overlay does not block score updates');
     const storedPlayers = JSON.parse(f.runtime.db.prepare("SELECT json_data FROM state WHERE id = 'players'").get().json_data);
     assert.equal(storedPlayers[0].favorite, false, 'personal favorite never leaks into shared player state');
 
+    assert.equal((await alice.put('/api/favorites/102', { favorite: true })).response.status, 200);
     assert.equal((await admin.post('/api/players', storedPlayers.filter(player => player.id !== 102))).response.status, 200);
     assert.deepEqual((await alice.request('/api/favorites')).data, [], 'deleted players are removed from favorites');
 });

@@ -91,6 +91,7 @@ test('player favorites are loaded and saved per authenticated account', async ()
   const stateSource = await fs.readFile(new URL('../state.js', import.meta.url), 'utf8');
   assert.match(stateSource, /apiFetch\('favorites'\)/);
   assert.match(stateSource, /favoritePlayerIds/);
-  assert.match(appSource, /apiSave\('favorites', favoriteIds\)/);
+  assert.match(appSource, /authRequest\(`\/api\/favorites\/\$\{encodeURIComponent\(id\)\}`/);
+  assert.match(appSource, /state\.players = applyFavoriteSelection\(finished\.players\)/);
   assert.doesNotMatch(appSource, /favorite-btn admin-only/);
 });

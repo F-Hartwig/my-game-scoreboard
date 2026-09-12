@@ -30,10 +30,10 @@ const anonymousWrite = await request('/api/players', {
 assert.equal(anonymousWrite.response.status, 401);
 
 assert.equal((await request('/api/favorites')).response.status, 401);
-assert.equal((await request('/api/favorites', {
-    method: 'POST',
+assert.equal((await request('/api/favorites/1', {
+    method: 'PUT',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify([])
+    body: JSON.stringify({ favorite: true })
 })).response.status, 401);
 
 const oversized = await request('/api/players', {

@@ -32,6 +32,11 @@ function currentGameViewSnapshot(game) {
     return stateSnapshot(visibleGameState);
 }
 
+export function applyFavoriteSelection(players) {
+    const favoriteIds = new Set(state.favoritePlayerIds);
+    return players.map(player => ({ ...player, favorite: favoriteIds.has(String(player.id)) }));
+}
+
 export async function loadAllFromDb(shouldAbort = null) {
     const unchangedResult = {
         loaded: false,
@@ -73,10 +78,7 @@ export async function loadAllFromDb(shouldAbort = null) {
     if (loadBecameStale) return unchangedResult;
 
     if (Array.isArray(favorites)) state.favoritePlayerIds = favorites.map(String);
-    if (Array.isArray(players)) {
-        const favoriteIds = new Set(state.favoritePlayerIds);
-        state.players = players.map(player => ({ ...player, favorite: favoriteIds.has(String(player.id)) }));
-    }
+    if (Array.isArray(players)) state.players = applyFavoriteSelection(players);
     if (Array.isArray(games)) state.games = games;
     if (Array.isArray(activeGames)) {
         state.activeGames = activeGames;

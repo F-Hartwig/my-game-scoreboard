@@ -1,5 +1,5 @@
 import { apiSave, apiCreateActiveGame, apiUpdateActiveGame, apiDeleteActiveGame, apiFinishActiveGame } from './api.js';
-import { state, loadAllFromDb } from './state.js';
+import { state, applyFavoriteSelection, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
 import { authState, authRequest, initializeAuth } from './auth-client.js';
@@ -475,14 +475,17 @@ async function toggleFav(id) {
     let p = state.players.find(x => x.id === id);
     if(!p) return;
     const nextFavorite = !p.favorite;
-    const favoriteIds = state.players
-        .filter(player => player.id === id ? nextFavorite : player.favorite)
-        .map(player => player.id);
-    const saved = await apiSave('favorites', favoriteIds);
-    if (!saved) return;
-    p.favorite = nextFavorite;
-    state.favoritePlayerIds = favoriteIds.map(String);
-    renderPlayers();
+    try {
+        await authRequest(`/api/favorites/${encodeURIComponent(id)}`, {
+            method: 'PUT',
+            body: JSON.stringify({ favorite: nextFavorite })
+        });
+        p.favorite = nextFavorite;
+        state.favoritePlayerIds = state.players.filter(player => player.favorite).map(player => String(player.id));
+        renderPlayers();
+    } catch (error) {
+        alert(error.message || 'Favorit konnte nicht gespeichert werden.');
+    }
 }
 
 function setPlayerListFilter(filter) {
@@ -1966,7 +1969,7 @@ async function saveGame() {
     const finishedGameCopy = state.currentGame;
     const finished = await apiFinishActiveGame(finishedGameCopy);
     if (!finished) return;
-    state.players = finished.players;
+    state.players = applyFavoriteSelection(finished.players);
     state.games = finished.games;
     state.activeGames = finished.activeGames;
     state.currentGame = null;

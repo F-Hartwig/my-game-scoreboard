@@ -80,11 +80,9 @@ function migrateDatabase(db) {
             );
             CREATE INDEX IF NOT EXISTS user_favorites_player ON user_favorites(player_id);`);
             const playersRow = db.prepare('SELECT json_data FROM state WHERE id = ?').get('players');
-            let favoritePlayerIds = [];
-            try {
-                const players = playersRow ? JSON.parse(playersRow.json_data) : [];
-                if (Array.isArray(players)) favoritePlayerIds = players.filter(player => player?.favorite).map(player => String(player.id));
-            } catch {}
+            const players = playersRow ? JSON.parse(playersRow.json_data) : [];
+            if (!Array.isArray(players)) throw new Error('Gespeicherte Spielerdaten sind beschädigt.');
+            const favoritePlayerIds = players.filter(player => player?.favorite).map(player => String(player.id));
             const insertFavorite = db.prepare('INSERT OR IGNORE INTO user_favorites (user_id, player_id) VALUES (?, ?)');
             for (const user of db.prepare('SELECT id FROM users').all()) {
                 for (const playerId of favoritePlayerIds) insertFavorite.run(user.id, playerId);
@@ -298,24 +296,24 @@ async function createRuntime(options = {}) {
 
     app.get('/api/favorites', auth.requireAuth, (req, res) => {
         const rows = db.prepare('SELECT player_id FROM user_favorites WHERE user_id = ? ORDER BY player_id').all(req.auth.user.id);
-        return res.json(rows.map(row => row.player_id));
+        return res.set('Cache-Control', 'no-store').json(rows.map(row => row.player_id));
     });
 
-    app.post('/api/favorites', auth.requireAuth, auth.requireCsrf, (req, res) => {
+    app.put('/api/favorites/:playerId', auth.requireAuth, auth.requireCsrf, (req, res, next) => {
         try {
-            if (!Array.isArray(req.body) || req.body.length > 500) throw new Error('Favoriten müssen eine Liste sein.');
-            const playerIds = [...new Set(req.body.map(value => String(value)))];
-            const existingPlayerIds = new Set(readPlayers().map(player => String(player.id)));
-            if (playerIds.some(id => !existingPlayerIds.has(id))) throw new Error('Ein ausgewählter Spieler existiert nicht.');
-            const replaceFavorites = db.transaction(() => {
-                db.prepare('DELETE FROM user_favorites WHERE user_id = ?').run(req.auth.user.id);
-                const insert = db.prepare('INSERT INTO user_favorites (user_id, player_id) VALUES (?, ?)');
-                for (const playerId of playerIds) insert.run(req.auth.user.id, playerId);
-            });
-            replaceFavorites.immediate();
-            return res.json({ success: true });
+            if (!req.body || typeof req.body !== 'object' || Array.isArray(req.body) || typeof req.body.favorite !== 'boolean' || Object.keys(req.body).length !== 1) {
+                return res.status(400).json({ error: 'Favoritenstatus ist ungültig.' });
+            }
+            const playerId = String(req.params.playerId);
+            if (!readPlayers().some(player => String(player.id) === playerId)) return res.status(404).json({ error: 'Spieler nicht gefunden.' });
+            if (req.body.favorite) {
+                db.prepare('INSERT OR IGNORE INTO user_favorites (user_id, player_id) VALUES (?, ?)').run(req.auth.user.id, playerId);
+            } else {
+                db.prepare('DELETE FROM user_favorites WHERE user_id = ? AND player_id = ?').run(req.auth.user.id, playerId);
+            }
+            return res.json({ playerId, favorite: req.body.favorite });
         } catch (error) {
-            return res.status(400).json({ error: error.message });
+            return next(error);
         }
     });
 
