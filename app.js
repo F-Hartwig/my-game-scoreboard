@@ -473,8 +473,15 @@ async function addPlayer() {
 
 async function toggleFav(id) {
     let p = state.players.find(x => x.id === id);
-    if(p) p.favorite = !p.favorite;
-    await apiSave('players', state.players);
+    if(!p) return;
+    const nextFavorite = !p.favorite;
+    const favoriteIds = state.players
+        .filter(player => player.id === id ? nextFavorite : player.favorite)
+        .map(player => player.id);
+    const saved = await apiSave('favorites', favoriteIds);
+    if (!saved) return;
+    p.favorite = nextFavorite;
+    state.favoritePlayerIds = favoriteIds.map(String);
     renderPlayers();
 }
 
@@ -576,7 +583,7 @@ function renderPlayers() {
                 </div>
                 <div class="actions">
                     <button class="icon-btn edit-btn admin-only" onclick="openPlayerAccount('${String(p.id)}')" aria-label="Konto verwalten" title="Konto verwalten">ID</button>
-                    <button class="icon-btn favorite-btn admin-only ${p.favorite ? "is-favorite" : ""}"
+                    <button class="icon-btn favorite-btn ${p.favorite ? "is-favorite" : ""}"
                             onclick="toggleFav(${p.id})"
                             aria-label="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}"
                             aria-pressed="${Boolean(p.favorite)}"

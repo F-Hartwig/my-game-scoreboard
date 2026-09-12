@@ -5,6 +5,7 @@ export const state = {
     players: [],
     games: [],
     activeGames: [],
+    favoritePlayerIds: [],
     currentGame: null,
     activeEditPlayerId: null,
     showAllHistory: false,
@@ -37,6 +38,7 @@ export async function loadAllFromDb(shouldAbort = null) {
         playersChanged: false,
         gamesChanged: false,
         activeGamesChanged: false,
+        favoritesChanged: false,
         currentGameChanged: false
     };
 
@@ -48,14 +50,17 @@ export async function loadAllFromDb(shouldAbort = null) {
         players: stateSnapshot(state.players),
         games: stateSnapshot(state.games),
         activeGames: stateSnapshot(state.activeGames),
+        favorites: stateSnapshot(state.favoritePlayerIds),
         currentGame: currentGameViewSnapshot(state.currentGame)
     };
 
     const selectedGameId = state.currentGame?.id;
-    const [players, games, activeGames] = await Promise.all([
+    const isPreview = new URLSearchParams(window.location.search).get('preview') === '1';
+    const [players, games, activeGames, favorites] = await Promise.all([
         apiFetch('players'),
         apiFetch('games'),
-        apiFetch('activeGames')
+        apiFetch('activeGames'),
+        isPreview ? Promise.resolve([]) : apiFetch('favorites')
     ]);
 
     const loadBecameStale = (
@@ -67,7 +72,11 @@ export async function loadAllFromDb(shouldAbort = null) {
     );
     if (loadBecameStale) return unchangedResult;
 
-    if (Array.isArray(players)) state.players = players;
+    if (Array.isArray(favorites)) state.favoritePlayerIds = favorites.map(String);
+    if (Array.isArray(players)) {
+        const favoriteIds = new Set(state.favoritePlayerIds);
+        state.players = players.map(player => ({ ...player, favorite: favoriteIds.has(String(player.id)) }));
+    }
     if (Array.isArray(games)) state.games = games;
     if (Array.isArray(activeGames)) {
         state.activeGames = activeGames;
@@ -85,6 +94,7 @@ export async function loadAllFromDb(shouldAbort = null) {
         playersChanged: previousState.players !== stateSnapshot(state.players),
         gamesChanged: previousState.games !== stateSnapshot(state.games),
         activeGamesChanged: previousState.activeGames !== stateSnapshot(state.activeGames),
+        favoritesChanged: previousState.favorites !== stateSnapshot(state.favoritePlayerIds),
         currentGameChanged: previousState.currentGame !== currentGameViewSnapshot(state.currentGame)
     };
 }

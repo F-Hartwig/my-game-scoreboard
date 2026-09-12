@@ -44,7 +44,7 @@ test('multi-user UI wires presence, safe undo, dashboard and comparison without 
   assert.match(appSource, /function undoActivity/);
   assert.match(appSource, /buildPersonalDashboard/);
   assert.match(appSource, /buildHeadToHeadStats/);
-  assert.match(serverSource, /SCHEMA_VERSION = 4/);
+  assert.match(serverSource, /SCHEMA_VERSION = 5/);
   assert.match(collaborationSource, /Nur die letzte Änderung kann rückgängig gemacht werden/);
   assert.doesNotMatch(appSource, /Revanche-Abstimmung|achievement-card|Erfolge freigeschaltet/i);
 });
@@ -57,8 +57,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
   assert.match(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=game-resume-1/);
-  assert.match(indexSource, /app\.js\?v=game-resume-1/);
+  assert.match(indexSource, /style\.css\?v=user-favorites-1/);
+  assert.match(indexSource, /app\.js\?v=user-favorites-1/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -84,4 +84,13 @@ test('reload restores the open game for the current browser tab', async () => {
   assert.match(source, /state\.activeGames\.find\(game => String\(game\.id\) === storedGameId\) \|\| null/);
   assert.match(source, /await loadAllFromDb\(\);\s+restoreCurrentGameAfterReload\(\);/);
   assert.match(source, /async function pauseCurrentGame\(\)[\s\S]*?state\.currentGame = null;\s+rememberCurrentGame\(\);/);
+});
+
+test('player favorites are loaded and saved per authenticated account', async () => {
+  const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const stateSource = await fs.readFile(new URL('../state.js', import.meta.url), 'utf8');
+  assert.match(stateSource, /apiFetch\('favorites'\)/);
+  assert.match(stateSource, /favoritePlayerIds/);
+  assert.match(appSource, /apiSave\('favorites', favoriteIds\)/);
+  assert.doesNotMatch(appSource, /favorite-btn admin-only/);
 });

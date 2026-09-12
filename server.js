@@ -10,7 +10,7 @@ const { createCollaboration, migrateCollaboration } = require('./collaboration.j
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'scoreboard.db');
-const SCHEMA_VERSION = 4;
+const SCHEMA_VERSION = 5;
 const JSON_LIMIT = process.env.JSON_LIMIT || '2mb';
 const ENDPOINTS = Object.freeze({
     players: { empty: [], maxItems: 500, adminWrite: false, userStatsOnly: true },
@@ -71,6 +71,28 @@ function migrateDatabase(db) {
             PRAGMA user_version = 3; COMMIT;`);
     }
     if (version < 4) migrateCollaboration(db);
+    if (version < 5) {
+        const migrateFavorites = db.transaction(() => {
+            db.exec(`CREATE TABLE IF NOT EXISTS user_favorites (
+                user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                player_id TEXT NOT NULL,
+                PRIMARY KEY (user_id, player_id)
+            );
+            CREATE INDEX IF NOT EXISTS user_favorites_player ON user_favorites(player_id);`);
+            const playersRow = db.prepare('SELECT json_data FROM state WHERE id = ?').get('players');
+            let favoritePlayerIds = [];
+            try {
+                const players = playersRow ? JSON.parse(playersRow.json_data) : [];
+                if (Array.isArray(players)) favoritePlayerIds = players.filter(player => player?.favorite).map(player => String(player.id));
+            } catch {}
+            const insertFavorite = db.prepare('INSERT OR IGNORE INTO user_favorites (user_id, player_id) VALUES (?, ?)');
+            for (const user of db.prepare('SELECT id FROM users').all()) {
+                for (const playerId of favoritePlayerIds) insertFavorite.run(user.id, playerId);
+            }
+            db.pragma('user_version = 5');
+        });
+        migrateFavorites.immediate();
+    }
     db.prepare('INSERT OR IGNORE INTO state (id, json_data) VALUES (?, ?)').run('gameNights', '[]');
 }
 
@@ -112,7 +134,7 @@ function validateUserPlayerStatsUpdate(existing, next) {
     for (let index = 0; index < existing.length; index += 1) {
         const before = { ...existing[index] };
         const after = { ...next[index] };
-        for (const key of ['wins', 'games', 'points']) {
+        for (const key of ['favorite', 'wins', 'games', 'points']) {
             delete before[key];
             delete after[key];
         }
@@ -274,6 +296,29 @@ async function createRuntime(options = {}) {
     });
     collaboration.installRoutes(app);
 
+    app.get('/api/favorites', auth.requireAuth, (req, res) => {
+        const rows = db.prepare('SELECT player_id FROM user_favorites WHERE user_id = ? ORDER BY player_id').all(req.auth.user.id);
+        return res.json(rows.map(row => row.player_id));
+    });
+
+    app.post('/api/favorites', auth.requireAuth, auth.requireCsrf, (req, res) => {
+        try {
+            if (!Array.isArray(req.body) || req.body.length > 500) throw new Error('Favoriten müssen eine Liste sein.');
+            const playerIds = [...new Set(req.body.map(value => String(value)))];
+            const existingPlayerIds = new Set(readPlayers().map(player => String(player.id)));
+            if (playerIds.some(id => !existingPlayerIds.has(id))) throw new Error('Ein ausgewählter Spieler existiert nicht.');
+            const replaceFavorites = db.transaction(() => {
+                db.prepare('DELETE FROM user_favorites WHERE user_id = ?').run(req.auth.user.id);
+                const insert = db.prepare('INSERT INTO user_favorites (user_id, player_id) VALUES (?, ?)');
+                for (const playerId of playerIds) insert.run(req.auth.user.id, playerId);
+            });
+            replaceFavorites.immediate();
+            return res.json({ success: true });
+        } catch (error) {
+            return res.status(400).json({ error: error.message });
+        }
+    });
+
     app.post('/api/active-games', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
@@ -393,9 +438,17 @@ async function createRuntime(options = {}) {
                     validateUserGameAppend(current ? JSON.parse(current.json_data) : [], payload);
                 }
                 if (endpoint === 'players') {
-                    const playerIds = new Set(payload.map(player => String(player.id)));
+                    const existingPlayers = readPlayers();
+                    const persistedPayload = payload.map(player => {
+                        const existing = existingPlayers.find(item => String(item.id) === String(player.id));
+                        return existing && Object.hasOwn(existing, 'favorite')
+                            ? { ...player, favorite: Boolean(existing.favorite) }
+                            : player;
+                    });
+                    const playerIds = new Set(persistedPayload.map(player => String(player.id)));
                     const reconcile = db.transaction(() => {
-                        saveState.run(endpoint, JSON.stringify(payload));
+                        saveState.run(endpoint, JSON.stringify(persistedPayload));
+                        db.prepare(`DELETE FROM user_favorites WHERE player_id NOT IN (${playerIds.size ? [...playerIds].map(() => '?').join(',') : "''"})`).run(...playerIds);
                         for (const user of db.prepare('SELECT id, player_id FROM users WHERE player_id IS NOT NULL').all()) {
                             if (!playerIds.has(user.player_id)) db.prepare('UPDATE users SET player_id = NULL WHERE id = ?').run(user.id);
                         }

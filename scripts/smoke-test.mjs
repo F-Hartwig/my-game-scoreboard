@@ -13,7 +13,7 @@ async function request(path, options = {}) {
 const health = await request('/api/health');
 assert.equal(health.response.status, 200);
 assert.equal(health.body.status, 'ok');
-assert.equal(health.body.schemaVersion, 4);
+assert.equal(health.body.schemaVersion, 5);
 
 for (const endpoint of ['players', 'games', 'activeGames', 'currentGame', 'gameNights']) {
     const privateResult = await request(`/api/${endpoint}`);
@@ -29,6 +29,13 @@ const anonymousWrite = await request('/api/players', {
 });
 assert.equal(anonymousWrite.response.status, 401);
 
+assert.equal((await request('/api/favorites')).response.status, 401);
+assert.equal((await request('/api/favorites', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify([])
+})).response.status, 401);
+
 const oversized = await request('/api/players', {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
@@ -36,4 +43,4 @@ const oversized = await request('/api/players', {
 });
 assert.equal(oversized.response.status, 413);
 
-console.log(`smoke ok: ${baseUrl}, schema=4, private=5, preview=5, anonymous-write=blocked, payload-limit=ok`);
+console.log(`smoke ok: ${baseUrl}, schema=5, private=6, preview=5, anonymous-write=blocked, payload-limit=ok`);
