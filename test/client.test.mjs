@@ -26,3 +26,11 @@ test('app and API share one auth module instance for CSRF state', async () => {
   assert.equal(appSource.match(authImport)?.[1], './auth-client.js');
   assert.equal(apiSource.match(authImport)?.[1], './auth-client.js');
 });
+
+test('user bindings save directly from the select without a confirmation button', async () => {
+  const source = await fs.readFile(new URL('../auth-client.js', import.meta.url), 'utf8');
+
+  assert.match(source, /onchange="saveUserBinding\(\$\{user\.id\}, this\)"/);
+  assert.doesNotMatch(source, /class="icon-btn edit-btn"/);
+  assert.match(source, /select\.value = previousValue/);
+});

@@ -71,7 +71,9 @@
 .header-actions { display: flex; align-items: center; gap: 7px; }
 .account-btn { width: auto; min-height: 42px; padding: 0 12px; border-radius: 14px; font-size: 11px; }
 .user-list { display: grid; gap: 9px; }
-.user-row { padding: 10px; display: grid; grid-template-columns: minmax(80px, 1fr) minmax(110px, 1.3fr) 36px 36px; align-items: center; gap: 7px; background: var(--surface-soft); border: 1px solid var(--border-strong); border-radius: 14px; }
+.user-row { padding: 10px; display: grid; align-items: center; gap: 12px; background: var(--surface-soft); border: 1px solid var(--border-strong); border-radius: 14px; }
+.user-account-row { grid-template-columns: minmax(80px, 1fr) minmax(140px, 1.4fr) 36px; }
+.invitation-row { grid-template-columns: minmax(0, 1fr) 36px; }
 .user-row > div { min-width: 0; display: grid; }
 .user-row strong { overflow: hidden; text-overflow: ellipsis; }
 .user-row small { color: var(--muted); }
@@ -83,7 +85,8 @@ body.is-user .scoreboard-share-btn { display: none !important; }
 @media (max-width: 520px) {
     .header-actions { gap: 4px; }
     .account-btn, .theme-toggle-btn { padding-inline: 9px; }
-    .user-row { grid-template-columns: 1fr 36px 36px; }
+    .user-account-row { grid-template-columns: minmax(0, 1fr) 36px; }
+    .invitation-row { grid-template-columns: minmax(0, 1fr) 36px; }
     .user-row > div { grid-column: 1 / -1; }
     .player-list-toolbar,
     .player-list-toolbar .player-filter,

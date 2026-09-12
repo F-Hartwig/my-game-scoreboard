@@ -206,16 +206,32 @@ export async function deletePlayerAccount(id) {
 export async function openUserManagement() {
     try {
         const [{ players, users }, invitations] = await Promise.all([playersAndUsers(), jsonRequest('/api/invitations')]);
-        const rows = users.map(user => `<div class="user-row"><div><strong>${html(user.username)}</strong><small>${user.role === 'admin' ? 'Master' : 'Benutzer'}</small></div><select id="userPlayer_${user.id}" aria-label="Spielerzuordnung"><option value="">Nicht verknüpft</option>${players.map(player => `<option value="${html(player.id)}" ${String(user.playerId) === String(player.id) ? 'selected' : ''}>${html(player.name)}</option>`).join('')}</select><button class="icon-btn edit-btn" onclick="saveUserBinding(${user.id})">✓</button>${user.role === 'admin' ? '<span aria-hidden="true"></span>' : `<button class="icon-btn delete-btn" onclick="deletePlayerAccount(${user.id})">×</button>`}</div>`).join('');
-        const invitationRows = invitations.map(invite => `<div class="user-row"><div><strong>${html(invite.playerName)}</strong><small>Einladung bis ${new Date(invite.expiresAt).toLocaleString('de-DE')}</small></div><button class="icon-btn delete-btn" onclick="revokeInvitation(${invite.id})" aria-label="Einladung widerrufen">×</button></div>`).join('') || '<p class="modal-copy">Keine aktiven Einladungen.</p>';
+        const rows = users.map(user => {
+            const selectedPlayerId = String(user.playerId ?? '');
+            return `<div class="user-row user-account-row"><div><strong>${html(user.username)}</strong><small>${user.role === 'admin' ? 'Master' : 'Benutzer'}</small></div><select id="userPlayer_${user.id}" data-current-value="${html(selectedPlayerId)}" aria-label="Spielerzuordnung für ${html(user.username)}" onchange="saveUserBinding(${user.id}, this)"><option value="">Nicht verknüpft</option>${players.map(player => `<option value="${html(player.id)}" ${selectedPlayerId === String(player.id) ? 'selected' : ''}>${html(player.name)}</option>`).join('')}</select>${user.role === 'admin' ? '<span class="user-row-action-spacer" aria-hidden="true"></span>' : `<button class="icon-btn delete-btn user-row-delete" onclick="deletePlayerAccount(${user.id})" aria-label="Konto ${html(user.username)} löschen">×</button>`}</div>`;
+        }).join('');
+        const invitationRows = invitations.map(invite => `<div class="user-row invitation-row"><div><strong>${html(invite.playerName)}</strong><small>Einladung bis ${new Date(invite.expiresAt).toLocaleString('de-DE')}</small></div><button class="icon-btn delete-btn user-row-delete" onclick="revokeInvitation(${invite.id})" aria-label="Einladung widerrufen">×</button></div>`).join('') || '<p class="modal-copy">Keine aktiven Einladungen.</p>';
         window.openModal('Benutzer verwalten', `<div class="user-list">${rows}</div><h4>Aktive Einladungen</h4><div class="user-list">${invitationRows}</div><p class="modal-inline-error" id="playerAccountError" hidden></p>`, '<button class="secondary" onclick="closeModal()">Schließen</button>');
     } catch (error) { showPlayerError(error); }
 }
 
-export async function saveUserBinding(id) {
-    const value = document.getElementById(`userPlayer_${id}`).value;
-    try { await jsonRequest(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify({ playerId: value || null }) }); await openUserManagement(); }
-    catch (error) { showPlayerError(error); }
+export async function saveUserBinding(id, select = document.getElementById(`userPlayer_${id}`)) {
+    if (!select) return;
+    const value = select.value;
+    const previousValue = select.dataset.currentValue || '';
+    if (value === previousValue) return;
+    const errorBox = document.getElementById('playerAccountError');
+    if (errorBox) { errorBox.textContent = ''; errorBox.hidden = true; }
+    select.disabled = true;
+    try {
+        await jsonRequest(`/api/users/${id}`, { method: 'PATCH', body: JSON.stringify({ playerId: value || null }) });
+        select.dataset.currentValue = value;
+    } catch (error) {
+        select.value = previousValue;
+        showPlayerError(error);
+    } finally {
+        select.disabled = false;
+    }
 }
 
 window.openAccountModal = openAccountModal;
