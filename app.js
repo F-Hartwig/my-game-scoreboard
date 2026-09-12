@@ -2,7 +2,7 @@ import { apiSave, apiCreateActiveGame, apiUpdateActiveGame, apiDeleteActiveGame,
 import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
-import { initializeAuth } from './auth-client.js';
+import { initializeAuth } from './auth-client.js?v=mobile-account-actions-1';
 import { findPreviewGame } from './preview-selection.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
