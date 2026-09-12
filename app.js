@@ -2,9 +2,10 @@ import { apiSave, apiCreateActiveGame, apiUpdateActiveGame, apiDeleteActiveGame,
 import { state, loadAllFromDb } from './state.js';
 import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
-import { initializeAuth } from './auth-client.js';
+import { authState, initializeAuth } from './auth-client.js';
 import { findPreviewGame } from './preview-selection.mjs';
 import { hasScoreEntryDraft } from './score-entry-draft.mjs';
+import { buildPersonalStats } from './personal-stats.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 
@@ -1909,9 +1910,55 @@ let rankingGameFilter = "all";
 let historyGameFilter = "all";
 
 function renderStatsPage() {
+    renderPersonalStats();
     renderStatsOverview();
     renderRanking();
     renderHistory();
+}
+
+function renderPersonalStats() {
+    const box = document.getElementById("personalStatsOverview");
+    if (!box) return;
+
+    const stats = IS_PREVIEW_MODE
+        ? null
+        : buildPersonalStats(authState.user?.playerId, state.players, state.games);
+    if (!stats) {
+        box.hidden = true;
+        box.innerHTML = "";
+        return;
+    }
+
+    const rankLabel = stats.rank ? `#${stats.rank} von ${stats.rankedPlayers}` : "Noch offen";
+    const favoriteLabel = stats.favoriteGame
+        ? `${escapeHtml(stats.favoriteGame.name)} · ${stats.favoriteGame.games}×`
+        : "Noch offen";
+    const formLabels = { win: "Sieg", loss: "Niederlage", draw: "Unentschieden" };
+    const recentForm = stats.recentForm.length
+        ? stats.recentForm.map(result => `<span class="personal-form-dot is-${result}" role="img" aria-label="${formLabels[result]}" title="${formLabels[result]}"></span>`).join("")
+        : '<small>Noch keine gewertete Partie</small>';
+
+    box.hidden = false;
+    box.innerHTML = `
+        <section class="personal-stats-card" aria-label="Deine persönliche Statistik">
+            <div class="personal-stats-header">
+                <div>
+                    <span class="stats-eyebrow">Deine Statistik</span>
+                    <strong>${escapeHtml(stats.player.name)}</strong>
+                </div>
+                <span class="personal-rank-badge">${rankLabel}</span>
+            </div>
+            <div class="personal-stats-grid">
+                <div><strong>${stats.games}</strong><span>Partien</span></div>
+                <div><strong>${stats.wins}</strong><span>Siege</span></div>
+                <div><strong>${stats.winRate}%</strong><span>Siegquote</span></div>
+            </div>
+            <div class="personal-stats-insights">
+                <div><span>Aktuelle Siegesserie</span><strong>${stats.currentWinStreak}</strong></div>
+                <div><span>Meistgespielt</span><strong>${favoriteLabel}</strong></div>
+                <div class="personal-form"><span>Letzte Form</span><div>${recentForm}</div></div>
+            </div>
+        </section>`;
 }
 
 function renderStatsOverview() {

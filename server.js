@@ -20,7 +20,8 @@ const ENDPOINTS = Object.freeze({
 });
 const PUBLIC_FILES = new Set([
     'index.html', 'style.css', 'icon.png', 'app.js', 'api.js', 'auth-client.js', 'state.js',
-    'gamesConfig.js', 'security.mjs', 'preview-selection.mjs', 'score-entry-draft.mjs'
+    'gamesConfig.js', 'security.mjs', 'preview-selection.mjs', 'score-entry-draft.mjs',
+    'personal-stats.mjs'
 ]);
 
 function migrateDatabase(db) {
