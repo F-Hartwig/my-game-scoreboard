@@ -57,8 +57,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
   assert.match(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=score-grid-2/);
-  assert.match(indexSource, /app\.js\?v=score-grid-2/);
+  assert.match(indexSource, /style\.css\?v=game-resume-1/);
+  assert.match(indexSource, /app\.js\?v=game-resume-1/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -74,4 +74,14 @@ test('scoreboard can switch to a persistent compact three-column grid', async ()
   assert.match(styleSource, /\.scoreboard-list\.is-grid-view \.history-scroll \{ display: none; \}/);
   assert.match(styleSource, /\.scoreboard-list:not\(\.is-grid-view\) \.round-pill \{ min-width: 36px !important; min-height: 36px !important;/);
   assert.match(styleSource, /\.scoreboard-list:not\(\.is-grid-view\) \.scoreboard-row \{ padding: 12px 14px; gap: 7px; \}/);
+});
+
+test('reload restores the open game for the current browser tab', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(source, /ACTIVE_GAME_SESSION_KEY = 'scorebuddy-active-game-id'/);
+  assert.match(source, /function rememberCurrentGame\(\)/);
+  assert.match(source, /function restoreCurrentGameAfterReload\(\)/);
+  assert.match(source, /state\.activeGames\.find\(game => String\(game\.id\) === storedGameId\) \|\| null/);
+  assert.match(source, /await loadAllFromDb\(\);\s+restoreCurrentGameAfterReload\(\);/);
+  assert.match(source, /async function pauseCurrentGame\(\)[\s\S]*?state\.currentGame = null;\s+rememberCurrentGame\(\);/);
 });

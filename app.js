@@ -74,9 +74,31 @@ let collaborationInterval = null;
 let collaborationPresence = [];
 let collaborationActivity = [];
 let scoreboardViewMode = 'list';
+const ACTIVE_GAME_SESSION_KEY = 'scorebuddy-active-game-id';
 try {
     scoreboardViewMode = localStorage.getItem('scorebuddy-scoreboard-view') === 'grid' ? 'grid' : 'list';
 } catch {}
+
+function rememberCurrentGame() {
+    if (IS_PREVIEW_MODE) return;
+    try {
+        if (state.currentGame?.id !== undefined && state.currentGame?.id !== null) {
+            sessionStorage.setItem(ACTIVE_GAME_SESSION_KEY, String(state.currentGame.id));
+        } else {
+            sessionStorage.removeItem(ACTIVE_GAME_SESSION_KEY);
+        }
+    } catch {}
+}
+
+function restoreCurrentGameAfterReload() {
+    if (IS_PREVIEW_MODE || state.currentGame) return;
+    try {
+        const storedGameId = sessionStorage.getItem(ACTIVE_GAME_SESSION_KEY);
+        if (!storedGameId) return;
+        state.currentGame = state.activeGames.find(game => String(game.id) === storedGameId) || null;
+        if (!state.currentGame) sessionStorage.removeItem(ACTIVE_GAME_SESSION_KEY);
+    } catch {}
+}
 
 function isEnteringScores() {
     return Boolean(document.activeElement?.closest?.('#roundInputs, .wizard-score-grid')) || hasScoreEntryDraft();
@@ -233,6 +255,10 @@ async function navigate(pageId, element) {
     if(pageId === 'statsPage') { state.showAllHistory = false; renderStatsPage(); }
     if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
     if(pageId === 'rulesPage') renderRulesPage();
+    if (pageId === 'gamePage') rememberCurrentGame();
+    else if (!IS_PREVIEW_MODE) {
+        try { sessionStorage.removeItem(ACTIVE_GAME_SESSION_KEY); } catch {}
+    }
     syncLiveSyncState();
 }
 
@@ -1127,6 +1153,8 @@ async function createGame() {
     const createdGame = await apiCreateActiveGame(state.currentGame);
     if (!createdGame) return;
     state.activeGames.push(createdGame);
+    state.currentGame = createdGame;
+    rememberCurrentGame();
     renderGame();
 }
 
@@ -1812,6 +1840,7 @@ async function submitEditRound() {
 async function pauseCurrentGame() {
     if(!state.currentGame) return;
     state.currentGame = null;
+    rememberCurrentGame();
     renderGame();
 }
 
@@ -1819,6 +1848,7 @@ async function resumeGame(gameId) {
     let ag = state.activeGames.find(x => x.id === gameId);
     if(ag) {
         state.currentGame = ag;
+        rememberCurrentGame();
         renderGame();
     }
 }
@@ -1933,6 +1963,7 @@ async function saveGame() {
     state.games = finished.games;
     state.activeGames = finished.activeGames;
     state.currentGame = null;
+    rememberCurrentGame();
     state.lastRenderedGameId = null;
     syncLiveSyncState();
 
@@ -2021,6 +2052,8 @@ async function startRematch() {
     const createdGame = await apiCreateActiveGame(state.currentGame);
     if (!createdGame) return;
     state.activeGames.push(createdGame);
+    state.currentGame = createdGame;
+    rememberCurrentGame();
     renderGame();
 }
 
@@ -2863,6 +2896,7 @@ async function initApp() {
     }
 
     await loadAllFromDb();
+    restoreCurrentGameAfterReload();
     isFocusMode = sessionStorage.getItem("scorebuddy_focus_mode") === "true" && Boolean(state.currentGame);
     renderGame();
     if (isFocusMode) requestFocusWakeLock();
