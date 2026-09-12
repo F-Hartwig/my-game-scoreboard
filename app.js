@@ -4,6 +4,7 @@ import { PREDEFINED_GAMES } from './gamesConfig.js';
 import { createId, escapeHtml } from './security.mjs';
 import { initializeAuth } from './auth-client.js?v=mobile-account-actions-1';
 import { findPreviewGame } from './preview-selection.mjs';
+import { hasScoreEntryDraft } from './score-entry-draft.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 
@@ -75,12 +76,13 @@ function startLiveSync() {
         const activeElement = document.activeElement;
         const isEditingField = activeElement?.matches?.("input, textarea, select");
         const modalIsOpen = document.getElementById("appModal")?.classList.contains("open");
+        const scoreEntryDraft = hasScoreEntryDraft();
 
-        if (document.hidden || isLiveSyncRunning || state.isSettingUpGame || modalIsOpen || isEditingField) return;
+        if (document.hidden || isLiveSyncRunning || state.isSettingUpGame || modalIsOpen || isEditingField || scoreEntryDraft) return;
 
         isLiveSyncRunning = true;
         try {
-            const changes = await loadAllFromDb();
+            const changes = await loadAllFromDb(hasScoreEntryDraft);
             if (!changes?.loaded) return;
 
             const activePage = document.querySelector(".page.active")?.id;

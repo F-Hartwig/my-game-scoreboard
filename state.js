@@ -31,7 +31,7 @@ function currentGameViewSnapshot(game) {
     return stateSnapshot(visibleGameState);
 }
 
-export async function loadAllFromDb() {
+export async function loadAllFromDb(shouldAbort = null) {
     const unchangedResult = {
         loaded: false,
         playersChanged: false,
@@ -62,7 +62,8 @@ export async function loadAllFromDb() {
         requestId !== latestLoadRequestId ||
         state.isSettingUpGame ||
         hasActiveApiSaves() ||
-        getApiSaveVersion() !== saveVersionAtStart
+        getApiSaveVersion() !== saveVersionAtStart ||
+        shouldAbort?.()
     );
     if (loadBecameStale) return unchangedResult;
 
