@@ -57,7 +57,7 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
   assert.match(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=multi-user-3/);
+  assert.match(indexSource, /style\.css\?v=multi-user-4/);
   assert.match(indexSource, /app\.js\?v=multi-user-3/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
