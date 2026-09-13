@@ -95,3 +95,10 @@ test('player favorites are loaded and saved per authenticated account', async ()
   assert.match(appSource, /state\.players = applyFavoriteSelection\(finished\.players\)/);
   assert.doesNotMatch(appSource, /favorite-btn admin-only/);
 });
+
+test('login offers an unchecked remember-me checkbox and sends its boolean state only with login', async () => {
+  const source = await fs.readFile(new URL('../auth-client.js', import.meta.url), 'utf8');
+  assert.match(source, /name="rememberMe" type="checkbox"/);
+  assert.doesNotMatch(source, /name="rememberMe"[^>]*\schecked/);
+  assert.match(source, /rememberMe: values\.get\('rememberMe'\) === 'on'/);
+});

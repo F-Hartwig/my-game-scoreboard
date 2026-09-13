@@ -26,7 +26,7 @@ function errorText(error) {
 }
 
 function loginView(message = '') {
-    showGate(`<p class="auth-intro">Melde dich an, um ScoreBuddy zu verwenden.</p>${message}<form id="loginForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required></label><label>Passwort<input name="password" type="password" autocomplete="current-password" required></label><button>Anmelden</button></form><a class="preview-link" href="/?preview=1">Nur-Lesen-Vorschau öffnen</a>`);
+    showGate(`<p class="auth-intro">Melde dich an, um ScoreBuddy zu verwenden.</p>${message}<form id="loginForm" class="auth-form"><label>Benutzername<input name="username" autocomplete="username" required></label><label>Passwort<input name="password" type="password" autocomplete="current-password" required></label><label class="remember-me"><input name="rememberMe" type="checkbox">Angemeldet bleiben</label><button>Anmelden</button></form><a class="preview-link" href="/?preview=1">Nur-Lesen-Vorschau öffnen</a>`);
     document.getElementById('loginForm').addEventListener('submit', submitLogin);
 }
 
@@ -42,7 +42,7 @@ async function submitLogin(event) {
     event.preventDefault();
     const values = new FormData(event.currentTarget);
     try {
-        const result = await jsonRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: values.get('username'), password: values.get('password') }) });
+        const result = await jsonRequest('/api/auth/login', { method: 'POST', body: JSON.stringify({ username: values.get('username'), password: values.get('password'), rememberMe: values.get('rememberMe') === 'on' }) });
         finishAuth(result);
         window.location.reload();
     } catch (error) { loginView(errorText(error)); }

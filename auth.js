@@ -6,6 +6,7 @@ const { promisify } = require('node:util');
 const scrypt = promisify(crypto.scrypt);
 const SESSION_COOKIE = 'scorebuddy_session';
 const SESSION_TTL_MS = 12 * 60 * 60 * 1000;
+const REMEMBERED_SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 const LOGIN_WINDOW_MS = 15 * 60 * 1000;
 const LOGIN_MAX_ATTEMPTS = 5;
 const INVITATION_TTL_MS = 24 * 60 * 60 * 1000;
@@ -106,13 +107,13 @@ function createAuth(db, options = {}) {
         res.clearCookie(SESSION_COOKIE, { httpOnly: true, sameSite: 'strict', secure: secureCookies || req.secure, path: '/' });
     }
 
-    function createSession(req, res, userId) {
+    function createSession(req, res, userId, maxAge = SESSION_TTL_MS) {
         const token = crypto.randomBytes(32).toString('base64url');
         const csrfToken = crypto.randomBytes(32).toString('base64url');
         const createdAt = now();
         db.prepare('INSERT INTO sessions (token_hash, user_id, csrf_token, created_at, expires_at) VALUES (?, ?, ?, ?, ?)')
-            .run(tokenHash(token), userId, csrfToken, createdAt, createdAt + SESSION_TTL_MS);
-        setSessionCookie(req, res, token);
+            .run(tokenHash(token), userId, csrfToken, createdAt, createdAt + maxAge);
+        setSessionCookie(req, res, token, maxAge);
         return csrfToken;
     }
 
@@ -222,7 +223,7 @@ function createAuth(db, options = {}) {
                 }
                 attempts.delete(key);
                 db.prepare('DELETE FROM sessions WHERE expires_at <= ?').run(now());
-                const csrfToken = createSession(req, res, user.id);
+                const csrfToken = createSession(req, res, user.id, req.body?.rememberMe === true ? REMEMBERED_SESSION_TTL_MS : SESSION_TTL_MS);
                 return res.json({ user: publicUser(user), csrfToken });
             } catch (error) { return next(error); }
         });

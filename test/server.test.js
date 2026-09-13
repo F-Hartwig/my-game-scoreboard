@@ -122,6 +122,22 @@ test('first-run setup, password hashing, secure session cookie and CSRF', async 
     assert.equal((await admin.request('/api/users')).response.status, 200);
 });
 
+test('login session lifetime is exactly 12 hours by default and 90 days when remembered', async t => {
+    let clock = 1700000000000;
+    const f = await fixture(t, { now: () => clock });
+    await setupAdmin(f);
+
+    const defaultLogin = await new Client(f.base).post('/api/auth/login', { username: 'master', password: ADMIN_PASSWORD });
+    assert.equal(defaultLogin.response.status, 200, defaultLogin.text);
+    assert.match(defaultLogin.response.headers.get('set-cookie'), /Max-Age=43200/i);
+    const rememberedLogin = await new Client(f.base).post('/api/auth/login', { username: 'master', password: ADMIN_PASSWORD, rememberMe: true });
+    assert.equal(rememberedLogin.response.status, 200, rememberedLogin.text);
+    assert.match(rememberedLogin.response.headers.get('set-cookie'), /Max-Age=7776000/i);
+
+    const sessions = f.runtime.db.prepare('SELECT expires_at FROM sessions ORDER BY created_at, rowid').all();
+    assert.deepEqual(sessions.map(session => session.expires_at - clock), [12 * 60 * 60 * 1000, 12 * 60 * 60 * 1000, 90 * 24 * 60 * 60 * 1000]);
+});
+
 test('temporary private-network setup needs no token and rejects public address ranges', async t => {
     assert.equal(isPrivateAddress('127.0.0.1'), true);
     assert.equal(isPrivateAddress('::ffff:172.18.0.1'), true);
