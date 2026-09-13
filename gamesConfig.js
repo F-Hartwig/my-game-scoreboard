@@ -307,8 +307,8 @@ export const PREDEFINED_GAMES = [
                     Jede Person startet mit <strong>7 Steinen</strong>; die übrigen bilden den Vorrat. Legt gemeinsam fest, wer beginnt. Eine Runde im ScoreBuddy entspricht einem vollständigen Triominos-Spiel.
                     <br><br>
 
-                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🎮 Zug</strong>
-                    Lege einen dreieckigen Stein so an, dass die berührenden Seiten dieselben Zahlen zeigen. Kannst oder möchtest du nicht anlegen, ziehst du einen Stein; ist kein passender Stein möglich, setzt du aus.
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🎮 Zug & Nachziehen</strong>
+                    Lege einen dreieckigen Stein so an, dass die berührenden Seiten dieselben Zahlen zeigen. Kannst oder möchtest du nicht anlegen, darfst du nacheinander bis zu <strong>3 Steine</strong> ziehen und jeden sofort anzulegen versuchen. Jeder gezogene Stein zählt <strong>−5 Punkte</strong>. Kannst du auch nach dem dritten gezogenen Stein nicht anlegen, kommen weitere <strong>−10 Punkte</strong> fürs Passen hinzu – damit erhältst du für diesen Zug insgesamt <strong>−25 Punkte</strong>.
                     <br><br>
 
                     <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">📊 Punkte</strong>
@@ -321,7 +321,7 @@ export const PREDEFINED_GAMES = [
                     </ul>
 
                     <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🏁 Spielende</strong>
-                    Das Spiel endet, wenn jemand alle eigenen Steine abgelegt hat oder keine Züge mehr möglich sind. Wertet verbleibende Steine und Formboni nach eurer Ausgabe bzw. Hausregel. Es gibt kein 400-Punkte-Gesamtlimit; die höchste Punktzahl dieses vollständigen Spiels gewinnt.
+                    Sobald jemand den letzten eigenen Stein ablegt, erhalten alle anderen Personen noch <strong>genau einen letzten Zug</strong>. Danach erhält die Person, die zuerst fertig geworden ist, <strong>25 Bonuspunkte plus die Summe der Werte aller Handsteine der anderen Personen</strong>. Sind keine Züge mehr möglich, endet das Spiel ebenfalls. Es gibt kein 400-Punkte-Gesamtlimit; die höchste Punktzahl dieses vollständigen Spiels gewinnt.
                 </div>
             `
         }
