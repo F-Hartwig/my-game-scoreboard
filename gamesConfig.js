@@ -295,16 +295,16 @@ export const PREDEFINED_GAMES = [
     {
         id: "triominos",
         name: "Triominos",
-        description: "Lege dreieckige Steine passend an. Wer zuerst 400 Punkte erreicht, gewinnt.",
+        description: "Lege dreieckige Steine passend an. Eine Runde im ScoreBuddy entspricht einem vollständigen Spiel.",
         defaultMode: "round",
         rules: {
             winCondition: "highest",
-            endTriggerPoints: 400,
+            endTriggerPoints: null,
             exactMatchRule: null,
             descriptionLong: `
                 <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
                     <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔺 Ziel & Vorbereitung</strong>
-                    Jeder erhält Steine; die übrigen bilden den Vorrat. Legt gemeinsam fest, wer beginnt. Ziel im ScoreBuddy: Als Erste:r <strong>400 Punkte</strong> erreichen.
+                    Jede Person startet mit <strong>7 Steinen</strong>; die übrigen bilden den Vorrat. Legt gemeinsam fest, wer beginnt. Eine Runde im ScoreBuddy entspricht einem vollständigen Triominos-Spiel.
                     <br><br>
 
                     <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🎮 Zug</strong>
@@ -312,11 +312,16 @@ export const PREDEFINED_GAMES = [
                     <br><br>
 
                     <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">📊 Punkte</strong>
-                    Notiere die Summe der Zahlen auf jedem gelegten Stein. Zusätzliche Punkte für geschlossene Formen oder Sonderkombinationen gelten nur, wenn ihr sie vorab vereinbart habt.
-                    <br><br>
+                    Notiere die Summe der Zahlen auf jedem gelegten Stein. Formboni werden zusätzlich zum Steinwert gewertet:
+                    <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
+                        <li><strong>Brücke:</strong> +40 Punkte</li>
+                        <li><strong>Sechseck:</strong> +50 Punkte</li>
+                        <li><strong>Doppelsechseck:</strong> +60 Punkte</li>
+                        <li><strong>Dreifachsechseck:</strong> +70 Punkte</li>
+                    </ul>
 
-                    <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🏁 Runden- & Spielende</strong>
-                    Die Runde endet, wenn jemand alle eigenen Steine abgelegt hat oder keine Züge mehr möglich sind. Wertet verbleibende Steine und vereinbarte Boni nach eurer Ausgabe bzw. Hausregel. Das Spiel endet nach einer Rundenwertung bei <strong>400 oder mehr Punkten</strong>; die höchste Gesamtpunktzahl gewinnt.
+                    <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🏁 Spielende</strong>
+                    Das Spiel endet, wenn jemand alle eigenen Steine abgelegt hat oder keine Züge mehr möglich sind. Wertet verbleibende Steine und Formboni nach eurer Ausgabe bzw. Hausregel. Es gibt kein 400-Punkte-Gesamtlimit; die höchste Punktzahl dieses vollständigen Spiels gewinnt.
                 </div>
             `
         }
