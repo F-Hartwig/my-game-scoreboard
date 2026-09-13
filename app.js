@@ -1316,7 +1316,7 @@ function renderPersonalDashboardCard() {
         <div class="personal-dashboard-head"><div><span class="dashboard-eyebrow">Für dich</span><strong>Hallo ${escapeHtml(dashboard.player.name)}</strong></div><span class="dashboard-win-rate">${stats.winRate} % Siege</span></div>
         <div class="personal-dashboard-metrics"><div><strong>${dashboard.openGames.length}</strong><span>offen</span></div><div><strong>${stats.games}</strong><span>gewertet</span></div><div><strong>${stats.currentWinStreak}</strong><span>Serie</span></div></div>
         <div class="dashboard-section"><span>Laufende eigene Spiele</span>${openGames}</div>
-        <div class="dashboard-section dashboard-form-section"><span>Letzte Form</span><div class="dashboard-form" aria-label="Letzte Form">${recentForm}</div></div>
+        <div class="dashboard-section dashboard-form-section"><span>Letzte Spiele</span><div class="dashboard-form" aria-label="Letzte Spiele">${recentForm}</div></div>
         <div class="dashboard-section"><span>Oft gemeinsam gespielt</span><div class="dashboard-people">${frequent}</div></div>
     </section>`;
 }
@@ -2159,7 +2159,7 @@ function renderPersonalStats() {
             <div class="personal-stats-insights">
                 <div><span>Aktuelle Siegesserie</span><strong>${stats.currentWinStreak}</strong></div>
                 <div><span>Meistgespielt</span><strong>${favoriteLabel}</strong></div>
-                <div class="personal-form"><span>Letzte Form</span><div>${recentForm}</div></div>
+                <div class="personal-form"><span>Letzte Spiele</span><div>${recentForm}</div></div>
             </div>
         </section>${comparisonHtml}`;
 }

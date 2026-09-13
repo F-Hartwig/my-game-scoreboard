@@ -55,7 +55,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, /activityWasOpen = Boolean\(panel\.querySelector\('\.activity-card'\)\?\.open\)/);
   assert.match(source, /<details class="activity-card"\$\{activityWasOpen \? ' open' : ''\}>/);
   assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
-  assert.match(source, />Letzte Form</);
+  assert.match(source, />Letzte Spiele</);
+  assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
   assert.match(indexSource, /style\.css\?v=user-favorites-1/);
   assert.match(indexSource, /app\.js\?v=user-favorites-1/);
