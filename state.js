@@ -12,7 +12,8 @@ export const state = {
     autoRefreshInterval: null,
     isSettingUpGame: false,
     lastRenderedGameId: null, 
-    ratedMode: true
+    ratedMode: true,
+    setupGuestPlayers: []
 };
 
 let latestLoadRequestId = 0;

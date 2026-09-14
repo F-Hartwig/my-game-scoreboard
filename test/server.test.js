@@ -97,7 +97,7 @@ test('migration preserves legacy data and moves the singleton game into active g
     for (const id of ['players', 'games', 'gameNights']) assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get(id).json_data, values[id]);
     assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get('activeGames').json_data, '[{"id":3},{"id":4}]');
     assert.equal(runtime.db.prepare('SELECT json_data FROM state WHERE id = ?').get('currentGame').json_data, 'null');
-    for (const table of ['users', 'sessions', 'invitations', 'activity_log']) assert.ok(runtime.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table));
+    for (const table of ['users', 'sessions', 'invitations', 'activity_log', 'guest_players']) assert.ok(runtime.db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name=?").get(table));
 });
 
 test('first-run setup, password hashing, secure session cookie and CSRF', async t => {
@@ -367,11 +367,47 @@ test('favorite migration copies legacy favorites to every existing account', asy
     db.prepare('INSERT INTO users VALUES (?, ?, ?, ?, ?, ?)').run(2, 'alice', 'hash', 'user', '102', 1);
     migrateDatabase(db);
     migrateDatabase(db);
-    assert.equal(db.pragma('user_version', { simple: true }), 5);
+    assert.equal(db.pragma('user_version', { simple: true }), 6);
     assert.deepEqual(db.prepare('SELECT user_id, player_id FROM user_favorites ORDER BY user_id').all(), [
         { user_id: 1, player_id: '101' },
         { user_id: 2, player_id: '101' }
     ]);
+});
+
+test('guests remain outside regular player lists until a master promotes their linked history', async t => {
+    const f = await fixture(t);
+    const admin = await setupAdmin(f);
+    await savePlayers(admin);
+    assert.equal((await admin.post('/api/users', { username: 'alice', password: USER_PASSWORD, playerId: 101 })).response.status, 201);
+    const user = await login(f.base, 'alice');
+
+    const guest = await user.post('/api/guests', { name: 'Gast Gabi' });
+    assert.equal(guest.response.status, 201, guest.text);
+    assert.equal(guest.data.name, 'Gast Gabi');
+    assert.equal(guest.data.isGuest, true);
+    assert.ok(Number.isSafeInteger(guest.data.id));
+    assert.equal((await user.post('/api/guests', { name: '' })).response.status, 400);
+
+    const game = { id: 901, name: 'Gastpartie', mode: 'round', rated: true, players: [
+        { id: 101, name: 'Alice', playerIds: [101], rounds: [3], total: 3 },
+        { id: guest.data.id, name: 'Gast Gabi', playerIds: [guest.data.id], rounds: [7], total: 7 }
+    ], winner: 'Gast Gabi', winnerPartyIds: [guest.data.id] };
+    assert.equal((await user.post('/api/active-games', game)).response.status, 201);
+    const finished = await user.post('/api/active-games/901/finish', game);
+    assert.equal(finished.response.status, 200, finished.text);
+    assert.equal(finished.data.players.some(player => player.id === guest.data.id), false, 'guest is not a regular player');
+    assert.equal((await user.put(`/api/favorites/${guest.data.id}`, { favorite: true })).response.status, 404);
+    assert.equal((await user.post(`/api/guests/${guest.data.id}/promote`, {})).response.status, 403);
+
+    const promoted = await admin.post(`/api/guests/${guest.data.id}/promote`, {});
+    assert.equal(promoted.response.status, 200, promoted.text);
+    assert.equal(promoted.data.id, guest.data.id);
+    assert.equal(promoted.data.name, 'Gast Gabi');
+    assert.deepEqual(Object.fromEntries(['games', 'wins', 'points'].map(key => [key, promoted.data[key]])), { games: 1, wins: 1, points: 7 });
+    assert.equal((await admin.request('/api/guests')).data.some(entry => entry.id === guest.data.id), false);
+    const players = (await admin.request('/api/players')).data;
+    assert.deepEqual(players.find(player => player.id === guest.data.id), promoted.data, 'promoted ID preserves historical references');
+    assert.equal((await admin.post(`/api/guests/${guest.data.id}/promote`, {})).response.status, 404);
 });
 
 test('each account manages an independent player favorite list', async t => {

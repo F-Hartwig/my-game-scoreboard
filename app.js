@@ -607,8 +607,8 @@ let setupDraftSelection = [];
 let setupPlayerListExpanded = false;
 
 function startSetup(prefillGame = null) {
-    if(state.players.length < 2) {
-        alert("Bitte lege zuerst mindestens 2 Spieler an!");
+    if(state.players.length < 1) {
+        alert("Bitte lege zuerst mindestens einen festen Spieler an!");
         return;
     }
     
@@ -632,6 +632,7 @@ function startSetup(prefillGame = null) {
         : [];
     setupPlayerFilter = "all";
     setupPlayerListExpanded = false;
+    state.setupGuestPlayers = [];
 
     const selectableGames = PREDEFINED_GAMES
         .filter(g => !g.hideFromSelection)
@@ -693,6 +694,9 @@ function startSetup(prefillGame = null) {
                     <button class="toggle-btn ${state.ratedMode ? "active" : ""}" id="toggleRated" onclick="setRated(true)">Gewertet</button>
                     <button class="toggle-btn ${state.ratedMode ? "" : "active"}" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
                 </div>
+            </div>
+            <div style="margin-bottom: 14px;">
+                <button type="button" class="secondary" onclick="openGuestModal()">Gast hinzufügen</button>
             </div>
             
             <div style="margin-bottom: 14px;">
@@ -782,6 +786,27 @@ function setSetupPlayerListExpanded(expanded) {
     if (selectList) selectList.innerHTML = renderSetupPoolHtml();
 }
 
+function openGuestModal() {
+    openModal('Gast hinzufügen', `<p class="modal-copy">Der Gast ist nur für diese Partie auswählbar und erscheint nicht in Spielerlisten oder Ranglisten.</p><div class="auth-form"><label>Name<input id="guestNameInput" maxlength="80" autocomplete="off"></label><p class="modal-inline-error" id="guestError" hidden></p></div>`, '<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="addSetupGuest()">Hinzufügen</button>');
+}
+
+async function addSetupGuest() {
+    const input = document.getElementById('guestNameInput');
+    const errorBox = document.getElementById('guestError');
+    const name = input?.value.trim() || '';
+    try {
+        const guest = await authRequest('/api/guests', { method: 'POST', body: JSON.stringify({ name }) });
+        state.setupGuestPlayers.push(guest);
+        setupDraftSelection.push({ id: Number(guest.id), type: 'guest' });
+        closeModal();
+        const selectList = document.getElementById('selectList');
+        if (selectList) selectList.innerHTML = renderSetupPoolHtml();
+        updateDragOrderList();
+    } catch (error) {
+        if (errorBox) { errorBox.textContent = error.message; errorBox.hidden = false; }
+    }
+}
+
 function renderSetupPoolHtml() {
     let html = "";
     let assignedPlayerIds = [];
@@ -803,6 +828,13 @@ function renderSetupPoolHtml() {
                 </div>`;
         });
     }
+
+    (state.setupGuestPlayers || []).forEach(guest => {
+        const isSelected = setupDraftSelection.some(item => item.type === 'guest' && Number(item.id) === Number(guest.id));
+        html += `<div class="select-card ${isSelected ? 'selected' : ''}" data-type="guest" data-id="${guest.id}" onclick="toggleSelectCard(event, this)">
+            <div class="player-left"><input type="checkbox" aria-label="${escapeHtml(guest.name)} auswählen" value="${guest.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">G</div><strong>${escapeHtml(guest.name)} <small>(Gast)</small></strong></div></div>`;
+    });
 
     const selectablePlayers = sortSetupPlayersByLastParticipation(state.players, state.games)
         .filter(player => !assignedPlayerIds.includes(player.id));
@@ -837,7 +869,7 @@ function openTeamBuilderModal() {
     if(state.tempTeams) {
         state.tempTeams.forEach(t => assignedPlayerIds.push(...t.playerIds));
     }
-    let availablePlayers = state.players.filter(p => !assignedPlayerIds.includes(p.id));
+    let availablePlayers = [...state.players, ...(state.setupGuestPlayers || [])].filter(p => !assignedPlayerIds.includes(p.id));
 
     if (availablePlayers.length < 2) {
         alert("Es gibt nicht genügend freie Einzelspieler, um ein neues Team zu bilden!");
@@ -877,7 +909,7 @@ function submitTeamBuilderModal() {
     }
 
     const playerIds = checkedBoxes.map(b => Number(b.value));
-    const teamPlayers = state.players.filter(p => playerIds.includes(p.id));
+    const teamPlayers = [...state.players, ...(state.setupGuestPlayers || [])].filter(p => playerIds.includes(p.id));
     const teamName = teamPlayers.map(p => p.name).join(" / ");
     const teamId = createId();
 
@@ -1017,7 +1049,7 @@ function updateDragOrderList() {
             let t = state.tempTeams.find(x => x.id === item.id);
             displayName = t ? t.name : "Team";
         } else {
-            let p = state.players.find(x => x.id === item.id);
+            let p = state.players.find(x => x.id === item.id) || state.setupGuestPlayers.find(x => x.id === item.id);
             if(!p) return;
             displayName = p.name;
         }
@@ -1169,7 +1201,7 @@ async function createGame() {
                 let t = state.tempTeams.find(x => x.id === id);
                 return { id: t.id, name: t.name, isTeam: true, playerIds: t.playerIds, rounds: [], total: 0 };
             } else {
-                let p = state.players.find(x => x.id === id);
+                let p = state.players.find(x => x.id === id) || state.setupGuestPlayers.find(x => x.id === id);
                 return { id: p.id, name: p.name, isTeam: false, playerIds: [p.id], rounds: [], total: 0 };
             }
         })
@@ -2545,9 +2577,18 @@ function triggerShowAllHistory() {
 
 let activeHistoryGameId = null;
 
-function viewGameDetails(gameId) {
+async function viewGameDetails(gameId) {
     let g = state.games.find(x => x.id === gameId);
     if(!g) return;
+
+    let promotableGuests = [];
+    if (authState.user?.role === 'admin') {
+        try {
+            const guests = await authRequest('/api/guests');
+            const participantIds = new Set((g.players || []).flatMap(party => party.playerIds || [party.id]).map(String));
+            promotableGuests = guests.filter(guest => participantIds.has(String(guest.id)));
+        } catch { promotableGuests = []; }
+    }
 
     activeHistoryGameId = gameId;
     const bestScore = getLeadingScore(g);
@@ -2616,6 +2657,7 @@ function viewGameDetails(gameId) {
 
     let actions = `
         <button class="secondary" onclick="closeModal()" style="flex:1">Schließen</button>
+        ${promotableGuests.map(guest => `<button class="secondary" onclick="promoteGuest(${guest.id}, ${g.id})">Als festen Spieler übernehmen (${escapeHtml(guest.name)})</button>`).join('')}
         <button class="red" onclick="triggerDeleteHistoryGame(${g.id})" style="width:auto; padding:0 14px; background:var(--danger-light); color:var(--danger);">Löschen</button>`;
     
     openModal(modalTitle, html, actions);
@@ -2626,6 +2668,17 @@ function viewGameDetails(gameId) {
             if(container) instantScrollToContainerEnd(container);
         });
     }, 50);
+}
+
+async function promoteGuest(guestId, gameId) {
+    try {
+        await authRequest(`/api/guests/${encodeURIComponent(guestId)}/promote`, { method: 'POST', body: '{}' });
+        await loadAllFromDb();
+        renderStatsPage();
+        viewGameDetails(gameId);
+    } catch (error) {
+        alert(error.message || 'Der Gast konnte nicht übernommen werden.');
+    }
 }
 
 function triggerRenameHistoryGame(gameId) {
@@ -3799,6 +3852,8 @@ window.copyPreviewLink = copyPreviewLink;
 window.sharePreviewLink = sharePreviewLink;
 window.selectPreviewGame = selectPreviewGame;
 window.startSetup = startSetup;
+window.openGuestModal = openGuestModal;
+window.addSetupGuest = addSetupGuest;
 
 window.toggleFocusMode = toggleFocusMode;
 window.toggleScoreboardView = toggleScoreboardView;
@@ -3827,6 +3882,7 @@ window.saveGame = saveGame;
 window.newGame = newGame;
 window.triggerShowAllHistory = triggerShowAllHistory;
 window.viewGameDetails = viewGameDetails;
+window.promoteGuest = promoteGuest;
 window.triggerDeleteHistoryGame = triggerDeleteHistoryGame;
 window.submitDeleteHistoryGame = submitDeleteHistoryGame;
 window.toggleSignElement = toggleSignElement;

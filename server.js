@@ -10,7 +10,7 @@ const { createCollaboration, migrateCollaboration } = require('./collaboration.j
 const PORT = Number(process.env.PORT) || 3000;
 const HOST = process.env.HOST || '0.0.0.0';
 const DB_PATH = process.env.DB_PATH || path.join(__dirname, 'scoreboard.db');
-const SCHEMA_VERSION = 5;
+const SCHEMA_VERSION = 6;
 const JSON_LIMIT = process.env.JSON_LIMIT || '2mb';
 const ENDPOINTS = Object.freeze({
     players: { empty: [], maxItems: 500, adminWrite: false, userStatsOnly: true },
@@ -90,6 +90,15 @@ function migrateDatabase(db) {
             db.pragma('user_version = 5');
         });
         migrateFavorites.immediate();
+    }
+    if (version < 6) {
+        db.exec(`BEGIN IMMEDIATE;
+            CREATE TABLE IF NOT EXISTS guest_players (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                created_at INTEGER NOT NULL
+            );
+            PRAGMA user_version = 6; COMMIT;`);
     }
     db.prepare('INSERT OR IGNORE INTO state (id, json_data) VALUES (?, ?)').run('gameNights', '[]');
 }
@@ -227,6 +236,15 @@ async function createRuntime(options = {}) {
         if (!row) return [];
         try { return JSON.parse(row.json_data); } catch { return []; }
     };
+    const readGuests = () => db.prepare('SELECT id, name, created_at FROM guest_players ORDER BY created_at').all()
+        .map(guest => ({ id: guest.id, name: guest.name, isGuest: true }));
+    const participantIds = game => (game?.players || []).flatMap(party => party?.playerIds || [party?.id]).map(String);
+    const validateGameParticipants = game => {
+        const allowedIds = new Set([...readPlayers(), ...readGuests()].map(player => String(player.id)));
+        for (const playerId of participantIds(game)) {
+            if (!allowedIds.has(playerId)) throw new Error('Ein Teilnehmer existiert nicht oder ist kein Gast.');
+        }
+    };
     const validatePlayerBinding = value => {
         if (value === null || value === undefined || value === '') return null;
         const player = readPlayers().find(item => String(item?.id) === String(value));
@@ -265,6 +283,52 @@ async function createRuntime(options = {}) {
             db.prepare('SELECT 1 AS ok').get();
             res.json({ status: 'ok', schemaVersion: Number(db.pragma('user_version', { simple: true })) });
         } catch { res.status(503).json({ status: 'error' }); }
+    });
+
+    app.get('/api/guests', auth.requireAuth, (req, res) => res.set('Cache-Control', 'no-store').json(readGuests()));
+
+    app.post('/api/guests', auth.requireAuth, auth.requireCsrf, (req, res) => {
+        const name = String(req.body?.name ?? '').trim();
+        if (!name || name.length > 80 || Object.keys(req.body || {}).length !== 1) return res.status(400).json({ error: 'Für den Gast ist ein Name mit höchstens 80 Zeichen erforderlich.' });
+        try {
+            let id;
+            const existingIds = new Set(readPlayers().map(player => Number(player.id)));
+            do { id = Date.now() * 1000 + require('node:crypto').randomInt(1000); }
+            while (existingIds.has(id) || db.prepare('SELECT 1 FROM guest_players WHERE id = ?').get(id));
+            db.prepare('INSERT INTO guest_players (id, name, created_at) VALUES (?, ?, ?)').run(id, name, Date.now());
+            return res.status(201).json({ id, name, isGuest: true });
+        } catch { return res.status(500).json({ error: 'Gast konnte nicht angelegt werden.' }); }
+    });
+
+    app.post('/api/guests/:id/promote', auth.requireAdmin, auth.requireCsrf, (req, res) => {
+        try {
+            const guestId = Number(req.params.id);
+            if (!Number.isSafeInteger(guestId)) return res.status(400).json({ error: 'Ungültige Gast-ID.' });
+            const promote = db.transaction(() => {
+                const guest = db.prepare('SELECT id, name FROM guest_players WHERE id = ?').get(guestId);
+                if (!guest) throw Object.assign(new Error('Gast wurde nicht gefunden.'), { status: 404 });
+                const players = readPlayers();
+                if (players.some(player => String(player.id) === String(guestId))) throw new Error('Die Gast-ID ist bereits vergeben.');
+                const gamesRow = readState.get('games');
+                const games = gamesRow ? JSON.parse(gamesRow.json_data) : [];
+                const stats = { games: 0, wins: 0, points: 0 };
+                for (const game of games) {
+                    if (game?.rated === false) continue;
+                    for (const party of game?.players || []) {
+                        if (!(party.playerIds || [party.id]).some(id => String(id) === String(guestId))) continue;
+                        stats.games += 1;
+                        stats.points += Number(party.total) || 0;
+                        if ((game.winnerPartyIds || []).some(id => String(id) === String(party.id))) stats.wins += 1;
+                    }
+                }
+                const player = { id: guestId, name: guest.name, favorite: false, ...stats };
+                players.push(player);
+                saveState.run('players', JSON.stringify(players));
+                db.prepare('DELETE FROM guest_players WHERE id = ?').run(guestId);
+                return player;
+            });
+            return res.json(promote.immediate());
+        } catch (error) { return res.status(error.status || 400).json({ error: error.message }); }
     });
 
     app.get('/api/preview-qr', auth.requireAdmin, async (req, res) => {
@@ -320,6 +384,7 @@ async function createRuntime(options = {}) {
     app.post('/api/active-games', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
+            validateGameParticipants(req.body);
             const create = db.transaction(() => {
                 const active = readActiveGames();
                 if (active.some(game => gameIdMatches(game, req.body.id))) throw Object.assign(new Error('Dieses Spiel existiert bereits.'), { status: 409 });
@@ -336,6 +401,7 @@ async function createRuntime(options = {}) {
     app.put('/api/active-games/:id', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
+            validateGameParticipants(req.body);
             if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
             const update = db.transaction(() => {
                 const active = readActiveGames();
@@ -370,6 +436,7 @@ async function createRuntime(options = {}) {
     app.post('/api/active-games/:id/finish', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
+            validateGameParticipants(req.body);
             if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
             const finish = db.transaction(() => {
                 const active = readActiveGames();
