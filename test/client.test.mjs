@@ -44,7 +44,7 @@ test('multi-user UI wires presence, safe undo, dashboard and comparison without 
   assert.match(appSource, /function undoActivity/);
   assert.match(appSource, /buildPersonalDashboard/);
   assert.match(appSource, /buildHeadToHeadStats/);
-  assert.match(serverSource, /SCHEMA_VERSION = 6/);
+  assert.match(serverSource, /SCHEMA_VERSION = 7/);
   assert.match(collaborationSource, /Nur die letzte Änderung kann rückgängig gemacht werden/);
   assert.doesNotMatch(appSource, /Revanche-Abstimmung|achievement-card|Erfolge freigeschaltet/i);
 });
@@ -53,7 +53,9 @@ test('guest-player setup is local to the current game and promotion is exposed o
   const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const stateSource = await fs.readFile(new URL('../state.js', import.meta.url), 'utf8');
   assert.match(appSource, />Gast hinzufügen</);
-  assert.match(appSource, /\/api\/guests/);
+  assert.match(appSource, /guestDrafts: state\.setupGuestPlayers/);
+  assert.match(appSource, /\/api\/guests\?gameId=/);
+  assert.doesNotMatch(appSource, /authRequest\('\/api\/guests', \{ method: 'POST'/);
   assert.match(appSource, /Als festen Spieler übernehmen/);
   assert.match(stateSource, /setupGuestPlayers/);
 });
@@ -67,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=guest-players-1/);
-  assert.match(indexSource, /app\.js\?v=guest-players-1/);
+  assert.match(indexSource, /style\.css\?v=guest-players-2/);
+  assert.match(indexSource, /app\.js\?v=guest-players-2/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });

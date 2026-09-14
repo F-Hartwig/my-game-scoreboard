@@ -9,6 +9,7 @@ import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from
 import { sortSetupPlayersByLastParticipation } from './setup-player-order.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
+let nextGuestDraftId = -1;
 
 function getWinnerPartyIds(game) {
     if (Array.isArray(game?.winnerPartyIds)) {
@@ -633,6 +634,7 @@ function startSetup(prefillGame = null) {
     setupPlayerFilter = "all";
     setupPlayerListExpanded = false;
     state.setupGuestPlayers = [];
+    nextGuestDraftId = -1;
 
     const selectableGames = PREDEFINED_GAMES
         .filter(g => !g.hideFromSelection)
@@ -794,17 +796,17 @@ async function addSetupGuest() {
     const input = document.getElementById('guestNameInput');
     const errorBox = document.getElementById('guestError');
     const name = input?.value.trim() || '';
-    try {
-        const guest = await authRequest('/api/guests', { method: 'POST', body: JSON.stringify({ name }) });
-        state.setupGuestPlayers.push(guest);
-        setupDraftSelection.push({ id: Number(guest.id), type: 'guest' });
-        closeModal();
-        const selectList = document.getElementById('selectList');
-        if (selectList) selectList.innerHTML = renderSetupPoolHtml();
-        updateDragOrderList();
-    } catch (error) {
-        if (errorBox) { errorBox.textContent = error.message; errorBox.hidden = false; }
+    if (!name || name.length > 80) {
+        if (errorBox) { errorBox.textContent = 'Für den Gast ist ein Name mit höchstens 80 Zeichen erforderlich.'; errorBox.hidden = false; }
+        return;
     }
+    const guest = { id: nextGuestDraftId--, name, isGuest: true };
+    state.setupGuestPlayers.push(guest);
+    setupDraftSelection.push({ id: guest.id, type: 'guest' });
+    closeModal();
+    const selectList = document.getElementById('selectList');
+    if (selectList) selectList.innerHTML = renderSetupPoolHtml();
+    updateDragOrderList();
 }
 
 function renderSetupPoolHtml() {
@@ -1194,6 +1196,7 @@ async function createGame() {
             ...gameConfig.rules,
             winCondition: selectedWinCondition
         },
+        guestDrafts: state.setupGuestPlayers.map(guest => ({ id: guest.id, name: guest.name })),
         players: dragCards.map(card => {
             let id = Number(card.dataset.id);
             let type = card.dataset.type;
@@ -1211,6 +1214,7 @@ async function createGame() {
     state.lastRenderedGameId = null; 
     const createdGame = await apiCreateActiveGame(state.currentGame);
     if (!createdGame) return;
+    state.setupGuestPlayers = [];
     state.activeGames.push(createdGame);
     state.currentGame = createdGame;
     rememberCurrentGame();
@@ -2584,7 +2588,7 @@ async function viewGameDetails(gameId) {
     let promotableGuests = [];
     if (authState.user?.role === 'admin') {
         try {
-            const guests = await authRequest('/api/guests');
+            const guests = await authRequest(`/api/guests?gameId=${encodeURIComponent(g.id)}`);
             const participantIds = new Set((g.players || []).flatMap(party => party.playerIds || [party.id]).map(String));
             promotableGuests = guests.filter(guest => participantIds.has(String(guest.id)));
         } catch { promotableGuests = []; }
