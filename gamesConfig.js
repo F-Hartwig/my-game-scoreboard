@@ -304,11 +304,11 @@ export const PREDEFINED_GAMES = [
             descriptionLong: `
                 <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
                     <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔺 Vorbereitung</strong>
-                    Jede Person startet mit <strong>7 Steinen</strong>; die übrigen bilden den Vorrat. Alle ziehen einen Stein: Wer den höchsten Steinwert hat, beginnt; bei Gleichstand wird erneut gezogen.
+                    Alle Steine werden verdeckt gemischt und bilden den Vorrat. Bei <strong>2 Personen</strong> erhält jede Person <strong>9 Steine</strong>, bei <strong>3 oder 4 Personen</strong> jeweils <strong>7 Steine</strong>. Zur Bestimmung des Starts zieht jede Person einen Stein: Wer den höchsten Steinwert hat, beginnt; bei Gleichstand wird erneut gezogen. Anschließend kommen die gezogenen Steine zurück in den Vorrat und werden erneut gemischt.
                     <br><br>
 
                     <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🎮 Zug & Nachziehen</strong>
-                    Lege einen Stein so an, dass alle berührenden Zahlen vollständig passen. Kannst oder möchtest du nicht anlegen, ziehst du nacheinander bis zu <strong>3 Steine</strong> und versuchst jeden sofort anzulegen. Jeder gezogene Stein zählt <strong>−5 Punkte</strong>. Kannst du nach dem dritten Versuch nicht anlegen, kommen fürs Passen <strong>−10 Punkte</strong> hinzu – insgesamt <strong>−25 Punkte</strong>. Ist der Vorrat leer, gibt es keine Passstrafe.
+                    Pro Zug wird <strong>genau ein Stein</strong> so angelegt, dass alle sich berührenden Eckzahlen übereinstimmen. Kannst oder möchtest du nicht anlegen, ziehst du nacheinander bis zu <strong>3 Steine</strong> und versuchst jeden sofort anzulegen. Jeder gezogene Stein zählt <strong>−5 Punkte</strong>. Kannst du nach dem dritten Versuch nicht anlegen, kommen fürs Passen <strong>−10 Punkte</strong> hinzu – insgesamt <strong>−25 Punkte</strong>. Ist der Vorrat leer, gibt es keine Passstrafe.
                     <br><br>
 
                     <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">📊 Punkte</strong>
@@ -320,7 +320,7 @@ export const PREDEFINED_GAMES = [
                     </ul>
 
                     <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🏁 Spielende</strong>
-                    Legt jemand den letzten eigenen Stein, darf jede Person, die in dieser Runde noch nicht an der Reihe war, noch genau einen Stein legen. Danach erhält die erste fertig gewordene Person <strong>+25 Punkte plus die Summe aller gegnerischen Handsteine</strong>. Ist das Spiel blockiert, gewinnt der niedrigste eigene Restwert: Dieser wird abgezogen, die Restwerte aller anderen werden addiert – ohne Bonus.
+                    Legt jemand den letzten eigenen Stein, darf jede Person, die in dieser Runde noch nicht an der Reihe war, noch <strong>genau einen Stein</strong> legen; Nachziehen ist dann nicht mehr erlaubt. Danach erhält die zuerst fertig gewordene Person <strong>+25 Punkte plus die Summe aller gegnerischen Handsteine</strong>; die anderen erhalten dafür keine Minuspunkte. Ist das Spiel blockiert, gewinnt die Person mit dem niedrigsten eigenen Restwert: Dieser wird von ihrer Punktzahl abgezogen, die Restwerte aller anderen werden addiert – ohne Bonus; die anderen erhalten keine Minuspunkte.
                 </div>
             `
         }
