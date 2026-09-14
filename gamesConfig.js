@@ -295,7 +295,7 @@ export const PREDEFINED_GAMES = [
     {
         id: "triominos",
         name: "Triominos",
-        description: "Lege dreieckige Steine passend an. Eine Runde im ScoreBuddy entspricht einem vollständigen Spiel.",
+        description: "Lege dreieckige Steine mit vollständig passenden Berührungszahlen an und sammle Punkte.",
         defaultMode: "round",
         rules: {
             winCondition: "highest",
@@ -303,25 +303,24 @@ export const PREDEFINED_GAMES = [
             exactMatchRule: null,
             descriptionLong: `
                 <div style="font-family: inherit; line-height: 1.5; font-size: 13px; max-height: 400px; overflow-y: auto; padding-right: 4px;">
-                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔺 Ziel & Vorbereitung</strong>
-                    Jede Person startet mit <strong>7 Steinen</strong>; die übrigen bilden den Vorrat. Legt gemeinsam fest, wer beginnt. Eine Runde im ScoreBuddy entspricht einem vollständigen Triominos-Spiel.
+                    <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🔺 Vorbereitung</strong>
+                    Jede Person startet mit <strong>7 Steinen</strong>; die übrigen bilden den Vorrat. Alle ziehen einen Stein: Wer den höchsten Steinwert hat, beginnt; bei Gleichstand wird erneut gezogen.
                     <br><br>
 
                     <strong style="color: var(--primary); font-size: 15px; display: block; margin-bottom: 6px;">🎮 Zug & Nachziehen</strong>
-                    Lege einen dreieckigen Stein so an, dass die berührenden Seiten dieselben Zahlen zeigen. Kannst oder möchtest du nicht anlegen, darfst du nacheinander bis zu <strong>3 Steine</strong> ziehen und jeden sofort anzulegen versuchen. Jeder gezogene Stein zählt <strong>−5 Punkte</strong>. Kannst du auch nach dem dritten gezogenen Stein nicht anlegen, kommen weitere <strong>−10 Punkte</strong> fürs Passen hinzu – damit erhältst du für diesen Zug insgesamt <strong>−25 Punkte</strong>.
+                    Lege einen Stein so an, dass alle berührenden Zahlen vollständig passen. Kannst oder möchtest du nicht anlegen, ziehst du nacheinander bis zu <strong>3 Steine</strong> und versuchst jeden sofort anzulegen. Jeder gezogene Stein zählt <strong>−5 Punkte</strong>. Kannst du nach dem dritten Versuch nicht anlegen, kommen fürs Passen <strong>−10 Punkte</strong> hinzu – insgesamt <strong>−25 Punkte</strong>. Ist der Vorrat leer, gibt es keine Passstrafe.
                     <br><br>
 
                     <strong style="color: var(--success); font-size: 15px; display: block; margin-bottom: 6px;">📊 Punkte</strong>
-                    Notiere die Summe der Zahlen auf jedem gelegten Stein. Formboni werden zusätzlich zum Steinwert gewertet:
+                    Der Steinwert ist die Summe seiner Zahlen. Formboni werden zusätzlich gewertet; bei Kombinationen zählt nur der höchste Formbonus:
                     <ul style="margin-left: 16px; margin-bottom: 12px; padding-left: 0;">
                         <li><strong>Brücke:</strong> +40 Punkte</li>
                         <li><strong>Sechseck:</strong> +50 Punkte</li>
                         <li><strong>Doppelsechseck:</strong> +60 Punkte</li>
-                        <li><strong>Dreifachsechseck:</strong> +70 Punkte</li>
                     </ul>
 
                     <strong style="color: var(--warning); font-size: 15px; display: block; margin-bottom: 6px;">🏁 Spielende</strong>
-                    Sobald jemand den letzten eigenen Stein ablegt, erhalten alle anderen Personen noch <strong>genau einen letzten Zug</strong>. Danach erhält die Person, die zuerst fertig geworden ist, <strong>25 Bonuspunkte plus die Summe der Werte aller Handsteine der anderen Personen</strong>. Sind keine Züge mehr möglich, endet das Spiel ebenfalls. Es gibt kein 400-Punkte-Gesamtlimit; die höchste Punktzahl dieses vollständigen Spiels gewinnt.
+                    Legt jemand den letzten eigenen Stein, darf jede Person, die in dieser Runde noch nicht an der Reihe war, noch genau einen Stein legen. Danach erhält die erste fertig gewordene Person <strong>+25 Punkte plus die Summe aller gegnerischen Handsteine</strong>. Ist das Spiel blockiert, gewinnt der niedrigste eigene Restwert: Dieser wird abgezogen, die Restwerte aller anderen werden addiert – ohne Bonus.
                 </div>
             `
         }
