@@ -6,6 +6,7 @@ import { authState, authRequest, initializeAuth } from './auth-client.js';
 import { findPreviewGame } from './preview-selection.mjs';
 import { hasScoreEntryDraft } from './score-entry-draft.mjs';
 import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from './personal-stats.mjs';
+import { sortSetupPlayersByLastParticipation } from './setup-player-order.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 
@@ -603,6 +604,7 @@ function renderPlayers() {
 // ===============================
 let setupPlayerFilter = "all";
 let setupDraftSelection = [];
+let setupPlayerListExpanded = false;
 
 function startSetup(prefillGame = null) {
     if(state.players.length < 2) {
@@ -629,6 +631,7 @@ function startSetup(prefillGame = null) {
         }))
         : [];
     setupPlayerFilter = "all";
+    setupPlayerListExpanded = false;
 
     const selectableGames = PREDEFINED_GAMES
         .filter(g => !g.hideFromSelection)
@@ -764,15 +767,19 @@ function renderSetupPlayerFilterHtml() {
 
 function setSetupPlayerFilter(filter) {
     setupPlayerFilter = filter === "favorites" ? "favorites" : "all";
+    setupPlayerListExpanded = false;
 
     const toolbar = document.querySelector(".setup-player-filter-toolbar");
     if (toolbar) toolbar.innerHTML = renderSetupPlayerFilterHtml();
 
-    document.querySelectorAll('#selectList .select-card[data-type="player"]').forEach(card => {
-        const player = state.players.find(item => Number(item.id) === Number(card.dataset.id));
-        const shouldHide = setupPlayerFilter === "favorites" && !player?.favorite && !card.classList.contains("selected");
-        card.classList.toggle("filter-hidden", shouldHide);
-    });
+    const selectList = document.getElementById("selectList");
+    if (selectList) selectList.innerHTML = renderSetupPoolHtml();
+}
+
+function setSetupPlayerListExpanded(expanded) {
+    setupPlayerListExpanded = Boolean(expanded);
+    const selectList = document.getElementById("selectList");
+    if (selectList) selectList.innerHTML = renderSetupPoolHtml();
 }
 
 function renderSetupPoolHtml() {
@@ -797,20 +804,30 @@ function renderSetupPoolHtml() {
         });
     }
 
-    state.players.forEach(p => {
-        if (!assignedPlayerIds.includes(p.id)) {
-            const isSelected = setupDraftSelection.some(item => item.type === "player" && Number(item.id) === Number(p.id));
-            const isFilterHidden = setupPlayerFilter === "favorites" && !p.favorite && !isSelected;
-            html += `
-                <div class="select-card ${isSelected ? "selected" : ""} ${isFilterHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
-                    <div class="player-left">
-                        <input type="checkbox" aria-label="${escapeHtml(p.name)} auswählen" value="${p.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
-                        <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
-                        <strong>${escapeHtml(p.name)}</strong>
-                    </div>
-                </div>`;
-        }
+    const selectablePlayers = sortSetupPlayersByLastParticipation(state.players, state.games)
+        .filter(player => !assignedPlayerIds.includes(player.id));
+    const filteredPlayers = selectablePlayers.filter(player => (
+        setupPlayerFilter === "all" || player.favorite || setupDraftSelection.some(item => item.type === "player" && Number(item.id) === Number(player.id))
+    ));
+    const initiallyVisiblePlayerIds = new Set(filteredPlayers.slice(0, 8).map(player => Number(player.id)));
+
+    selectablePlayers.forEach(p => {
+        const isSelected = setupDraftSelection.some(item => item.type === "player" && Number(item.id) === Number(p.id));
+        const isFilterHidden = setupPlayerFilter === "favorites" && !p.favorite && !isSelected;
+        const isCollapsedHidden = !setupPlayerListExpanded && !initiallyVisiblePlayerIds.has(Number(p.id));
+        html += `
+            <div class="select-card ${isSelected ? "selected" : ""} ${isFilterHidden || isCollapsedHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
+                <div class="player-left">
+                    <input type="checkbox" aria-label="${escapeHtml(p.name)} auswählen" value="${p.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
+                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                    <strong>${escapeHtml(p.name)}</strong>
+                </div>
+            </div>`;
     });
+
+    if (!setupPlayerListExpanded && filteredPlayers.length > 8) {
+        html += `<button type="button" class="secondary" onclick="setSetupPlayerListExpanded(true)" aria-expanded="false">Mehr anzeigen</button>`;
+    }
 
     return html;
 }
@@ -3821,6 +3838,7 @@ window.showGameRulesModal = showGameRulesModal;
 window.openTeamBuilderModal = openTeamBuilderModal;
 window.submitTeamBuilderModal = submitTeamBuilderModal;
 window.removeSingleTeam = removeSingleTeam;
+window.setSetupPlayerListExpanded = setSetupPlayerListExpanded;
 window.triggerRenameHistoryGame = triggerRenameHistoryGame;
 window.submitRenameHistoryGame = submitRenameHistoryGame;
 window.startRematch = startRematch;
