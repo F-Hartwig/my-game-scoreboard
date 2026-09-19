@@ -24,6 +24,25 @@ const PUBLIC_FILES = new Set([
     'gamesConfig.js', 'security.mjs', 'preview-selection.mjs', 'score-entry-draft.mjs', 'setup-player-order.mjs',
     'personal-stats.mjs'
 ]);
+const WEREWOLF_ROLES = new Set(['villager', 'werewolf', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
+
+function validateWerewolfGame(game) {
+    if (game?.gameTypeId !== 'werwolf') return;
+    if (game.rated !== false || game.mode !== 'assistant') throw new Error('Werwolf ist immer ungewertet und nutzt den Spielleiter-Modus.');
+    const state = game.werewolf;
+    if (!state || state.version !== 1 || !['night', 'day', 'finished'].includes(state.phase) || !Number.isSafeInteger(state.number) || state.number < 1) throw new Error('Werwolf-Zustand ist ungültig.');
+    if (!Array.isArray(state.roles) || state.roles.length !== (game.players || []).length || !Array.isArray(state.events) || state.events.length > 200) throw new Error('Werwolf-Rollen oder Ereignisse sind ungültig.');
+    const participantIds = new Set(participantIdsForGame(game));
+    const assigned = new Set();
+    for (const role of state.roles) {
+        if (!participantIds.has(String(role?.playerId)) || assigned.has(String(role.playerId)) || !WEREWOLF_ROLES.has(role.roleId) || !['village', 'wolves'].includes(role.baseTeam) || !['village', 'wolves'].includes(role.currentTeam) || typeof role.alive !== 'boolean') throw new Error('Werwolf-Rolle ist ungültig.');
+        assigned.add(String(role.playerId));
+    }
+}
+
+function participantIdsForGame(game) {
+    return (game?.players || []).flatMap(party => party?.playerIds || [party?.id]).map(String);
+}
 
 function migrateDatabase(db) {
     db.pragma('busy_timeout = 5000');
@@ -418,6 +437,7 @@ async function createRuntime(options = {}) {
             const create = db.transaction(() => {
                 const game = materializeGuestDrafts(req.body);
                 validatePayload('currentGame', game);
+                validateWerewolfGame(game);
                 validateGameParticipants(game);
                 const active = readActiveGames();
                 if (active.some(item => gameIdMatches(item, game.id))) throw Object.assign(new Error('Dieses Spiel existiert bereits.'), { status: 409 });
@@ -434,6 +454,7 @@ async function createRuntime(options = {}) {
     app.put('/api/active-games/:id', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
+            validateWerewolfGame(req.body);
             validateGameParticipants(req.body);
             if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
             const update = db.transaction(() => {
@@ -469,6 +490,7 @@ async function createRuntime(options = {}) {
     app.post('/api/active-games/:id/finish', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
             validatePayload('currentGame', req.body);
+            validateWerewolfGame(req.body);
             validateGameParticipants(req.body);
             if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
             const finish = db.transaction(() => {
@@ -518,7 +540,12 @@ async function createRuntime(options = {}) {
             try {
                 const row = readState.get(endpoint);
                 if (!row) return res.json(config.empty);
-                try { return res.json(JSON.parse(row.json_data)); }
+                try {
+                    const payload = JSON.parse(row.json_data);
+                    return res.json(req.query.preview === '1' && endpoint === 'activeGames' && Array.isArray(payload)
+                        ? payload.filter(game => game?.gameTypeId !== 'werwolf')
+                        : payload);
+                }
                 catch { return res.status(500).json({ error: `Gespeicherte Daten für ${endpoint} sind beschädigt.` }); }
             } catch { return res.status(500).json({ error: 'Datenbankfehler.' }); }
         });

@@ -1,5 +1,12 @@
 export const PREDEFINED_GAMES = [
     {
+        id: "werwolf",
+        name: "Werwolf",
+        description: "Spielleiter-Assistent für eine gemeinsame, geheime Rollenrunde – ohne Punkte oder Rangliste.",
+        defaultMode: "assistant",
+        rules: { winCondition: "highest", endTriggerPoints: null, exactMatchRule: null, descriptionLong: "" }
+    },
+    {
         id: "custom",
         name: "Custom-Spiel (Klassisch)",
         description: "Freies Spiel ohne automatische Endbedingungen oder Sonderregeln.",
