@@ -22,7 +22,7 @@ const ENDPOINTS = Object.freeze({
 const PUBLIC_FILES = new Set([
     'index.html', 'style.css', 'icon.png', 'app.js', 'api.js', 'auth-client.js', 'state.js',
     'gamesConfig.js', 'security.mjs', 'preview-selection.mjs', 'score-entry-draft.mjs', 'setup-player-order.mjs',
-    'personal-stats.mjs'
+    'personal-stats.mjs', 'werwolf-role-count.mjs'
 ]);
 const WEREWOLF_ROLES = new Set(['villager', 'werewolf', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
 

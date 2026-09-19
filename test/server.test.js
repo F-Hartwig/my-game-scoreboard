@@ -66,6 +66,13 @@ async function login(base, username, password = USER_PASSWORD) {
     return client;
 }
 
+test('Werwolf role-counter module is served to the browser', async t => {
+    const f = await fixture(t);
+    const response = await fetch(`${f.base}/werwolf-role-count.mjs`);
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /bindWerewolfRoleCount/);
+});
+
 test('legacy-compatible payloads validate and malformed payloads fail', () => {
     const legacy = [{ id: 1720000000000, name: 'Alice <Admin>', favorite: false, wins: 1, games: 2, points: -10 }];
     assert.doesNotThrow(() => validatePayload('players', legacy));
