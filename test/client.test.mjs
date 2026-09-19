@@ -75,6 +75,19 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
 
+test('Werwolf client keeps the agreed wake order and persistent moderator resources', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(source, /WW_NIGHT_ONE = \['amor', 'child', 'prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'\]/);
+  assert.match(source, /WW_NIGHT = \['prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'\]/);
+  assert.match(source, /previousBarkeeperTargetId/);
+  assert.match(source, /childModelPlayerId/);
+  assert.match(source, /ww\.lovers = \[Number\(target\), Number\(target2\)\]/);
+  assert.match(source, /witch\.resources\.heal = false/);
+  assert.match(source, /witch\.resources\.poison = false/);
+  assert.match(source, /function wwShowRole/);
+  assert.match(source, /function wwFinishGame/);
+});
+
 test('scoreboard can switch to a persistent compact three-column grid', async () => {
   const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
