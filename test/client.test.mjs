@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-mvp-1/);
-  assert.match(indexSource, /app\.js\?v=werwolf-mvp-1/);
+  assert.match(indexSource, /style\.css\?v=werwolf-setup-2/);
+  assert.match(indexSource, /app\.js\?v=werwolf-setup-2/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -86,6 +86,19 @@ test('Werwolf client keeps the agreed wake order and persistent moderator resour
   assert.match(source, /witch\.resources\.poison = false/);
   assert.match(source, /function wwShowRole/);
   assert.match(source, /function wwFinishGame/);
+});
+
+test('Werwolf setup selects players before roles, starts role counts at zero, and requires an exact role total', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const playerSelection = source.indexOf('Teilnehmer wählen');
+  const roleSetup = source.indexOf('Rollen festlegen');
+
+  assert.ok(playerSelection >= 0 && roleSetup > playerSelection, 'roles follow player selection');
+  assert.match(source, /id="wwRoleCount"[^>]*>0\/0</);
+  assert.match(source, /value="0" onchange="updateWerewolfRoleCount\(\)"/);
+  assert.match(source, /counter\.textContent = `\$\{selectedRoles\}\/\$\{playerCount\}`/);
+  assert.match(source, /roleIds\.length !== state\.currentGame\.players\.length/);
+  assert.match(source, /Die Rollenanzahl muss exakt der Anzahl der ausgewählten Teilnehmer entsprechen\./);
 });
 
 test('scoreboard can switch to a persistent compact three-column grid', async () => {

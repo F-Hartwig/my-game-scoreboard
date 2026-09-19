@@ -663,16 +663,6 @@ function startSetup(prefillGame = null) {
                 ${firstGame.description}
             </p>
 
-            <div id="werwolfSetupContainer" class="werwolf-setup" style="display:${firstGame.id === 'werwolf' ? 'block' : 'none'}">
-                <div class="title">Werwolf-Setup</div>
-                <p>Rollenpaket: mindestens ein Werwolf; alle übrigen Plätze werden Dorfbewohner.</p>
-                <div class="werwolf-role-grid">
-                    ${[['werewolf','Werwolf',1],['seer','Seherin',1],['witch','Hexe',1],['hunter','Jäger',1],['prostitute','Hure',1],['barkeeper','Barkeeper',1],['terrorist','Terrorist',1],['child','Kind',1],['priest','Priester',1]].map(([id,label,value]) => `<label>${label}<input id="ww_${id}" type="number" min="0" max="3" value="${value}"></label>`).join('')}
-                </div>
-                <label class="werwolf-checkbox"><input id="wwReveal" type="checkbox"> Rolle bei Tod aufdecken</label>
-                <label>Verteilung<select id="wwDistribution"><option value="random">Zufällig</option><option value="manual">Manuell nach Übergabe</option></select></label>
-            </div>
-
             <div id="customGameNameContainer" style="display: ${isCustomActive ? 'block' : 'none'}; margin-bottom: 20px;">
                 <div class="title">Name des Spiels</div>
                 <input id="gameNameInput" value="${String(customGameName).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
@@ -727,6 +717,17 @@ function startSetup(prefillGame = null) {
         <div class="title">Reihenfolge festlegen</div>
         <div id="dragOrderList" style="margin-bottom:20px; background:var(--card); border:1px solid var(--border); padding:10px; border-radius:var(--radius-md); min-height:50px;">
             <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Teilnehmer aus, um deren Reihenfolge festzulegen.</p>
+        </div>
+
+        <div id="werwolfSetupContainer" class="werwolf-setup" style="display:${firstGame.id === 'werwolf' ? 'block' : 'none'}">
+            <div class="title">Rollen festlegen</div>
+            <p>Wähle für jeden ausgewählten Teilnehmer genau eine Rolle.</p>
+            <output id="wwRoleCount" class="ww-role-count" aria-live="polite">0/0</output>
+            <div class="werwolf-role-grid">
+                ${[['werewolf','Werwolf'],['seer','Seherin'],['witch','Hexe'],['hunter','Jäger'],['prostitute','Hure'],['barkeeper','Barkeeper'],['terrorist','Terrorist'],['child','Kind'],['priest','Priester'],['villager','Dorfbewohner']].map(([id,label]) => `<label>${label}<input id="ww_${id}" type="number" min="0" value="0" onchange="updateWerewolfRoleCount()"></label>`).join('')}
+            </div>
+            <label class="werwolf-checkbox"><input id="wwReveal" type="checkbox"> Rolle bei Tod aufdecken</label>
+            <label>Verteilung<select id="wwDistribution"><option value="random">Zufällig</option><option value="manual">Manuell nach Übergabe</option></select></label>
         </div>
         
         <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">
@@ -1031,6 +1032,7 @@ function updateDragOrderList() {
     if(checkedBoxes.length === 0) {
         dragBox.innerHTML = `<p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Teilnehmer aus, um deren Reihenfolge festzulegen.</p>`;
         setupDraftSelection = [];
+        updateWerewolfRoleCount();
         return;
     }
     
@@ -1159,6 +1161,15 @@ function updateDragOrderList() {
             else dragBox.insertBefore(dragging, afterElement);
         }
     });
+    updateWerewolfRoleCount();
+}
+
+function updateWerewolfRoleCount() {
+    const selectedRoles = [...document.querySelectorAll('#werwolfSetupContainer input[type="number"]')]
+        .reduce((total, input) => total + Math.max(0, Math.floor(Number(input.value) || 0)), 0);
+    const playerCount = document.querySelectorAll('#dragOrderList .drag-card').length;
+    const counter = document.getElementById('wwRoleCount');
+    if (counter) counter.textContent = `${selectedRoles}/${playerCount}`;
 }
 
 function getDragAfterElement(container, y) {
@@ -1226,10 +1237,10 @@ async function createGame() {
         })
     };
     if (isWerewolf) {
-        const roleCounts = [['werewolf', 'wolves'], ['seer', 'village'], ['witch', 'village'], ['hunter', 'village'], ['prostitute', 'village'], ['barkeeper', 'village'], ['terrorist', 'village'], ['child', 'village'], ['priest', 'village']];
-        const roleIds = roleCounts.flatMap(([roleId]) => Array.from({ length: Math.max(0, Math.min(3, Number(document.getElementById(`ww_${roleId}`)?.value) || 0)) }, () => roleId));
-        if (!roleIds.includes('werewolf') || roleIds.length > state.currentGame.players.length) { alert('Mindestens ein Werwolf und höchstens eine Rolle pro Teilnehmer.'); return; }
-        while (roleIds.length < state.currentGame.players.length) roleIds.push('villager');
+        const roleCounts = [['werewolf', 'wolves'], ['seer', 'village'], ['witch', 'village'], ['hunter', 'village'], ['prostitute', 'village'], ['barkeeper', 'village'], ['terrorist', 'village'], ['child', 'village'], ['priest', 'village'], ['villager', 'village']];
+        const roleIds = roleCounts.flatMap(([roleId]) => Array.from({ length: Math.max(0, Math.floor(Number(document.getElementById(`ww_${roleId}`)?.value) || 0)) }, () => roleId));
+        if (!roleIds.includes('werewolf')) { alert('Wähle mindestens einen Werwolf.'); return; }
+        if (roleIds.length !== state.currentGame.players.length) { alert('Die Rollenanzahl muss exakt der Anzahl der ausgewählten Teilnehmer entsprechen.'); return; }
         if (document.getElementById('wwDistribution')?.value !== 'manual') roleIds.sort(() => Math.random() - 0.5);
         state.currentGame.werewolf = {
             version: 1,

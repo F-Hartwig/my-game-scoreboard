@@ -3240,6 +3240,7 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 .werwolf-setup, .ww-roster, .ww-events { display: grid; gap: 10px; margin: 0 0 16px; }
 .werwolf-setup > p, .ww-status > p { color: var(--muted); font-size: 13px; }
 .werwolf-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+.ww-role-count { display: block; padding: 10px 12px; color: var(--primary); background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius-sm); font-size: 22px; font-weight: 850; text-align: center; }
 .werwolf-role-grid label, .werwolf-checkbox, .werwolf-setup > label { display: grid; gap: 4px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .werwolf-checkbox { grid-template-columns: 18px 1fr; align-items: center; }
 .ww-status { display: grid; gap: 8px; } .ww-status h2 { font-size: 26px; }
