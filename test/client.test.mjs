@@ -95,8 +95,8 @@ test('Werwolf setup selects players before roles, starts role counts at zero, an
 
   assert.ok(playerSelection >= 0 && roleSetup > playerSelection, 'roles follow player selection');
   assert.match(source, /id="wwRoleCount"[^>]*>0\/0</);
-  assert.match(source, /value="0" inputmode="numeric" pattern="\[0-9\]\*" oninput="updateWerewolfRoleCount\(\)" onchange="updateWerewolfRoleCount\(\)"/);
-  assert.match(source, /counter\.textContent = `\$\{selectedRoles\}\/\$\{playerCount\}`/);
+  assert.match(source, /type="number" min="0" placeholder="0" inputmode="numeric" pattern="\[0-9\]\*"/);
+  assert.match(source, /bindWerewolfRoleCount\(werwolfSetup, werwolfRoleCount/);
   assert.match(source, /roleIds\.length !== state\.currentGame\.players\.length/);
   assert.match(source, /Die Rollenanzahl muss exakt der Anzahl der ausgewählten Teilnehmer entsprechen\./);
   assert.match(source, /function wwConfirmHandoff\(\)[\s\S]*?if \(await saveWerewolf\(\)\) wwRevealNext\(\);/);

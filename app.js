@@ -7,6 +7,7 @@ import { findPreviewGame } from './preview-selection.mjs';
 import { hasScoreEntryDraft } from './score-entry-draft.mjs';
 import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from './personal-stats.mjs';
 import { sortSetupPlayersByLastParticipation } from './setup-player-order.mjs';
+import { bindWerewolfRoleCount, updateWerewolfRoleCount as renderWerewolfRoleCount } from './werwolf-role-count.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 let nextGuestDraftId = -1;
@@ -724,7 +725,7 @@ function startSetup(prefillGame = null) {
             <p>Wähle für jeden ausgewählten Teilnehmer genau eine Rolle.</p>
             <output id="wwRoleCount" class="ww-role-count" aria-live="polite">0/0</output>
             <div class="werwolf-role-grid">
-                ${[['werewolf','Werwolf'],['seer','Seherin'],['witch','Hexe'],['hunter','Jäger'],['prostitute','Hure'],['barkeeper','Barkeeper'],['terrorist','Terrorist'],['child','Kind'],['priest','Priester'],['villager','Dorfbewohner']].map(([id,label]) => `<label>${label}<input id="ww_${id}" type="number" min="0" value="0" inputmode="numeric" pattern="[0-9]*" oninput="updateWerewolfRoleCount()" onchange="updateWerewolfRoleCount()"></label>`).join('')}
+                ${[['werewolf','Werwolf'],['seer','Seherin'],['witch','Hexe'],['hunter','Jäger'],['prostitute','Hure'],['barkeeper','Barkeeper'],['terrorist','Terrorist'],['child','Kind'],['priest','Priester'],['villager','Dorfbewohner']].map(([id,label]) => `<label>${label}<input id="ww_${id}" type="number" min="0" placeholder="0" inputmode="numeric" pattern="[0-9]*"></label>`).join('')}
             </div>
             <label class="werwolf-checkbox"><input id="wwReveal" type="checkbox"> Rolle bei Tod aufdecken</label>
             <label>Verteilung<select id="wwDistribution"><option value="random">Zufällig</option><option value="manual">Manuell nach Übergabe</option></select></label>
@@ -760,6 +761,11 @@ function startSetup(prefillGame = null) {
     </div>`;
 
     document.getElementById("gameContent").innerHTML = html;
+    const werwolfSetup = document.getElementById('werwolfSetupContainer');
+    const werwolfRoleCount = document.getElementById('wwRoleCount');
+    if (werwolfSetup && werwolfRoleCount) {
+        bindWerewolfRoleCount(werwolfSetup, werwolfRoleCount, () => document.querySelectorAll('#dragOrderList .drag-card').length);
+    }
     if (setupDraftSelection.length > 0) updateDragOrderList();
 }
 
@@ -1165,11 +1171,9 @@ function updateDragOrderList() {
 }
 
 function updateWerewolfRoleCount() {
-    const selectedRoles = [...document.querySelectorAll('#werwolfSetupContainer input[type="number"]')]
-        .reduce((total, input) => total + Math.max(0, Math.floor(Number(input.value) || 0)), 0);
-    const playerCount = document.querySelectorAll('#dragOrderList .drag-card').length;
+    const container = document.getElementById('werwolfSetupContainer');
     const counter = document.getElementById('wwRoleCount');
-    if (counter) counter.textContent = `${selectedRoles}/${playerCount}`;
+    if (container && counter) renderWerewolfRoleCount(container, counter, () => document.querySelectorAll('#dragOrderList .drag-card').length);
 }
 
 function getDragAfterElement(container, y) {
