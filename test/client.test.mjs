@@ -111,7 +111,7 @@ test('Werwolf steps use one footer action position and 20px checkbox controls', 
   assert.match(appSource, /function wwStepFooter\(ww, step\)/);
   assert.match(appSource, /class="ww-step-footer"/);
   assert.doesNotMatch(appSource, /ww-status[\s\S]*?onclick="wwAdvance\(\)"[\s\S]*?ww-step-card/);
-  assert.match(styleSource, /\.ww-step-footer \{ display: grid; gap: 10px; margin-top: 16px;/);
+  assert.match(styleSource, /\.ww-step-footer \{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;/);
   assert.match(styleSource, /\.werwolf-checkbox input \{ inline-size: 20px; block-size: 20px; flex: 0 0 20px;/);
 });
 
@@ -145,11 +145,24 @@ test('Werwolf setup keeps exactly one game master, uses numeric fields only for 
 test('Werwolf game header contains only handoff, pause or resume, and finish while step status is in the action card', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
 
-  assert.match(source, /function renderWerewolfGame[\s\S]*?class="ww-actions"[\s\S]*?wwRevealNext\(\)[\s\S]*?wwTogglePause\(\)[\s\S]*?wwFinishGame\(\)/);
+  assert.match(source, /function renderWerewolfGame[\s\S]*?class="game-status-actions ww-actions"[\s\S]*?wwRevealNext\(\)[\s\S]*?wwTogglePause\(\)[\s\S]*?wwFinishGame\(\)/);
   assert.match(source, /class="card ww-step-card">[\s\S]*?Nacht' : 'Tag'\} \$\{ww\.number\}[\s\S]*?wwStepLabel\(step\)/);
   assert.match(source, /async function wwTogglePause\(\)[\s\S]*?ww\.paused = !ww\.paused;[\s\S]*?await saveWerewolf\(\);/);
   assert.match(source, /ww\.paused \? 'Fortsetzen' : 'Pause'/);
   assert.match(source, /ww\.paused \? '<p>Die Partie ist pausiert/);
+});
+
+test('Werwolf inline header actions are public handlers and use compact shared icon actions', async () => {
+  const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+
+  assert.match(appSource, /window\.wwTogglePause = wwTogglePause;/);
+  assert.match(appSource, /window\.wwFinishGame = wwFinishGame;/);
+  assert.match(appSource, /class="game-status-actions ww-actions"/);
+  assert.match(appSource, /class="secondary game-status-secondary game-action-icon"[^>]*aria-label="\$\{ww\.paused \? 'Fortsetzen' : 'Pause'\}"/);
+  assert.match(appSource, /class="secondary game-status-secondary game-action-icon"[^>]*aria-label="Partie beenden"/);
+  assert.match(styleSource, /\.ww-actions \{ width: auto; flex: 0 0 auto; min-width: 0; \}/);
+  assert.match(styleSource, /\.ww-step-card, \.ww-overview-card, \.ww-events-card \{ display: grid; gap: 12px; \}/);
 });
 
 test('scoreboard can switch to a persistent compact three-column grid', async () => {

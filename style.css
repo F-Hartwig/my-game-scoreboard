@@ -3237,19 +3237,24 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 .dashboard-form-result.is-win { color: var(--success); background: var(--success-light); border-color: color-mix(in srgb, var(--success) 28%, transparent); }
 .dashboard-form-result.is-loss { color: var(--danger); background: var(--danger-light); border-color: color-mix(in srgb, var(--danger) 25%, transparent); }
 .dashboard-form-result.is-draw { color: var(--muted); background: var(--surface-deep); border-color: var(--border); }
-.werwolf-setup, .ww-roster, .ww-events, .ww-field-group { display: grid; gap: 12px; margin: 0 0 16px; }
-.werwolf-setup > p, .ww-status > p { color: var(--muted); font-size: 13px; }
+.werwolf-setup { display: grid; gap: 12px; margin: 0 0 16px; }
+.werwolf-setup > p { color: var(--muted); font-size: 13px; }
 .werwolf-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
 .ww-role-count { display: block; padding: 10px 12px; color: var(--primary); background: var(--primary-light); border: 1px solid var(--primary); border-radius: var(--radius-sm); font-size: 22px; font-weight: 850; text-align: center; }
 .werwolf-role-grid label, .werwolf-checkbox, .werwolf-setup > label, .ww-step-content label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 700; }
 .werwolf-checkbox { grid-template-columns: 20px minmax(0, 1fr); align-items: center; column-gap: 10px; min-height: 44px; }
 .werwolf-checkbox input { inline-size: 20px; block-size: 20px; flex: 0 0 20px; margin: 0; accent-color: var(--primary); }
-.ww-status { display: grid; gap: 8px; } .ww-status h2 { font-size: 26px; }
-.ww-actions, .ww-step-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .ww-actions button:last-child, .ww-step-footer button:last-child { grid-column: 1 / -1; }
-.ww-step-content { display: grid; gap: 12px; }
-.ww-step-content > :last-child { margin-bottom: 0; }
-.ww-step-footer { display: grid; gap: 10px; margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--border-strong); }
-@media (max-width: 540px) { .werwolf-role-grid { grid-template-columns: 1fr; } .ww-actions, .ww-step-footer { grid-template-columns: 1fr; } .ww-actions button:last-child, .ww-step-footer button:last-child { grid-column: auto; } }
+.ww-header-hint, .ww-step-card > p { margin: 0; color: var(--muted); font-size: 13px; }
+.ww-actions { width: auto; flex: 0 0 auto; min-width: 0; }
+.game-status-actions .game-action-icon[aria-label="Partie beenden"] { color: var(--danger); }
+.ww-step-card, .ww-overview-card, .ww-events-card { display: grid; gap: 12px; }
+.ww-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ww-section-heading > button { width: auto; flex: 0 0 auto; }
+.ww-roster, .ww-events, .ww-field-group, .ww-step-content { display: grid; gap: 12px; margin: 0; }
+.ww-step-content > p, .ww-step-content > :last-child { margin-bottom: 0; }
+.ww-step-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--border-strong); }
+.ww-step-footer button:last-child { grid-column: 1 / -1; }
+@media (max-width: 540px) { .werwolf-role-grid, .ww-step-footer { grid-template-columns: 1fr; } .ww-step-footer button:last-child { grid-column: auto; } }
 .ww-player { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; align-items: center; padding: 10px; background: var(--surface-soft); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
 .ww-player span { color: var(--muted); font-size: 12px; } .ww-player button { grid-column: 2; grid-row: 1 / 3; width: auto; } .ww-player.dead { opacity: .58; }
 .ww-events { color: var(--muted); font-size: 13px; } .ww-events > div { padding: 7px 0; border-bottom: 1px solid var(--border-strong); }
