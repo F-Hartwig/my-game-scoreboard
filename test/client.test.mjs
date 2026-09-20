@@ -75,9 +75,10 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
 
-test('Werwolf client keeps the agreed wake order and persistent moderator resources', async () => {
+test('Werwolf client shows the child step only for an assigned child and keeps persistent moderator resources', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
-  assert.match(source, /WW_NIGHT_ONE = \['amor', 'child', 'prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'\]/);
+  assert.match(source, /function wwHasAssignedRole\(ww, roleId\)/);
+  assert.match(source, /WW_NIGHT_ONE\.filter\(step => step !== 'child' \|\| wwHasAssignedRole\(ww, 'child'\)\)/);
   assert.match(source, /WW_NIGHT = \['prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'\]/);
   assert.match(source, /previousBarkeeperTargetId/);
   assert.match(source, /childModelPlayerId/);
@@ -86,6 +87,32 @@ test('Werwolf client keeps the agreed wake order and persistent moderator resour
   assert.match(source, /witch\.resources\.poison = false/);
   assert.match(source, /function wwShowRole/);
   assert.match(source, /function wwFinishGame/);
+});
+
+test('Werwolf removes a stale child step when no child is assigned', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(source, /if \(ww\.phase === 'night' && ww\.step === 'child' && !wwHasAssignedRole\(ww, 'child'\)\) ww\.step = wwSteps\(ww\)\[WW_NIGHT_ONE\.indexOf\('child'\)\] \|\| wwSteps\(ww\)\[0\];/);
+  assert.match(source, /function wwSaveAssignment\(\)[\s\S]*?wwEnsureState\(\);[\s\S]*?await saveWerewolf\(\);/);
+});
+
+test('Werwolf target controls exclude the known actor except barkeeper and witch, and reject invalid saved targets', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  assert.match(source, /function wwTargetOptions\(actorIds = \[\], allowSelf = false\)/);
+  assert.match(source, /function wwStepAllowsSelf\(step\) \{ return \['barkeeper', 'witch'\]\.includes\(step\); \}/);
+  assert.match(source, /allowSelf \|\| !actorIds\.some\(actorId => String\(actorId\) === String\(role\.playerId\)\)/);
+  assert.match(source, /if \(!wwTargetIsValid\(ww, target, wwStepActorIds\(ww, step\), wwStepAllowsSelf\(step\)\)\) return/);
+  assert.match(source, /id="wwTargetTerrorist"/);
+  assert.match(source, /id="wwTargetPriest"/);
+});
+
+test('Werwolf steps use one footer action position and 20px checkbox controls', async () => {
+  const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(appSource, /function wwStepFooter\(ww, step\)/);
+  assert.match(appSource, /class="ww-step-footer"/);
+  assert.doesNotMatch(appSource, /ww-status[\s\S]*?onclick="wwAdvance\(\)"[\s\S]*?ww-step-card/);
+  assert.match(styleSource, /\.ww-step-footer \{ display: grid; gap: 10px; margin-top: 16px;/);
+  assert.match(styleSource, /\.werwolf-checkbox input \{ inline-size: 20px; block-size: 20px; flex: 0 0 20px;/);
 });
 
 test('Werwolf setup selects players before roles, starts role counts at zero, and requires an exact role total', async () => {
