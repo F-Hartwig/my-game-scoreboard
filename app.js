@@ -725,7 +725,9 @@ function startSetup(prefillGame = null) {
             <p>Wähle für jeden ausgewählten Teilnehmer genau eine Rolle.</p>
             <output id="wwRoleCount" class="ww-role-count" aria-live="polite">0/0</output>
             <div class="werwolf-role-grid">
-                ${[['werewolf','Werwolf'],['seer','Seherin'],['witch','Hexe'],['hunter','Jäger'],['prostitute','Hure'],['barkeeper','Barkeeper'],['terrorist','Terrorist'],['child','Kind'],['priest','Priester'],['villager','Dorfbewohner']].map(([id,label]) => `<label>${label}<input id="ww_${id}" type="number" min="0" placeholder="0" inputmode="numeric" pattern="[0-9]*"></label>`).join('')}
+                ${[['gamemaster','Spielleiter'],['werewolf','Werwolf'],['villager','Dorfbewohner'],['seer','Seherin'],['witch','Hexe'],['hunter','Jäger'],['prostitute','Hure'],['barkeeper','Barkeeper'],['terrorist','Terrorist'],['child','Kind'],['priest','Priester']].map(([id,label]) => WW_REPEATABLE_ROLE_IDS.has(id)
+                    ? `<label>${label}<input id="ww_${id}" type="number" min="0" placeholder="0" inputmode="numeric" pattern="[0-9]*"></label>`
+                    : `<label class="werwolf-checkbox"><input id="ww_${id}" type="checkbox" data-ww-role ${id === 'gamemaster' ? 'checked disabled' : ''}> ${label}</label>`).join('')}
             </div>
             <label class="werwolf-checkbox"><input id="wwReveal" type="checkbox"> Rolle bei Tod aufdecken</label>
             <label>Verteilung<select id="wwDistribution"><option value="random">Zufällig</option><option value="manual">Manuell nach Übergabe</option></select></label>
@@ -1241,9 +1243,14 @@ async function createGame() {
         })
     };
     if (isWerewolf) {
-        const roleCounts = [['werewolf', 'wolves'], ['seer', 'village'], ['witch', 'village'], ['hunter', 'village'], ['prostitute', 'village'], ['barkeeper', 'village'], ['terrorist', 'village'], ['child', 'village'], ['priest', 'village'], ['villager', 'village']];
-        const roleIds = roleCounts.flatMap(([roleId]) => Array.from({ length: Math.max(0, Math.floor(Number(document.getElementById(`ww_${roleId}`)?.value) || 0)) }, () => roleId));
+        const roleIds = [...WW_REPEATABLE_ROLE_IDS].flatMap(roleId => Array.from({ length: Math.max(0, Math.floor(Number(document.getElementById(`ww_${roleId}`)?.value) || 0)) }, () => roleId));
+        for (const roleId of WW_UNIQUE_ROLE_IDS) {
+            const input = document.getElementById(`ww_${roleId}`);
+            const selected = roleId === 'gamemaster' ? 1 : Boolean(input?.checked) ? 1 : 0;
+            roleIds.push(...Array(selected).fill(roleId));
+        }
         if (!roleIds.includes('werewolf')) { alert('Wähle mindestens einen Werwolf.'); return; }
+        if (roleIds.filter(roleId => roleId === 'gamemaster').length !== 1) { alert('Es muss genau ein Spielleiter ausgewählt sein.'); return; }
         if (roleIds.length !== state.currentGame.players.length) { alert('Die Rollenanzahl muss exakt der Anzahl der ausgewählten Teilnehmer entsprechen.'); return; }
         if (document.getElementById('wwDistribution')?.value !== 'manual') roleIds.sort(() => Math.random() - 0.5);
         state.currentGame.werewolf = {
@@ -1432,14 +1439,18 @@ function renderNewGameAction() {
     </section>`;
 }
 
-const WW_ROLE_NAMES = { villager: 'Dorfbewohner', werewolf: 'Werwolf', seer: 'Seherin', witch: 'Hexe', hunter: 'Jäger', prostitute: 'Hure', barkeeper: 'Barkeeper', terrorist: 'Terrorist', child: 'Kind', priest: 'Priester' };
+const WW_REPEATABLE_ROLE_IDS = new Set(['werewolf', 'villager']);
+const WW_UNIQUE_ROLE_IDS = new Set(['gamemaster', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
+const WW_ROLE_NAMES = { gamemaster: 'Spielleiter', villager: 'Dorfbewohner', werewolf: 'Werwolf', seer: 'Seherin', witch: 'Hexe', hunter: 'Jäger', prostitute: 'Hure', barkeeper: 'Barkeeper', terrorist: 'Terrorist', child: 'Kind', priest: 'Priester' };
 const WW_NIGHT_ONE = ['amor', 'child', 'prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'];
 const WW_NIGHT = ['prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'];
 function makeWerewolfRoleState(playerId, roleId) {
+    if (roleId === 'gamemaster') return { playerId, roleId, baseTeam: 'moderator', currentTeam: 'moderator', alive: false, death: null, resources: {} };
     const team = roleId === 'werewolf' ? 'wolves' : 'village';
     return { playerId, roleId, baseTeam: team, currentTeam: team, alive: true, death: null,
         resources: { heal: roleId === 'witch', poison: roleId === 'witch', used: false, transformed: false } };
 }
+function wwIsActiveRole(role) { return role?.roleId !== 'gamemaster'; }
 function wwHasAssignedRole(ww, roleId) { return ww.roles.some(role => role.roleId === roleId); }
 function wwSteps(ww) { return ww.phase === 'night' ? (ww.number === 1 ? WW_NIGHT_ONE.filter(step => step !== 'child' || wwHasAssignedRole(ww, 'child')) : WW_NIGHT) : ['deaths', 'discussion', 'abilities', 'vote', 'consequences', 'victory']; }
 function wwStepLabel(step) { return ({ amor: 'Amor: Liebespaar bestimmen', child: 'Kind: Vorbild bestimmen', prostitute: 'Hure wacht auf', barkeeper: 'Barkeeper schützt', werewolves: 'Werwölfe wählen Opfer', witch: 'Hexe entscheidet', seer: 'Seherin prüft', resolve: 'Folgen manuell auflösen', deaths: 'Todesfälle und Rollenaufdeckung', discussion: 'Tagesdiskussion', abilities: 'Terrorist / Priester (optional)', vote: 'Abstimmung manuell bestätigen', consequences: 'Folgen: Jäger, Liebe, Kind', victory: 'Sieg prüfen' })[step] || step; }
@@ -1449,21 +1460,21 @@ function wwPlayerName(playerId) { return wwPlayer(playerId)?.name || '?'; }
 function wwEvent(text) { state.currentGame.werewolf.events.unshift({ at: new Date().toISOString(), text }); state.currentGame.werewolf.events = state.currentGame.werewolf.events.slice(0, 50); }
 function wwStepActorIds(ww, step) {
     const roleIds = step === 'werewolves' ? ['werewolf'] : ({ child: ['child'], prostitute: ['prostitute'], barkeeper: ['barkeeper'], witch: ['witch'], seer: ['seer'] })[step] || [];
-    return ww.roles.filter(role => role.alive && roleIds.includes(role.roleId)).map(role => role.playerId);
+    return ww.roles.filter(role => wwIsActiveRole(role) && role.alive && roleIds.includes(role.roleId)).map(role => role.playerId);
 }
 function wwStepAllowsSelf(step) { return ['barkeeper', 'witch'].includes(step); }
 function wwTargetOptions(actorIds = [], allowSelf = false) {
-    return state.currentGame.werewolf.roles.filter(role => role.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(role.playerId)))).map(role => `<option value="${role.playerId}">${escapeHtml(wwPlayerName(role.playerId))}</option>`).join('');
+    return state.currentGame.werewolf.roles.filter(role => wwIsActiveRole(role) && role.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(role.playerId)))).map(role => `<option value="${role.playerId}">${escapeHtml(wwPlayerName(role.playerId))}</option>`).join('');
 }
 function wwTargetIsValid(ww, target, actorIds = [], allowSelf = false) {
     const role = wwRole(target);
-    return Boolean(target && role?.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(target))));
+    return Boolean(target && wwIsActiveRole(role) && role?.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(target))));
 }
 function wwEnsureState() {
     const ww = state.currentGame.werewolf;
     if (!Array.isArray(ww.lovers)) ww.lovers = [];
     if (!ww.nightState) ww.nightState = { prostituteTargetId: null, barkeeperTargetId: null, previousBarkeeperTargetId: null, wolfTargetId: null };
-    for (const role of ww.roles) if (!role.resources) role.resources = { heal: role.roleId === 'witch', poison: role.roleId === 'witch', used: false, transformed: false };
+    for (const role of ww.roles) if (!role.resources) role.resources = role.roleId === 'gamemaster' ? {} : { heal: role.roleId === 'witch', poison: role.roleId === 'witch', used: false, transformed: false };
     if (ww.phase === 'night' && ww.step === 'child' && !wwHasAssignedRole(ww, 'child')) ww.step = wwSteps(ww)[WW_NIGHT_ONE.indexOf('child')] || wwSteps(ww)[0];
     return ww;
 }
@@ -1494,12 +1505,15 @@ function wwStepFooter(ww, step) {
     return '<button onclick="wwAdvance()">Schritt bestätigen →</button>';
 }
 function renderWerewolfGame(contentBox) {
-    const game = state.currentGame, ww = wwEnsureState(), roles = ww.roles || [], step = ww.step || wwSteps(ww)[0];
-    const roster = roles.map(role => { const player = wwPlayer(role.playerId); const publicRole = role.alive || !ww.revealOnDeath ? '' : ` · öffentlich: ${WW_ROLE_NAMES[role.roleId]}`; return `<div class="ww-player ${role.alive ? '' : 'dead'}"><strong>${escapeHtml(player?.name || '?')}</strong><span>${role.alive ? 'lebend' : 'tot'} · ${WW_ROLE_NAMES[role.roleId]} · ${role.currentTeam === 'wolves' ? 'Wolfsrudel' : 'Dorf'}${wwRoleStatus(role, ww)}${publicRole}</span><button class="secondary" onclick="wwToggleLife('${role.playerId}')">${role.alive ? 'Tod bestätigen' : 'Wiederbeleben/Korrektur'}</button></div>`; }).join('');
-    contentBox.innerHTML = `${renderPreviewBanner()}<section class="card ww-status"><span>Werwolf · ungewertet</span><h2>${ww.phase === 'night' ? 'Nacht' : 'Tag'} ${ww.number}</h2><strong>${wwStepLabel(step)}</strong><p>Spielleiter bestätigt alle Folgen manuell.</p><div class="ww-actions"><button onclick="wwRevealNext()">Rollenübergabe starten</button><button class="secondary" onclick="wwOpenAssignment()">Rollen korrigieren</button><button class="danger" onclick="wwFinishGame()">Partie beenden</button></div></section><section class="card ww-step-card"><div class="title">Aktueller Schritt</div><div class="ww-step-content">${wwActionPanel(ww, step)}</div><footer class="ww-step-footer">${wwStepFooter(ww, step)}</footer></section><section class="card"><div class="title">Spielleiterübersicht</div><div class="ww-roster">${roster}</div></section><section class="card"><div class="title">Ereignisverlauf</div><div class="ww-events">${ww.events.length ? ww.events.map(event => `<div>${escapeHtml(event.text)}</div>`).join('') : '<span>Noch keine Ereignisse.</span>'}</div></section>`;
+    const game = state.currentGame, ww = wwEnsureState(), roles = ww.roles || [], step = ww.step || wwSteps(ww)[0], controlsDisabled = ww.paused ? 'disabled' : '';
+    const roster = roles.map(role => { const player = wwPlayer(role.playerId); const isGameMaster = !wwIsActiveRole(role); const publicRole = !isGameMaster && (!role.alive && ww.revealOnDeath) ? ` · öffentlich: ${WW_ROLE_NAMES[role.roleId]}` : ''; return `<div class="ww-player ${isGameMaster ? 'gamemaster' : role.alive ? '' : 'dead'}"><strong>${escapeHtml(player?.name || '?')}</strong><span>${isGameMaster ? 'Spielleitung · nicht aktiv' : `${role.alive ? 'lebend' : 'tot'} · ${WW_ROLE_NAMES[role.roleId]} · ${role.currentTeam === 'wolves' ? 'Wolfsrudel' : 'Dorf'}${wwRoleStatus(role, ww)}${publicRole}`}</span>${isGameMaster ? '' : `<button class="secondary" ${controlsDisabled} onclick="wwToggleLife('${role.playerId}')">${role.alive ? 'Tod bestätigen' : 'Wiederbeleben/Korrektur'}</button>`}</div>`; }).join('');
+    const stepContent = ww.paused ? '<p>Die Partie ist pausiert. Fortsetzen führt zum unveränderten aktuellen Schritt zurück.</p>' : wwActionPanel(ww, step);
+    const stepFooter = ww.paused ? '' : `<footer class="ww-step-footer">${wwStepFooter(ww, step)}</footer>`;
+    contentBox.innerHTML = `${renderPreviewBanner()}<section class="card ww-status"><div class="ww-actions"><button ${controlsDisabled} onclick="wwRevealNext()">Rollenübergabe</button><button class="secondary" onclick="wwTogglePause()">${ww.paused ? 'Fortsetzen' : 'Pause'}</button><button class="danger" onclick="wwFinishGame()">Partie beenden</button></div></section><section class="card ww-step-card"><div class="title">${ww.phase === 'night' ? 'Nacht' : 'Tag'} ${ww.number}</div><strong>${wwStepLabel(step)}</strong><p>Spielleiter bestätigt alle Folgen manuell.</p><div class="ww-step-content">${stepContent}</div>${stepFooter}</section><section class="card"><div class="ww-section-heading"><div class="title">Spielleiterübersicht</div><button class="secondary" ${controlsDisabled} onclick="wwOpenAssignment()">Rollen korrigieren</button></div><div class="ww-roster">${roster}</div></section><section class="card"><div class="title">Ereignisverlauf</div><div class="ww-events">${ww.events.length ? ww.events.map(event => `<div>${escapeHtml(event.text)}</div>`).join('') : '<span>Noch keine Ereignisse.</span>'}</div></section>`;
 }
-function wwRevealNext() { const roles = state.currentGame.werewolf.roles, index = Number(state.currentGame.werewolf.handoffIndex || 0); if (index >= roles.length) return openModal('Rollenübergabe abgeschlossen', '<div class="ww-handoff-copy"><p>Alle Rollen wurden einzeln und geheim übergeben.</p></div>', '<button onclick="closeModal()">Zur Spielleitung</button>', 'ww-handoff-modal'); const player = wwPlayer(roles[index].playerId); openModal('Gerät übergeben', `<div class="ww-handoff-copy"><span class="ww-handoff-step">Übergabe ${index + 1} von ${roles.length}</span><p>Gerät an <strong>${escapeHtml(player?.name || '?')}</strong> geben.</p><p class="modal-copy">Noch ist keine Rolle sichtbar.</p></div>`, `<button onclick="wwShowRole(${index})">Meine Rolle anzeigen</button>`, 'ww-handoff-modal'); }
-function wwShowRole(index) { const role = state.currentGame.werewolf.roles[index]; openModal('Deine geheime Rolle', `<section class="ww-secret" aria-label="Deine geheime Rolle"><span class="ww-secret-label">Nur für dich</span><strong>${WW_ROLE_NAMES[role.roleId]}</strong><span>Team: ${role.currentTeam === 'wolves' ? 'Wolfsrudel' : 'Dorf'}</span></section><p class="modal-copy">Präge dir deine Karte ein. Erst danach wird sie vollständig verborgen.</p>`, '<button onclick="wwConfirmHandoff()">Rolle verbergen &amp; weitergeben</button>', 'ww-handoff-modal ww-role-reveal-modal'); }
+async function wwTogglePause() { const ww = wwEnsureState(); ww.paused = !ww.paused; wwEvent(ww.paused ? 'Partie pausiert' : 'Partie fortgesetzt'); await saveWerewolf(); }
+function wwRevealNext() { const roles = state.currentGame.werewolf.roles.filter(wwIsActiveRole), index = Number(state.currentGame.werewolf.handoffIndex || 0); if (index >= roles.length) return openModal('Rollenübergabe abgeschlossen', '<div class="ww-handoff-copy"><p>Alle Rollen wurden einzeln und geheim übergeben.</p></div>', '<button onclick="closeModal()">Zur Spielleitung</button>', 'ww-handoff-modal'); const player = wwPlayer(roles[index].playerId); openModal('Gerät übergeben', `<div class="ww-handoff-copy"><span class="ww-handoff-step">Übergabe ${index + 1} von ${roles.length}</span><p>Gerät an <strong>${escapeHtml(player?.name || '?')}</strong> geben.</p><p class="modal-copy">Noch ist keine Rolle sichtbar.</p></div>`, `<button onclick="wwShowRole(${index})">Meine Rolle anzeigen</button>`, 'ww-handoff-modal'); }
+function wwShowRole(index) { const role = state.currentGame.werewolf.roles.filter(wwIsActiveRole)[index]; openModal('Deine geheime Rolle', `<section class="ww-secret" aria-label="Deine geheime Rolle"><span class="ww-secret-label">Nur für dich</span><strong>${WW_ROLE_NAMES[role.roleId]}</strong><span>Team: ${role.currentTeam === 'wolves' ? 'Wolfsrudel' : 'Dorf'}</span></section><p class="modal-copy">Präge dir deine Karte ein. Erst danach wird sie vollständig verborgen.</p>`, '<button onclick="wwConfirmHandoff()">Rolle verbergen &amp; weitergeben</button>', 'ww-handoff-modal ww-role-reveal-modal'); }
 async function wwConfirmHandoff() { state.currentGame.werewolf.handoffIndex = Number(state.currentGame.werewolf.handoffIndex || 0) + 1; wwEvent('Eine Rolle wurde geheim übergeben'); if (await saveWerewolf()) wwRevealNext(); }
 async function wwRecordTarget() {
     const ww = wwEnsureState(), step = ww.step, target = document.getElementById('wwTarget')?.value, target2 = document.getElementById('wwTarget2')?.value;
@@ -1518,7 +1532,24 @@ async function wwUseDayAbility(roleId) { const ww = wwEnsureState(), actor = ww.
 async function wwToggleLife(playerId) { const ww = wwEnsureState(), role = wwRole(playerId), player = wwPlayer(playerId); if (!role || !window.confirm(`${role.alive ? 'Tod von' : 'Wiederbelebung von'} ${player?.name} eindeutig bestätigen?`)) return; role.alive = !role.alive; role.death = role.alive ? null : { phase: ww.phase, number: ww.number }; if (!role.alive && String(ww.childModelPlayerId) === String(playerId)) { const child = ww.roles.find(item => item.roleId === 'child' && item.alive); if (child) { child.currentTeam = 'wolves'; child.resources.transformed = true; wwEvent(`${wwPlayerName(child.playerId)} wird als Kind zum Werwolf`); } } wwEvent(`${player?.name} ${role.alive ? 'wiederbelebt/korrigiert' : 'ist gestorben'}`); await saveWerewolf(); }
 async function wwAdvance() { const ww = wwEnsureState(), steps = wwSteps(ww), index = steps.indexOf(ww.step); if (index < steps.length - 1) ww.step = steps[index + 1]; else if (ww.phase === 'night') { ww.nightState.previousBarkeeperTargetId = ww.nightState.barkeeperTargetId; ww.phase = 'day'; ww.step = 'deaths'; } else { ww.phase = 'night'; ww.number += 1; ww.nightState.prostituteTargetId = null; ww.nightState.barkeeperTargetId = null; ww.nightState.wolfTargetId = null; ww.step = wwSteps(ww)[0]; } wwEvent(`Weiter: ${wwStepLabel(ww.step)}`); await saveWerewolf(); }
 function wwOpenAssignment() { const options = Object.entries(WW_ROLE_NAMES).map(([id, name]) => `<option value="${id}">${name}</option>`).join(''); const rows = state.currentGame.werewolf.roles.map(role => `<label>${escapeHtml(wwPlayerName(role.playerId))}<select data-player-id="${role.playerId}">${options.replace(`value="${role.roleId}"`, `value="${role.roleId}" selected`)}</select></label>`).join(''); openModal('Rollen manuell zuweisen', `<div class="auth-form">${rows}<p class="modal-copy">Die Zuordnung wird eindeutig überschrieben.</p></div>`, '<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="wwSaveAssignment()">Bestätigen</button>'); }
-async function wwSaveAssignment() { document.querySelectorAll('#modalBody select[data-player-id]').forEach(select => { const existing = wwRole(select.dataset.playerId); if (existing.roleId !== select.value) { const replacement = makeWerewolfRoleState(existing.playerId, select.value); replacement.alive = existing.alive; replacement.death = existing.death; Object.assign(existing, replacement); } }); wwEnsureState(); wwEvent('Rollen manuell korrigiert'); closeModal(); await saveWerewolf(); }
+async function wwSaveAssignment() {
+    const selections = [...document.querySelectorAll('#modalBody select[data-player-id]')];
+    const selectedRoleIds = selections.map(select => select.value);
+    const gamemasterCount = selectedRoleIds.filter(roleId => roleId === 'gamemaster').length;
+    const uniqueRoleCounts = [...WW_UNIQUE_ROLE_IDS].map(roleId => selectedRoleIds.filter(selected => selected === roleId).length);
+    if (gamemasterCount !== 1 || uniqueRoleCounts.some(count => count > 1)) {
+        alert('Vergib genau einen Spielleiter und jede Sonderrolle höchstens einmal.');
+        return;
+    }
+    selections.forEach(select => {
+        const existing = wwRole(select.dataset.playerId);
+        if (existing.roleId !== select.value) Object.assign(existing, makeWerewolfRoleState(existing.playerId, select.value));
+    });
+    wwEnsureState();
+    wwEvent('Rollen manuell korrigiert');
+    closeModal();
+    await saveWerewolf();
+}
 function wwFinishGame() { openModal('Partie beenden', '<p class="modal-copy">Welche Seite hat gewonnen? Ein überlebendes Liebespaar kann zusätzlich gewinnen.</p>', '<button onclick="wwConfirmFinish(\'Dorf\')">Dorf</button><button onclick="wwConfirmFinish(\'Werwölfe\')">Werwölfe</button><button class="secondary" onclick="wwConfirmFinish(\'Liebespaar\')">Liebespaar</button>'); }
 async function wwConfirmFinish(winner) { if (!confirm(`Partie mit Gewinner „${winner}“ beenden?`)) return; closeModal(); state.currentGame.werewolf.phase = 'finished'; state.currentGame.winner = winner; state.currentGame.winnerPartyIds = []; state.currentGame.date = new Date().toLocaleDateString('de-DE'); const finished = await apiFinishActiveGame(state.currentGame); if (!finished) return; state.players = applyFavoriteSelection(finished.players); state.games = finished.games; state.activeGames = finished.activeGames; state.currentGame = null; rememberCurrentGame(); state.lastRenderedGameId = null; syncLiveSyncState(); renderGame(); }
 

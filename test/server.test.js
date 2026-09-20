@@ -180,9 +180,9 @@ test('Werwolf games are unranked, validate secret state, and never expose secret
     const admin = await setupAdmin(f);
     await savePlayers(admin);
     const game = { id: 990, gameTypeId: 'werwolf', name: 'Werwolf', mode: 'assistant', rated: false,
-        players: [{ id: 101, name: 'Alice', playerIds: [101], rounds: [], total: 0 }, { id: 102, name: 'Bob', playerIds: [102], rounds: [], total: 0 }],
+        players: [{ id: 101, name: 'Alice', playerIds: [101], rounds: [], total: 0 }, { id: 102, name: 'Bob', playerIds: [102], rounds: [], total: 0 }, { id: 103, name: 'Cara', playerIds: [103], rounds: [], total: 0 }],
         werewolf: { version: 1, phase: 'night', number: 1, step: 'amor', revealOnDeath: false,
-            roles: [{ playerId: 101, roleId: 'werewolf', baseTeam: 'wolves', currentTeam: 'wolves', alive: true }, { playerId: 102, roleId: 'seer', baseTeam: 'village', currentTeam: 'village', alive: true }], events: [] } };
+            roles: [{ playerId: 101, roleId: 'gamemaster', baseTeam: 'moderator', currentTeam: 'moderator', alive: false }, { playerId: 102, roleId: 'werewolf', baseTeam: 'wolves', currentTeam: 'wolves', alive: true }, { playerId: 103, roleId: 'seer', baseTeam: 'village', currentTeam: 'village', alive: true }], events: [] } };
     assert.equal((await admin.post('/api/active-games', game)).response.status, 201);
     const preview = await new Client(f.base).request('/api/activeGames?preview=1');
     assert.equal(preview.response.status, 200);
@@ -190,6 +190,25 @@ test('Werwolf games are unranked, validate secret state, and never expose secret
     const invalid = structuredClone(game);
     invalid.rated = true;
     assert.equal((await admin.put('/api/active-games/990', invalid)).response.status, 400, 'Werwolf cannot be rated');
+});
+
+test('Werwolf validation requires one game master and refuses duplicate unique roles', async t => {
+    const f = await fixture(t);
+    const admin = await setupAdmin(f);
+    await savePlayers(admin);
+    const game = { id: 991, gameTypeId: 'werwolf', name: 'Werwolf', mode: 'assistant', rated: false,
+        players: [{ id: 101, name: 'Alice', playerIds: [101], rounds: [], total: 0 }, { id: 102, name: 'Bob', playerIds: [102], rounds: [], total: 0 }, { id: 103, name: 'Cara', playerIds: [103], rounds: [], total: 0 }],
+        werewolf: { version: 1, phase: 'night', number: 1, step: 'amor', revealOnDeath: false,
+            roles: [{ playerId: 101, roleId: 'gamemaster', baseTeam: 'moderator', currentTeam: 'moderator', alive: false }, { playerId: 102, roleId: 'werewolf', baseTeam: 'wolves', currentTeam: 'wolves', alive: true }, { playerId: 103, roleId: 'seer', baseTeam: 'village', currentTeam: 'village', alive: true }], events: [] } };
+    assert.equal((await admin.post('/api/active-games', game)).response.status, 201);
+    const missingGameMaster = structuredClone(game);
+    missingGameMaster.id = 992;
+    missingGameMaster.werewolf.roles[0] = { playerId: 101, roleId: 'villager', baseTeam: 'village', currentTeam: 'village', alive: true };
+    assert.equal((await admin.post('/api/active-games', missingGameMaster)).response.status, 400);
+    const duplicateSeer = structuredClone(game);
+    duplicateSeer.id = 993;
+    duplicateSeer.werewolf.roles[1] = { playerId: 102, roleId: 'seer', baseTeam: 'village', currentTeam: 'village', alive: true };
+    assert.equal((await admin.post('/api/active-games', duplicateSeer)).response.status, 400);
 });
 
 test('rights matrix: user creates and completes games while player administration stays master-only', async t => {

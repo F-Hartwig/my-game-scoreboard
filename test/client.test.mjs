@@ -131,6 +131,27 @@ test('Werwolf setup selects players before roles, starts role counts at zero, an
   assert.match(source, /'ww-handoff-modal ww-role-reveal-modal'/);
 });
 
+test('Werwolf setup keeps exactly one game master, uses numeric fields only for repeatable roles, and caps unique roles', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /WW_REPEATABLE_ROLE_IDS = new Set\(\['werewolf', 'villager'\]\)/);
+  assert.match(source, /WW_UNIQUE_ROLE_IDS = new Set\(\['gamemaster', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest'\]\)/);
+  assert.match(source, /const selected = roleId === 'gamemaster' \? 1 : Boolean\(input\?\.checked\) \? 1 : 0/);
+  assert.match(source, /roleIds\.filter\(roleId => roleId === 'gamemaster'\)\.length !== 1/);
+  assert.match(source, /function wwIsActiveRole\(role\) \{ return role\?\.roleId !== 'gamemaster'; \}/);
+  assert.match(source, /function wwSaveAssignment\(\)[\s\S]*?gamemasterCount !== 1[\s\S]*?uniqueRoleCounts\.some\(count => count > 1\)/);
+});
+
+test('Werwolf game header contains only handoff, pause or resume, and finish while step status is in the action card', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /function renderWerewolfGame[\s\S]*?class="ww-actions"[\s\S]*?wwRevealNext\(\)[\s\S]*?wwTogglePause\(\)[\s\S]*?wwFinishGame\(\)/);
+  assert.match(source, /class="card ww-step-card">[\s\S]*?Nacht' : 'Tag'\} \$\{ww\.number\}[\s\S]*?wwStepLabel\(step\)/);
+  assert.match(source, /async function wwTogglePause\(\)[\s\S]*?ww\.paused = !ww\.paused;[\s\S]*?await saveWerewolf\(\);/);
+  assert.match(source, /ww\.paused \? 'Fortsetzen' : 'Pause'/);
+  assert.match(source, /ww\.paused \? '<p>Die Partie ist pausiert/);
+});
+
 test('scoreboard can switch to a persistent compact three-column grid', async () => {
   const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');

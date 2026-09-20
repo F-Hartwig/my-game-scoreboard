@@ -24,7 +24,8 @@ const PUBLIC_FILES = new Set([
     'gamesConfig.js', 'security.mjs', 'preview-selection.mjs', 'score-entry-draft.mjs', 'setup-player-order.mjs',
     'personal-stats.mjs', 'werwolf-role-count.mjs'
 ]);
-const WEREWOLF_ROLES = new Set(['villager', 'werewolf', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
+const WEREWOLF_ROLES = new Set(['gamemaster', 'villager', 'werewolf', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
+const WEREWOLF_UNIQUE_ROLES = new Set(['gamemaster', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
 
 function validateWerewolfGame(game) {
     if (game?.gameTypeId !== 'werwolf') return;
@@ -34,10 +35,17 @@ function validateWerewolfGame(game) {
     if (!Array.isArray(state.roles) || state.roles.length !== (game.players || []).length || !Array.isArray(state.events) || state.events.length > 200) throw new Error('Werwolf-Rollen oder Ereignisse sind ungültig.');
     const participantIds = new Set(participantIdsForGame(game));
     const assigned = new Set();
+    const roleCounts = new Map();
     for (const role of state.roles) {
-        if (!participantIds.has(String(role?.playerId)) || assigned.has(String(role.playerId)) || !WEREWOLF_ROLES.has(role.roleId) || !['village', 'wolves'].includes(role.baseTeam) || !['village', 'wolves'].includes(role.currentTeam) || typeof role.alive !== 'boolean') throw new Error('Werwolf-Rolle ist ungültig.');
+        const isGameMaster = role?.roleId === 'gamemaster';
+        const validTeam = isGameMaster
+            ? role.baseTeam === 'moderator' && role.currentTeam === 'moderator' && role.alive === false
+            : ['village', 'wolves'].includes(role.baseTeam) && ['village', 'wolves'].includes(role.currentTeam) && typeof role.alive === 'boolean';
+        if (!participantIds.has(String(role?.playerId)) || assigned.has(String(role.playerId)) || !WEREWOLF_ROLES.has(role.roleId) || !validTeam) throw new Error('Werwolf-Rolle ist ungültig.');
         assigned.add(String(role.playerId));
+        roleCounts.set(role.roleId, (roleCounts.get(role.roleId) || 0) + 1);
     }
+    if (roleCounts.get('gamemaster') !== 1 || [...WEREWOLF_UNIQUE_ROLES].some(roleId => (roleCounts.get(roleId) || 0) > 1)) throw new Error('Werwolf-Rollen müssen genau einen Spielleiter und eindeutige Sonderrollen enthalten.');
 }
 
 function participantIdsForGame(game) {
