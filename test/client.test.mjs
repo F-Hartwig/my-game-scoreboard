@@ -69,17 +69,17 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-handoff-3/);
-  assert.match(indexSource, /app\.js\?v=werwolf-handoff-3/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-1/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-1/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
 
-test('Werwolf client shows the child step only for an assigned child and keeps persistent moderator resources', async () => {
+test('Werwolf client derives night and ability steps from assigned roles and keeps persistent moderator resources', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(source, /function wwHasAssignedRole\(ww, roleId\)/);
-  assert.match(source, /WW_NIGHT_ONE\.filter\(step => step !== 'child' \|\| wwHasAssignedRole\(ww, 'child'\)\)/);
-  assert.match(source, /WW_NIGHT = \['prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'\]/);
+  assert.match(source, /const WW_STEP_ROLE_IDS = \{ child: \['child'\], prostitute: \['prostitute'\], barkeeper: \['barkeeper'\], werewolves: \['werewolf'\], witch: \['witch'\], seer: \['seer'\], abilities: \['terrorist', 'priest'\] \}/);
+  assert.match(source, /function wwSteps\(ww\) \{[\s\S]*?\(ww\.number === 1 \? WW_NIGHT_ONE : WW_NIGHT\)\.filter\(step => !WW_STEP_ROLE_IDS\[step\] \|\| wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\)\)/);
   assert.match(source, /previousBarkeeperTargetId/);
   assert.match(source, /childModelPlayerId/);
   assert.match(source, /ww\.lovers = \[Number\(target\), Number\(target2\)\]/);
@@ -91,28 +91,33 @@ test('Werwolf client shows the child step only for an assigned child and keeps p
 
 test('Werwolf removes a stale child step when no child is assigned', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
-  assert.match(source, /if \(ww\.phase === 'night' && ww\.step === 'child' && !wwHasAssignedRole\(ww, 'child'\)\) ww\.step = wwSteps\(ww\)\[WW_NIGHT_ONE\.indexOf\('child'\)\] \|\| wwSteps\(ww\)\[0\];/);
+  assert.match(source, /const availableSteps = wwSteps\(ww\);[\s\S]*?if \(!availableSteps\.includes\(ww\.step\)\) ww\.step = availableSteps\[0\];/);
   assert.match(source, /function wwSaveAssignment\(\)[\s\S]*?wwEnsureState\(\);[\s\S]*?await saveWerewolf\(\);/);
 });
 
-test('Werwolf target controls exclude the known actor except barkeeper and witch, and reject invalid saved targets', async () => {
+test('Werwolf target controls exclude the known actor except barkeeper and witch, and sleeping actors', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(source, /function wwTargetOptions\(actorIds = \[\], allowSelf = false\)/);
   assert.match(source, /function wwStepAllowsSelf\(step\) \{ return \['barkeeper', 'witch'\]\.includes\(step\); \}/);
   assert.match(source, /allowSelf \|\| !actorIds\.some\(actorId => String\(actorId\) === String\(role\.playerId\)\)/);
+  assert.match(source, /function wwIsSleeping\(ww, playerId\) \{ return ww\.phase === 'night' && ww\.nightState\.prostituteTargetId != null && String\(ww\.nightState\.prostituteTargetId\) === String\(playerId\); \}/);
+  assert.match(source, /role\.alive && roleIds\.includes\(role\.roleId\) && !wwIsSleeping\(ww, role\.playerId\)/);
+  assert.match(source, /function wwSleepingStepNotice\(ww, step\)/);
+  assert.match(source, /function wwSkipSleepingStep\(\)/);
   assert.match(source, /if \(!wwTargetIsValid\(ww, target, wwStepActorIds\(ww, step\), wwStepAllowsSelf\(step\)\)\) return/);
   assert.match(source, /id="wwTargetTerrorist"/);
   assert.match(source, /id="wwTargetPriest"/);
 });
 
-test('Werwolf steps use one footer action position and 20px checkbox controls', async () => {
+test('Werwolf steps use one footer action position and the shared selection checkbox component', async () => {
   const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
   assert.match(appSource, /function wwStepFooter\(ww, step\)/);
   assert.match(appSource, /class="ww-step-footer"/);
   assert.doesNotMatch(appSource, /ww-status[\s\S]*?onclick="wwAdvance\(\)"[\s\S]*?ww-step-card/);
   assert.match(styleSource, /\.ww-step-footer \{ display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px;/);
-  assert.match(styleSource, /\.werwolf-checkbox input \{ inline-size: 20px; block-size: 20px; flex: 0 0 20px;/);
+  assert.match(appSource, /class="select-card werwolf-role-card"/);
+  assert.match(styleSource, /\.werwolf-role-card \{ min-height: 48px;/);
 });
 
 test('Werwolf setup selects players before roles, starts role counts at zero, and requires an exact role total', async () => {
@@ -122,45 +127,48 @@ test('Werwolf setup selects players before roles, starts role counts at zero, an
 
   assert.ok(playerSelection >= 0 && roleSetup > playerSelection, 'roles follow player selection');
   assert.match(source, /id="wwRoleCount"[^>]*>0\/0</);
+  assert.match(source, /id="wwGameMaster"/);
   assert.match(source, /type="number" min="0" placeholder="0" inputmode="numeric" pattern="\[0-9\]\*"/);
   assert.match(source, /bindWerewolfRoleCount\(werwolfSetup, werwolfRoleCount/);
-  assert.match(source, /roleIds\.length !== state\.currentGame\.players\.length/);
-  assert.match(source, /Die Rollenanzahl muss exakt der Anzahl der ausgewählten Teilnehmer entsprechen\./);
+  assert.match(source, /roleIds\.length !== state\.currentGame\.players\.length - 1/);
+  assert.match(source, /Die Rollenanzahl muss inklusive Spielleiter exakt der Anzahl der ausgewählten Teilnehmer entsprechen\./);
   assert.match(source, /function wwConfirmHandoff\(\)[\s\S]*?if \(await saveWerewolf\(\)\) wwRevealNext\(\);/);
   assert.match(source, /function wwRecordTarget\(\)[\s\S]*?await wwAdvance\(\);/);
   assert.match(source, /'ww-handoff-modal ww-role-reveal-modal'/);
 });
 
-test('Werwolf setup keeps exactly one game master, uses numeric fields only for repeatable roles, and caps unique roles', async () => {
+test('Werwolf setup selects exactly one participant as game master, uses numeric fields only for repeatable roles, and caps unique roles', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
 
   assert.match(source, /WW_REPEATABLE_ROLE_IDS = new Set\(\['werewolf', 'villager'\]\)/);
   assert.match(source, /WW_UNIQUE_ROLE_IDS = new Set\(\['gamemaster', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest'\]\)/);
-  assert.match(source, /const selected = roleId === 'gamemaster' \? 1 : Boolean\(input\?\.checked\) \? 1 : 0/);
-  assert.match(source, /roleIds\.filter\(roleId => roleId === 'gamemaster'\)\.length !== 1/);
+  assert.match(source, /function updateWerewolfGameMasterSelect\(\)/);
+  assert.match(source, /const gameMasterId = document\.getElementById\('wwGameMaster'\)\?\.value/);
+  assert.match(source, /if \(!gameMasterId\) \{ alert\('Wähle einen Spielleiter aus den Teilnehmern\.'/);
+  assert.match(source, /String\(player\.id\) === String\(gameMasterId\) \? 'gamemaster' : roleIds\.shift\(\)/);
   assert.match(source, /function wwIsActiveRole\(role\) \{ return role\?\.roleId !== 'gamemaster'; \}/);
   assert.match(source, /function wwSaveAssignment\(\)[\s\S]*?gamemasterCount !== 1[\s\S]*?uniqueRoleCounts\.some\(count => count > 1\)/);
 });
 
-test('Werwolf game header contains only handoff, pause or resume, and finish while step status is in the action card', async () => {
+test('Werwolf game header uses generic minimize instead of a persistent pause state while step status is in the action card', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
 
-  assert.match(source, /function renderWerewolfGame[\s\S]*?class="game-status-actions ww-actions"[\s\S]*?wwRevealNext\(\)[\s\S]*?wwTogglePause\(\)[\s\S]*?wwFinishGame\(\)/);
+  assert.match(source, /function renderWerewolfGame[\s\S]*?class="game-status-actions ww-actions"[\s\S]*?data-ww-action="handoff"[\s\S]*?data-ww-action="minimize"[\s\S]*?data-ww-action="finish"/);
   assert.match(source, /class="card ww-step-card">[\s\S]*?Nacht' : 'Tag'\} \$\{ww\.number\}[\s\S]*?wwStepLabel\(step\)/);
-  assert.match(source, /async function wwTogglePause\(\)[\s\S]*?ww\.paused = !ww\.paused;[\s\S]*?await saveWerewolf\(\);/);
-  assert.match(source, /ww\.paused \? 'Fortsetzen' : 'Pause'/);
-  assert.match(source, /ww\.paused \? '<p>Die Partie ist pausiert/);
+  assert.match(source, /function bindWerewolfHeaderActions\(contentBox\)/);
+  assert.match(source, /minimizeButton\?\.addEventListener\('click', pauseCurrentGame\)/);
+  assert.doesNotMatch(source, /ww\.paused/);
 });
 
-test('Werwolf inline header actions are public handlers and use compact shared icon actions', async () => {
+test('Werwolf header uses bound compact shared icon actions and finish invokes its dialog handler', async () => {
   const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
 
-  assert.match(appSource, /window\.wwTogglePause = wwTogglePause;/);
   assert.match(appSource, /window\.wwFinishGame = wwFinishGame;/);
   assert.match(appSource, /class="game-status-actions ww-actions"/);
-  assert.match(appSource, /class="secondary game-status-secondary game-action-icon"[^>]*aria-label="\$\{ww\.paused \? 'Fortsetzen' : 'Pause'\}"/);
-  assert.match(appSource, /class="secondary game-status-secondary game-action-icon"[^>]*aria-label="Partie beenden"/);
+  assert.match(appSource, /data-ww-action="minimize" aria-label="Zur Übersicht"/);
+  assert.match(appSource, /data-ww-action="finish" aria-label="Partie beenden"/);
+  assert.match(appSource, /finishButton\?\.addEventListener\('click', wwFinishGame\)/);
   assert.match(styleSource, /\.ww-actions \{ width: auto; flex: 0 0 auto; min-width: 0; \}/);
   assert.match(styleSource, /\.ww-step-card, \.ww-overview-card, \.ww-events-card \{ display: grid; gap: 12px; \}/);
 });
