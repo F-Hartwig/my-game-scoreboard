@@ -70,7 +70,7 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
   assert.match(indexSource, /style\.css\?v=werwolf-flow-2/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-2/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-3/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
