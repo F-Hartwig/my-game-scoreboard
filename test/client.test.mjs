@@ -79,7 +79,7 @@ test('Werwolf client derives night steps from assigned roles and keeps persisten
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(source, /function wwHasAssignedRole\(ww, roleId\)/);
   assert.match(source, /const WW_STEP_ROLE_IDS = \{ child: \['child'\], prostitute: \['prostitute'\], barkeeper: \['barkeeper'\], werewolves: \['werewolf'\], witch: \['witch'\], seer: \['seer'\] \}/);
-  assert.match(source, /function wwSteps\(ww\) \{[\s\S]*?\(ww\.number === 1 \? WW_NIGHT_ONE : WW_NIGHT\)\.filter\(step => !WW_STEP_ROLE_IDS\[step\] \|\| wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\)\)/);
+  assert.match(source, /function wwSteps\(ww\) \{[\s\S]*?\(ww\.number === 1 \? WW_NIGHT_ONE : WW_NIGHT\)\.filter\(step => !WW_STEP_ROLE_IDS\[step\] \|\| \(wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\) && wwStepActorIds\(ww, step\)\.length\)\)/);
   assert.match(source, /previousBarkeeperTargetId/);
   assert.match(source, /childModelPlayerId/);
   assert.match(source, /ww\.lovers = \[Number\(target\), Number\(target2\)\]/);
@@ -106,6 +106,18 @@ test('Werwolf target controls exclude the known actor except barkeeper and witch
   assert.match(source, /function wwSkipSleepingStep\(\)/);
   assert.match(source, /if \(!wwTargetIsValid\(ww, target, wwStepActorIds\(ww, step\), wwStepAllowsSelf\(step\)\)\) return/);
   assert.match(source, /return \['day'\]/);
+});
+
+test('Werwolf shows only awake actors in awakening titles and reaches day without a resolve step', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const nightStepDefinitions = source.slice(source.indexOf('const WW_NIGHT_ONE'), source.indexOf('function makeWerewolfRoleState'));
+
+  assert.match(source, /function wwAwakeningTitle\(ww, step\)/);
+  assert.match(source, /const actorNames = wwStepActorIds\(ww, step\)\.map\(wwPlayerName\)/);
+  assert.match(source, /return actorNames\.length \? `\$\{title\} \(\$\{actorNames\.join\(', '\)\}\)` : title/);
+  assert.match(source, /<strong>\$\{wwAwakeningTitle\(ww, step\)\}<\/strong>/);
+  assert.match(source, /wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\) && wwStepActorIds\(ww, step\)\.length/);
+  assert.doesNotMatch(nightStepDefinitions, /resolve|Folgen manuell auflösen/);
 });
 
 test('Werwolf steps use one footer action position and the shared selection checkbox component', async () => {

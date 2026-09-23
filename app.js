@@ -1462,9 +1462,10 @@ function renderNewGameAction() {
 const WW_REPEATABLE_ROLE_IDS = new Set(['werewolf', 'villager']);
 const WW_UNIQUE_ROLE_IDS = new Set(['gamemaster', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
 const WW_ROLE_NAMES = { gamemaster: 'Spielleiter', villager: 'Dorfbewohner', werewolf: 'Werwolf', seer: 'Seherin', witch: 'Hexe', hunter: 'Jäger', prostitute: 'Hure', barkeeper: 'Barkeeper', terrorist: 'Terrorist', child: 'Kind', priest: 'Priester' };
-const WW_NIGHT_ONE = ['amor', 'child', 'prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'];
-const WW_NIGHT = ['prostitute', 'barkeeper', 'werewolves', 'witch', 'seer', 'resolve'];
+const WW_NIGHT_ONE = ['amor', 'child', 'prostitute', 'barkeeper', 'werewolves', 'witch', 'seer'];
+const WW_NIGHT = ['prostitute', 'barkeeper', 'werewolves', 'witch', 'seer'];
 const WW_STEP_ROLE_IDS = { child: ['child'], prostitute: ['prostitute'], barkeeper: ['barkeeper'], werewolves: ['werewolf'], witch: ['witch'], seer: ['seer'] };
+const WW_AWAKENING_TITLES = { child: 'Das Kind erwacht', prostitute: 'Die Hure erwacht', barkeeper: 'Der Barkeeper erwacht', werewolves: 'Die Werwölfe erwachen', witch: 'Die Hexe erwacht', seer: 'Die Seherin erwacht' };
 function makeWerewolfRoleState(playerId, roleId) {
     if (roleId === 'gamemaster') return { playerId, roleId, baseTeam: 'moderator', currentTeam: 'moderator', alive: false, death: null, resources: {} };
     const team = roleId === 'werewolf' ? 'wolves' : 'village';
@@ -1475,10 +1476,10 @@ function wwIsActiveRole(role) { return role?.roleId !== 'gamemaster'; }
 function wwHasAssignedRole(ww, roleId) { return ww.roles.some(role => role.roleId === roleId && role.alive); }
 function wwHasAnyAssignedRole(ww, roleIds) { return roleIds.some(roleId => wwHasAssignedRole(ww, roleId)); }
 function wwSteps(ww) {
-    if (ww.phase === 'night') return (ww.number === 1 ? WW_NIGHT_ONE : WW_NIGHT).filter(step => !WW_STEP_ROLE_IDS[step] || wwHasAnyAssignedRole(ww, WW_STEP_ROLE_IDS[step]));
+    if (ww.phase === 'night') return (ww.number === 1 ? WW_NIGHT_ONE : WW_NIGHT).filter(step => !WW_STEP_ROLE_IDS[step] || (wwHasAnyAssignedRole(ww, WW_STEP_ROLE_IDS[step]) && wwStepActorIds(ww, step).length));
     return ['day'];
 }
-function wwStepLabel(step) { return ({ amor: 'Amor: Liebespaar bestimmen', child: 'Kind: Vorbild bestimmen', prostitute: 'Hure wacht auf', barkeeper: 'Barkeeper schützt', werewolves: 'Werwölfe wählen Opfer', witch: 'Hexe entscheidet', seer: 'Seherin prüft', resolve: 'Folgen manuell auflösen', day: 'Es wird Tag' })[step] || step; }
+function wwStepLabel(step) { return ({ amor: 'Amor: Liebespaar bestimmen', child: 'Kind: Vorbild bestimmen', prostitute: 'Hure wacht auf', barkeeper: 'Barkeeper schützt', werewolves: 'Werwölfe wählen Opfer', witch: 'Hexe entscheidet', seer: 'Seherin prüft', day: 'Es wird Tag' })[step] || step; }
 function wwPlayer(playerId) { return state.currentGame.players.find(player => String(player.id) === String(playerId)); }
 function wwRole(playerId) { return state.currentGame.werewolf.roles.find(role => String(role.playerId) === String(playerId)); }
 function wwPlayerName(playerId) { return wwPlayer(playerId)?.name || '?'; }
@@ -1489,6 +1490,11 @@ function wwStepActorIds(ww, step) {
     return ww.roles.filter(role => wwIsActiveRole(role) && role.alive && roleIds.includes(role.roleId) && !wwIsSleeping(ww, role.playerId)).map(role => role.playerId);
 }
 function wwStepAllowsSelf(step) { return ['barkeeper', 'witch'].includes(step); }
+function wwAwakeningTitle(ww, step) {
+    const title = WW_AWAKENING_TITLES[step] || wwStepLabel(step);
+    const actorNames = wwStepActorIds(ww, step).map(wwPlayerName);
+    return actorNames.length ? `${title} (${actorNames.join(', ')})` : title;
+}
 function wwTargetOptions(actorIds = [], allowSelf = false) {
     return state.currentGame.werewolf.roles.filter(role => wwIsActiveRole(role) && role.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(role.playerId)))).map(role => `<option value="${role.playerId}">${escapeHtml(wwPlayerName(role.playerId))}</option>`).join('');
 }
@@ -1577,7 +1583,6 @@ function wwActionPanel(ww, step) {
         const hunter = ww.roles.find(role => role.roleId === 'hunter' && role.alive && pendingIds.some(id => String(id) === String(role.playerId)));
         return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p>${hunter ? `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwTargetOptions([hunter.playerId])}</select></label>` : ''}`;
     }
-    if (step === 'resolve') return '<p>Folgen am Tisch klären, anschließend zur Tageskarte wechseln.</p>';
     return `${sleepingNotice}<label>Ziel / Ergebnis<select id="wwTarget">${options}</select></label>`;
 }
 function wwStepFooter(ww, step) {
@@ -1632,7 +1637,7 @@ function renderWerewolfGame(contentBox) {
         const effects = isGameMaster ? '' : wwEffectBadges(role, ww);
         return `<div class="ww-player ${isGameMaster ? 'gamemaster' : role.alive ? '' : 'dead'}"><strong>${escapeHtml(player?.name || '?')}</strong><span>${isGameMaster ? 'Spielleitung · nicht aktiv' : `${role.alive ? 'lebend' : 'tot'} · ${WW_ROLE_NAMES[role.roleId]} · ${role.currentTeam === 'wolves' ? 'Wolfsrudel' : 'Dorf'}${wwRoleStatus(role, ww)}${publicRole}`}</span>${effects ? `<div class="ww-effect-list">${effects}</div>` : ''}${isGameMaster ? '' : `<button type="button" class="secondary" data-ww-life="${role.playerId}">${role.alive ? 'Tod bestätigen' : 'Wiederbeleben/Korrektur'}</button>`}</div>`;
     }).join('');
-    contentBox.innerHTML = `${renderPreviewBanner()}<section class="card game-status-card ww-status"><div class="game-status-copy"><span id="gameStatusLabel">Werwolf</span><span class="ww-header-hint">Spielleitung</span></div><div class="game-status-actions ww-actions"><button type="button" class="secondary game-status-secondary game-action-icon" data-ww-action="handoff" aria-label="Rollenübergabe" title="Rollenübergabe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7h8a3 3 0 0 1 3 3v9H5v-9a3 3 0 0 1 3-3Z"/><path d="M9 7V5h6v2M9 12h6"/></svg></button><button type="button" class="secondary game-status-secondary game-action-icon" data-ww-action="minimize" aria-label="Zur Übersicht" title="Zur Übersicht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><button type="button" class="secondary game-status-secondary game-action-icon" data-ww-action="finish" aria-label="Partie beenden" title="Partie beenden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1"/></svg></button></div></section><section class="card ww-step-card"><div class="title">${ww.phase === 'night' ? 'Nacht' : 'Tag'} ${ww.number}</div><strong>${wwStepLabel(step)}</strong><p>Spielleiter bestätigt alle Folgen manuell.</p><div class="ww-step-content">${wwActionPanel(ww, step)}</div><footer class="ww-step-footer">${wwStepFooter(ww, step)}</footer></section><section class="card ww-overview-card"><div class="ww-section-heading"><div class="title">Spielleiterübersicht</div><button type="button" class="secondary" data-ww-assignment>Rollen korrigieren</button></div><div class="ww-roster">${roster}</div></section><section class="card ww-events-card"><div class="title">Ereignisverlauf</div><div class="ww-events">${ww.events.length ? ww.events.map(event => `<div>${escapeHtml(event.text)}</div>`).join('') : '<span>Noch keine Ereignisse.</span>'}</div></section>`;
+    contentBox.innerHTML = `${renderPreviewBanner()}<section class="card game-status-card ww-status"><div class="game-status-copy"><span id="gameStatusLabel">Werwolf</span><span class="ww-header-hint">Spielleitung</span></div><div class="game-status-actions ww-actions"><button type="button" class="secondary game-status-secondary game-action-icon" data-ww-action="handoff" aria-label="Rollenübergabe" title="Rollenübergabe"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 7h8a3 3 0 0 1 3 3v9H5v-9a3 3 0 0 1 3-3Z"/><path d="M9 7V5h6v2M9 12h6"/></svg></button><button type="button" class="secondary game-status-secondary game-action-icon" data-ww-action="minimize" aria-label="Zur Übersicht" title="Zur Übersicht"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"/></svg></button><button type="button" class="secondary game-status-secondary game-action-icon" data-ww-action="finish" aria-label="Partie beenden" title="Partie beenden"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1"/></svg></button></div></section><section class="card ww-step-card"><div class="title">${ww.phase === 'night' ? 'Nacht' : 'Tag'} ${ww.number}</div><strong>${wwAwakeningTitle(ww, step)}</strong><p>Spielleiter bestätigt alle Folgen manuell.</p><div class="ww-step-content">${wwActionPanel(ww, step)}</div><footer class="ww-step-footer">${wwStepFooter(ww, step)}</footer></section><section class="card ww-overview-card"><div class="ww-section-heading"><div class="title">Spielleiterübersicht</div><button type="button" class="secondary" data-ww-assignment>Rollen korrigieren</button></div><div class="ww-roster">${roster}</div></section><section class="card ww-events-card"><div class="title">Ereignisverlauf</div><div class="ww-events">${ww.events.length ? ww.events.map(event => `<div>${escapeHtml(event.text)}</div>`).join('') : '<span>Noch keine Ereignisse.</span>'}</div></section>`;
     bindWerewolfHeaderActions(contentBox);
     bindWerewolfGameActions(contentBox);
 }
