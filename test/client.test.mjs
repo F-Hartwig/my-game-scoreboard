@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-4/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-4/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-5/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-5/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -139,6 +139,8 @@ test('Werwolf setup selects players before roles, starts role counts at zero, an
   assert.ok(playerSelection >= 0 && roleSetup > playerSelection, 'roles follow player selection');
   assert.match(source, /id="wwRoleCount"[^>]*>0\/0</);
   assert.match(source, /id="wwGameMaster"/);
+  const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(styleSource, /\.ww-role-count \{[^}]*margin: 12px 0;/);
   assert.match(source, /type="number" min="0" placeholder="0" inputmode="numeric" pattern="\[0-9\]\*"/);
   assert.match(source, /bindWerewolfRoleCount\(werwolfSetup, werwolfRoleCount/);
   assert.match(source, /roleIds\.length !== state\.currentGame\.players\.length - 1/);
