@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-2/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-3/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-4/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-4/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -168,7 +168,6 @@ test('Werwolf separates handoff from moderation, resolves one day step, and uses
   const werewolfFlow = source.slice(source.indexOf('async function createGame()'), source.indexOf('function renderGame('));
 
   assert.match(source, /if \(ww\.view === 'handoff'\)[\s\S]*?class="card ww-handoff-view"[\s\S]*?return;/);
-  assert.match(source, /function wwShowRole\(\)[\s\S]*?ww\.handoffReveal = true; renderGame\(\);/);
   assert.match(source, /function wwSteps\(ww\)[\s\S]*?return \['day'\];/);
   assert.match(source, /function wwResolveDay\(\)[\s\S]*?ww\.phase = 'night'; ww\.number \+= 1/);
   assert.match(source, /Niemand ist gestorben\./);
@@ -179,6 +178,22 @@ test('Werwolf separates handoff from moderation, resolves one day step, and uses
   assert.match(source, /shotRole\.effects\.shot = \{ night: ww\.number \}/);
   assert.match(styleSource, /\.ww-effect-badge/);
   assert.doesNotMatch(werewolfFlow, /\b(?:window\.)?(?:alert|confirm)\s*\(/);
+});
+
+test('Werwolf keeps a revealed handoff role only in local UI state through sync updates', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const styles = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+
+  assert.match(source, /let wwLocalHandoffReveal = null;/);
+  assert.match(source, /function wwIsLocalHandoffReveal\(ww, index\)/);
+  assert.match(source, /wwLocalHandoffReveal\?\.gameId === String\(state\.currentGame\?\.id\)[\s\S]*?wwLocalHandoffReveal\?\.index === index/);
+  assert.match(source, /reveal = wwIsLocalHandoffReveal\(ww, index\) && role;/);
+  assert.match(source, /function wwShowRole\(\)[\s\S]*?wwLocalHandoffReveal = \{ gameId: String\(state\.currentGame\.id\), index: Number\(ww\.handoffIndex \|\| 0\) \}; renderGame\(\);/);
+  assert.match(source, /function wwConfirmHandoff\(\)[\s\S]*?wwClearLocalHandoffReveal\(\);[\s\S]*?handoffIndex = index \+ 1/);
+  assert.match(source, /async function wwRevealNext\(\)[\s\S]*?wwClearLocalHandoffReveal\(\);/);
+  assert.doesNotMatch(source, /handoffReveal/);
+  assert.match(styles, /\.ww-handoff-view \{[^}]*grid-template-rows: auto auto auto;[^}]*gap: 12px;[^}]*align-content: start;/);
+  assert.doesNotMatch(styles, /\.ww-handoff-view \{[^}]*min-height:/);
 });
 
 test('Werwolf game header uses generic minimize instead of a persistent pause state while step status is in the action card', async () => {

@@ -3270,9 +3270,9 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 .ww-handoff-modal #modalActions { width: 100%; margin-top: 20px; }
 .ww-handoff-modal #modalActions button { width: 100%; min-height: 56px; }
 .ww-handoff-copy { display: grid; gap: 16px; max-width: 360px; }
-.ww-handoff-view { min-height: calc(100dvh - 170px); display: grid; grid-template-rows: auto 1fr auto; gap: 20px; text-align: center; overflow: hidden; }
-.ww-handoff-view .ww-handoff-copy { width: 100%; margin: auto; place-items: center; }
-.ww-handoff-view .ww-step-footer { width: 100%; }
+.ww-handoff-view { display: grid; grid-template-rows: auto auto auto; gap: 12px; align-content: start; text-align: center; overflow: hidden; }
+.ww-handoff-view .ww-handoff-copy { width: 100%; margin: 0 auto; place-items: center; }
+.ww-handoff-view .ww-step-footer { width: 100%; margin-top: 0; padding-top: 0; border-top: 0; }
 .ww-handoff-view .ww-step-footer button { min-height: 52px; }
 .ww-handoff-copy p { margin: 0; font-size: clamp(18px, 4vw, 24px); line-height: 1.35; }
 .ww-handoff-copy .modal-copy { font-size: 14px; }

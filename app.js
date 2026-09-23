@@ -76,6 +76,7 @@ let isLiveSyncRunning = false;
 let collaborationInterval = null;
 let collaborationPresence = [];
 let collaborationActivity = [];
+let wwLocalHandoffReveal = null;
 let scoreboardViewMode = 'list';
 const ACTIVE_GAME_SESSION_KEY = 'scorebuddy-active-game-id';
 try {
@@ -240,6 +241,7 @@ function removeSyncBlockAndNavigate(pageId, element) {
 // NAVIGATION
 // ===============================
 async function navigate(pageId, element) {
+    if (pageId !== 'gamePage') wwClearLocalHandoffReveal();
     document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
     document.getElementById(pageId).classList.add("active");
     
@@ -1277,7 +1279,6 @@ async function createGame() {
             step: 'amor',
             view: 'handoff',
             handoffIndex: 0,
-            handoffReveal: false,
             revealOnDeath: Boolean(document.getElementById('wwReveal')?.checked),
             distribution: document.getElementById('wwDistribution')?.value || 'random',
             roles: state.currentGame.players.map(player => makeWerewolfRoleState(player.id, String(player.id) === String(gameMasterId) ? 'gamemaster' : roleIds.shift())),
@@ -1508,6 +1509,14 @@ function wwSleepingStepNotice(ww, step) {
     const names = escapeHtml(sleeping.map(role => wwPlayerName(role.playerId)).join(', '));
     return `<p class="ww-sleep-notice"><strong>${names}</strong> ${sleeping.length === 1 ? 'schläft' : 'schlafen'} bei der Hure. ${wwStepActorIds(ww, step).length ? 'Nur die übrigen wachen Rollen handeln.' : 'Niemand aus dieser Rolle wacht auf; der Schritt wird übersprungen.'}</p>`;
 }
+function wwClearLocalHandoffReveal() { wwLocalHandoffReveal = null; }
+function wwIsLocalHandoffReveal(ww, index) {
+    const matches = ww?.view === 'handoff'
+        && wwLocalHandoffReveal?.gameId === String(state.currentGame?.id)
+        && wwLocalHandoffReveal?.index === index;
+    if (!matches && wwLocalHandoffReveal) wwClearLocalHandoffReveal();
+    return matches;
+}
 function wwEnsureState() {
     const ww = state.currentGame.werewolf;
     if (!Array.isArray(ww.lovers)) ww.lovers = [];
@@ -1618,7 +1627,7 @@ function bindWerewolfGameActions(contentBox) {
 function renderWerewolfGame(contentBox) {
     const ww = wwEnsureState(), roles = ww.roles || [];
     if (ww.view === 'handoff') {
-        const handoffRoles = roles.filter(wwIsActiveRole), index = Number(ww.handoffIndex || 0), role = handoffRoles[index], reveal = ww.handoffReveal === true && role;
+        const handoffRoles = roles.filter(wwIsActiveRole), index = Number(ww.handoffIndex || 0), role = handoffRoles[index], reveal = wwIsLocalHandoffReveal(ww, index) && role;
         const copy = !role ? '<p>Alle Rollen wurden einzeln und geheim übergeben.</p>' : reveal
             ? `<section class="ww-secret" aria-label="Deine geheime Rolle"><span class="ww-secret-label">Nur für dich</span><strong>${WW_ROLE_NAMES[role.roleId]}</strong><span>Team: ${role.currentTeam === 'wolves' ? 'Wolfsrudel' : 'Dorf'}</span></section><p class="modal-copy">Präge dir deine Karte ein und verdecke sie wieder.</p>`
             : `<span class="ww-handoff-step">Übergabe ${index + 1} von ${handoffRoles.length}</span><p>Gerät an <strong>${escapeHtml(wwPlayer(role.playerId)?.name || '?')}</strong> geben.</p><p class="modal-copy">Noch ist keine Rolle sichtbar.</p>`;
@@ -1641,12 +1650,13 @@ function renderWerewolfGame(contentBox) {
     bindWerewolfHeaderActions(contentBox);
     bindWerewolfGameActions(contentBox);
 }
-async function wwRevealNext() { const ww = wwEnsureState(); ww.view = 'handoff'; ww.handoffIndex = 0; ww.handoffReveal = false; await saveWerewolf(); }
-function wwShowRole() { const ww = wwEnsureState(), roles = ww.roles.filter(wwIsActiveRole); if (!roles[Number(ww.handoffIndex || 0)]) return; ww.handoffReveal = true; renderGame(); }
+async function wwRevealNext() { const ww = wwEnsureState(); wwClearLocalHandoffReveal(); ww.view = 'handoff'; ww.handoffIndex = 0; await saveWerewolf(); }
+function wwShowRole() { const ww = wwEnsureState(), roles = ww.roles.filter(wwIsActiveRole); if (!roles[Number(ww.handoffIndex || 0)]) return; wwLocalHandoffReveal = { gameId: String(state.currentGame.id), index: Number(ww.handoffIndex || 0) }; renderGame(); }
 async function wwConfirmHandoff() {
     const ww = wwEnsureState(), roles = ww.roles.filter(wwIsActiveRole), index = Number(ww.handoffIndex || 0);
-    if (index < roles.length) { ww.handoffIndex = index + 1; ww.handoffReveal = false; }
-    if (Number(ww.handoffIndex) >= roles.length) { ww.view = 'moderator'; ww.handoffReveal = false; wwEvent('Rollenübergabe abgeschlossen'); }
+    wwClearLocalHandoffReveal();
+    if (index < roles.length) ww.handoffIndex = index + 1;
+    if (Number(ww.handoffIndex) >= roles.length) { ww.view = 'moderator'; wwEvent('Rollenübergabe abgeschlossen'); }
     await saveWerewolf();
 }
 async function wwRecordTarget() {
@@ -1751,6 +1761,7 @@ function renderGame(isSyncUpdate = false) {
     let contentBox = document.getElementById("gameContent");
     
     if(!state.currentGame) {
+        wwClearLocalHandoffReveal();
         if (isFocusMode) setFocusMode(false);
         state.lastRenderedGameId = null;
         if (IS_PREVIEW_MODE) {
@@ -1794,6 +1805,7 @@ function renderGame(isSyncUpdate = false) {
     }
 
     if (state.currentGame.gameTypeId === 'werwolf') { renderWerewolfGame(contentBox); return; }
+    wwClearLocalHandoffReveal();
 
     let maxRounds = Math.max(...state.currentGame.players.map(p => p.rounds.length), 0);
     const leadingScore = getLeadingScore(state.currentGame);
