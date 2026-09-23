@@ -732,8 +732,8 @@ function startSetup(prefillGame = null) {
                     ? `<label>${label}<input id="ww_${id}" type="number" min="0" placeholder="0" inputmode="numeric" pattern="[0-9]*"></label>`
                     : `<label class="select-card werwolf-role-card"><input id="ww_${id}" type="checkbox" data-ww-role><span>${label}</span></label>`).join('')}
             </div>
-            <label class="select-card werwolf-role-card"><input id="wwReveal" type="checkbox"><span>Rolle bei Tod aufdecken</span></label>
             <label>Verteilung<select id="wwDistribution"><option value="random">Zufällig</option><option value="manual">Manuell in Teilnehmer-Reihenfolge</option></select></label>
+            <label class="select-card werwolf-role-card"><input id="wwReveal" type="checkbox"><span>Rolle bei Tod aufdecken</span></label>
         </div>
         
         <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">

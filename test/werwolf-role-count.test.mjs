@@ -55,3 +55,16 @@ test('Werwolf role fields are blank, show zero as their placeholder, and retain 
   assert.match(source, /class="select-card werwolf-role-card"/);
   assert.doesNotMatch(source, /oninput="updateWerewolfRoleCount\(\)"/);
 });
+
+test('Werwolf setup places distribution before death-role reveal and refreshes the client cache key', async () => {
+  const [appSource, indexSource] = await Promise.all([
+    fs.readFile(new URL('../app.js', import.meta.url), 'utf8'),
+    fs.readFile(new URL('../index.html', import.meta.url), 'utf8')
+  ]);
+  const setup = appSource.match(/<div id="werwolfSetupContainer"[\s\S]*?<\/div>\n        <\/div>/)?.[0];
+
+  assert.ok(setup, 'Werwolf setup markup is present');
+  assert.ok(setup.indexOf('id="wwDistribution"') < setup.indexOf('id="wwReveal"'));
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-6/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-6/);
+});
