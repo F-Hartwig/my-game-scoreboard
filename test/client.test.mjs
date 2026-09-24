@@ -89,6 +89,18 @@ test('Werwolf client derives night steps from assigned roles and keeps persisten
   assert.match(source, /function wwFinishGame/);
 });
 
+test('Werwolf applies lover deaths to every death source including hunter shots and manual deaths', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const helperSource = source.slice(source.indexOf('function wwDeathIdsWithLovers'), source.indexOf('function wwApplyDeaths'));
+  const deathIdsWithLovers = Function(`return (${helperSource.trim()})`)();
+
+  assert.deepEqual(deathIdsWithLovers({ lovers: [2, 3] }, [2]), [2, 3]);
+  assert.deepEqual(deathIdsWithLovers({ lovers: [2, 3] }, [4]), [4]);
+  assert.match(source, /function wwApplyDeaths\(ww, playerIds, death\)/);
+  assert.match(source, /wwApplyDeaths\(ww, \[playerId\], \{ phase: ww\.phase, number: ww\.number \}\)/);
+  assert.match(source, /deathIds\.push\(Number\(shotTarget\)\)[\s\S]*?wwApplyDeaths\(ww, deathIds, \{ phase: 'night', number: ww\.number \}\)/);
+});
+
 test('Werwolf removes a stale child step when no child is assigned', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(source, /const availableSteps = wwSteps\(ww\);[\s\S]*?if \(!availableSteps\.includes\(ww\.step\)\) ww\.step = availableSteps\[0\];/);

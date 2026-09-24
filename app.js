@@ -1550,17 +1550,36 @@ function wwOpenConfirm(title, message, confirmLabel, onConfirm) {
     document.querySelector('[data-ww-modal-action="cancel"]')?.addEventListener('click', closeModal);
     document.querySelector('[data-ww-modal-action="confirm"]')?.addEventListener('click', () => { closeModal(); void onConfirm(); });
 }
+function wwDeathIdsWithLovers(ww, playerIds = []) {
+    const deathIds = new Set(playerIds.filter(playerId => playerId != null).map(Number));
+    if (ww.lovers.some(playerId => deathIds.has(Number(playerId)))) {
+        for (const loverId of ww.lovers) deathIds.add(Number(loverId));
+    }
+    return [...deathIds];
+}
+function wwApplyDeaths(ww, playerIds, death) {
+    const deathIds = wwDeathIdsWithLovers(ww, playerIds).filter(playerId => wwRole(playerId)?.alive);
+    for (const playerId of deathIds) {
+        const role = wwRole(playerId);
+        role.alive = false;
+        role.death = { ...death };
+    }
+    if (deathIds.some(playerId => String(playerId) === String(ww.childModelPlayerId))) {
+        const child = ww.roles.find(role => role.roleId === 'child' && role.alive);
+        if (child) {
+            child.currentTeam = 'wolves';
+            child.resources.transformed = true;
+            wwEvent(`${wwPlayerName(child.playerId)} wird als Kind zum Werwolf`);
+        }
+    }
+    return deathIds;
+}
 function wwPendingDayDeathIds(ww) {
     const pending = [];
     const wolfTarget = ww.nightState.wolfTargetId;
     if (wolfTarget && String(wolfTarget) !== String(ww.nightState.healedTargetId) && String(wolfTarget) !== String(ww.nightState.barkeeperTargetId)) pending.push(Number(wolfTarget));
     if (ww.nightState.poisonTargetId) pending.push(Number(ww.nightState.poisonTargetId));
-    for (const playerId of [...pending]) {
-        if (ww.lovers.some(id => String(id) === String(playerId))) {
-            for (const loverId of ww.lovers) if (String(loverId) !== String(playerId)) pending.push(Number(loverId));
-        }
-    }
-    return [...new Set(pending)].filter(playerId => wwRole(playerId)?.alive);
+    return wwDeathIdsWithLovers(ww, pending).filter(playerId => wwRole(playerId)?.alive);
 }
 function wwDeathSummary(ww) {
     const names = wwPendingDayDeathIds(ww).map(wwPlayerName);
@@ -1705,16 +1724,21 @@ function wwToggleLife(playerId) {
 }
 async function wwConfirmToggleLife(playerId) {
     const ww = wwEnsureState(), role = wwRole(playerId), player = wwPlayer(playerId); if (!role || !player) return;
-    role.alive = !role.alive; role.death = role.alive ? null : { phase: ww.phase, number: ww.number };
-    if (!role.alive && String(ww.childModelPlayerId) === String(playerId)) { const child = ww.roles.find(item => item.roleId === 'child' && item.alive); if (child) { child.currentTeam = 'wolves'; child.resources.transformed = true; wwEvent(`${wwPlayerName(child.playerId)} wird als Kind zum Werwolf`); } }
-    wwEvent(`${player.name} ${role.alive ? 'wiederbelebt/korrigiert' : 'ist gestorben'}`); await saveWerewolf();
+    if (role.alive) {
+        const deathIds = wwApplyDeaths(ww, [playerId], { phase: ww.phase, number: ww.number });
+        for (const deathId of deathIds) wwEvent(`${wwPlayerName(deathId)} ist gestorben${String(deathId) === String(playerId) ? '' : ' (Liebespaar)'}`);
+    } else {
+        role.alive = true;
+        role.death = null;
+        wwEvent(`${player.name} wiederbelebt/korrigiert`);
+    }
+    await saveWerewolf();
 }
 async function wwResolveDay() {
     const ww = wwEnsureState(), pendingIds = wwPendingDayDeathIds(ww), summary = wwDeathSummary(ww), hunter = ww.roles.find(role => role.roleId === 'hunter' && role.alive && pendingIds.some(id => String(id) === String(role.playerId))), shotTarget = document.getElementById('wwHunterTarget')?.value;
     const deathIds = [...pendingIds];
     if (hunter && shotTarget) { const shotRole = wwRole(shotTarget); if (!wwTargetIsValid(ww, shotTarget, [hunter.playerId]) || !shotRole) return wwShowMessage('Jäger', 'Bitte ein gültiges Ziel oder „Kein Schuss“ wählen.'); shotRole.effects.shot = { night: ww.number }; deathIds.push(Number(shotTarget)); }
-    for (const playerId of [...new Set(deathIds)]) { const role = wwRole(playerId); if (role?.alive) { role.alive = false; role.death = { phase: 'night', number: ww.number }; } }
-    if (pendingIds.some(id => String(id) === String(ww.childModelPlayerId))) { const child = ww.roles.find(role => role.roleId === 'child' && role.alive); if (child) { child.currentTeam = 'wolves'; child.resources.transformed = true; } }
+    wwApplyDeaths(ww, deathIds, { phase: 'night', number: ww.number });
     wwEvent(`Es wird Tag: ${summary}${hunter && shotTarget ? ` Jägerschuss auf ${wwPlayerName(shotTarget)}.` : ''}`);
     ww.nightState.previousBarkeeperTargetId = ww.nightState.barkeeperTargetId;
     ww.phase = 'night'; ww.number += 1;
