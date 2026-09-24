@@ -3253,8 +3253,9 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 .ww-step-card, .ww-overview-card, .ww-events-card { display: grid; gap: 12px; }
 .ww-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .ww-section-heading > button { width: auto; flex: 0 0 auto; }
-.ww-roster, .ww-events, .ww-field-group, .ww-step-content { display: grid; gap: 12px; margin: 0; }
+.ww-roster, .ww-events, .ww-field-group, .ww-step-content, .ww-witch-heal-action, .ww-witch-poison-action { display: grid; gap: 12px; margin: 0; }
 .ww-step-content > p, .ww-step-content > :last-child { margin-bottom: 0; }
+.ww-witch-heal-action p { margin: 0; }
 .ww-step-footer { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 4px; padding-top: 12px; border-top: 1px solid var(--border-strong); }
 .ww-step-footer button:last-child { grid-column: 1 / -1; }
 @media (max-width: 540px) { .werwolf-role-grid, .ww-step-footer { grid-template-columns: 1fr; } .ww-step-footer button:last-child { grid-column: auto; } }

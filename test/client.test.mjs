@@ -131,6 +131,19 @@ test('Werwolf steps use one footer action position and the shared selection chec
   assert.match(styleSource, /\.werwolf-role-card \{ min-height: 48px;/);
 });
 
+test('Werwolf witch groups each potion with its target and heals only the wolf target', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+
+  const witchPanel = source.slice(source.indexOf("if (step === 'witch')"), source.indexOf("if (step === 'seer')"));
+  const witchFooter = source.slice(source.indexOf('function wwStepFooter'), source.indexOf('function bindWerewolfHeaderActions'));
+
+  assert.match(witchPanel, /class="ww-witch-heal-action"[\s\S]*?Wolfsopfer:[\s\S]*?data-ww-step-action="heal"/);
+  assert.match(witchPanel, /canHeal = witch\?\.resources\.heal && wwRole\(target\)\?\.alive/);
+  assert.match(witchPanel, /class="ww-witch-poison-action"[\s\S]*?Giftziel[\s\S]*?data-ww-step-action="poison"/);
+  assert.doesNotMatch(witchFooter, /data-ww-step-action="(?:heal|poison)"/);
+  assert.match(source, /if \(action === 'heal'\) \{\s+const target = ww\.nightState\.wolfTargetId/);
+});
+
 test('Werwolf setup selects players before roles, starts role counts at zero, and requires an exact role total', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const playerSelection = source.indexOf('Teilnehmer wählen');

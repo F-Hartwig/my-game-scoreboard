@@ -1585,7 +1585,7 @@ function wwActionPanel(ww, step) {
     if (sleepingNotice && actorIds.length === 0) return sleepingNotice;
     const options = wwTargetOptions(actorIds, wwStepAllowsSelf(step));
     if (step === 'amor') return `<div class="ww-field-group"><label>Erste verliebte Person<select id="wwTarget">${wwTargetOptions()}</select></label><label>Zweite verliebte Person<select id="wwTarget2">${wwTargetOptions()}</select></label></div>`;
-    if (step === 'witch') { const victim = ww.nightState.wolfTargetId ? escapeHtml(wwPlayerName(ww.nightState.wolfTargetId)) : 'kein Wolfsopfer'; return `${sleepingNotice}<p>Wolfsopfer: <strong>${victim}</strong></p><label>Giftziel<select id="wwTarget">${options}</select></label>`; }
+    if (step === 'witch') { const witch = ww.roles.find(role => role.roleId === 'witch' && role.alive && !wwIsSleeping(ww, role.playerId)), target = ww.nightState.wolfTargetId, victim = target ? escapeHtml(wwPlayerName(target)) : 'kein Wolfsopfer', canHeal = witch?.resources.heal && wwRole(target)?.alive; return `${sleepingNotice}<div class="ww-witch-heal-action"><p>Wolfsopfer: <strong>${victim}</strong></p><button type="button" ${canHeal ? '' : 'disabled'} data-ww-step-action="heal">Heiltrank verwenden</button></div><div class="ww-witch-poison-action"><label>Giftziel<select id="wwTarget">${options}</select></label><button type="button" ${witch?.resources.poison ? '' : 'disabled'} class="secondary" data-ww-step-action="poison">Gift verwenden</button></div>`; }
     if (step === 'seer') return `${sleepingNotice}<label>Person prüfen<select id="wwTarget">${options}</select></label>`;
     if (step === 'day') {
         const pendingIds = wwPendingDayDeathIds(ww);
@@ -1597,7 +1597,7 @@ function wwActionPanel(ww, step) {
 function wwStepFooter(ww, step) {
     if (wwSleepingStepNotice(ww, step) && wwStepActorIds(ww, step).length === 0) return '<button type="button" data-ww-step-action="skip">Schritt überspringen</button>';
     if (['amor', 'child', 'prostitute', 'barkeeper', 'werewolves'].includes(step)) return '<button type="button" data-ww-step-action="target">Auswahl bestätigen &amp; weiter</button>';
-    if (step === 'witch') { const witch = ww.roles.find(role => role.roleId === 'witch' && role.alive && !wwIsSleeping(ww, role.playerId)); return `<button type="button" ${witch?.resources.heal ? '' : 'disabled'} data-ww-step-action="heal">Heiltrank verwenden</button><button type="button" ${witch?.resources.poison ? '' : 'disabled'} class="secondary" data-ww-step-action="poison">Gift verwenden</button><button type="button" class="secondary" data-ww-step-action="advance">Schritt bestätigen →</button>`; }
+    if (step === 'witch') return '<button type="button" class="secondary" data-ww-step-action="advance">Schritt bestätigen →</button>';
     if (step === 'seer') return '<button type="button" data-ww-step-action="seer">Gut/Böse geheim prüfen</button><button type="button" class="secondary" data-ww-step-action="advance">Schritt bestätigen →</button>';
     if (step === 'day') return '<button type="button" data-ww-step-action="day">Tag abschließen → nächste Nacht</button>';
     return '<button type="button" data-ww-step-action="advance">Schritt bestätigen →</button>';
