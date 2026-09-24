@@ -722,7 +722,7 @@ function startSetup(prefillGame = null) {
             <p style="color:var(--muted); font-size:13px; text-align:center; padding:10px;" id="dragPlaceholder">Wähle oben Teilnehmer aus, um deren Reihenfolge festzulegen.</p>
         </div>
 
-        <div id="werwolfSetupContainer" class="werwolf-setup" style="display:${firstGame.id === 'werwolf' ? 'block' : 'none'}">
+        <div id="werwolfSetupContainer" class="werwolf-setup" style="display:${firstGame.id === 'werwolf' ? 'grid' : 'none'}">
             <div class="title">Rollen festlegen</div>
             <p>Lege zuerst die Spielleitung fest und wähle anschließend für alle übrigen Teilnehmer genau eine Rolle.</p>
             <label>Spielleiter<select id="wwGameMaster" required><option value="">Teilnehmer wählen</option></select></label>
@@ -971,7 +971,7 @@ function handleGameSelectionChange(gameId) {
     const winConditionContainer = document.getElementById("customWinConditionContainer");
     const modeContainer = document.getElementById("customGameModeContainer");
     const werwolfContainer = document.getElementById("werwolfSetupContainer");
-    if (werwolfContainer) werwolfContainer.style.display = gameId === 'werwolf' ? 'block' : 'none';
+    if (werwolfContainer) werwolfContainer.style.display = gameId === 'werwolf' ? 'grid' : 'none';
 
     if (gameId === "custom") {
         if (nameContainer) nameContainer.style.display = "block";
