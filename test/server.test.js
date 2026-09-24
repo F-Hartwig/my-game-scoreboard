@@ -172,6 +172,7 @@ test('public access is limited to explicit read-only preview', async t => {
     assert.equal((await anonymous.request('/score-entry-draft.mjs')).response.status, 200);
     assert.equal((await anonymous.request('/personal-stats.mjs')).response.status, 200);
     assert.equal((await anonymous.request('/setup-player-order.mjs')).response.status, 200);
+    assert.equal((await anonymous.request('/werwolf-day-resolution.mjs')).response.status, 200);
     for (const privatePath of ['/server.js', '/auth.js', '/package.json', '/scoreboard.db', '/Dockerfile', '/gameNightRanking.mjs']) assert.equal((await anonymous.request(privatePath)).response.status, 404, privatePath);
 });
 
