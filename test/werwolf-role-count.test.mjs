@@ -67,5 +67,5 @@ test('Werwolf setup places Amor between distribution and death-role reveal and r
   assert.ok(setup.indexOf('id="wwDistribution"') < setup.indexOf('id="wwUseCupid"'));
   assert.ok(setup.indexOf('id="wwUseCupid"') < setup.indexOf('id="wwReveal"'));
   assert.match(setup, /id="wwUseCupid" type="checkbox" checked/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-12/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-14/);
 });

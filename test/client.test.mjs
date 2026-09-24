@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-7/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-13/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-8/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-14/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -107,7 +107,7 @@ test('Werwolf day UI offers one optional accusation, refreshes the hunter field 
 
   assert.match(source, /Vom Barkeeper geschützt/);
   assert.match(source, /ww\.nightState\.barkeeperTargetId != null && String\(ww\.nightState\.barkeeperTargetId\) === String\(role\.playerId\)/);
-  assert.match(source, /Tod durch Anklage<select id="wwAccusationTarget"><option value="">Niemand<\/option>/);
+  assert.match(source, /Tod durch Anklage<select id="wwAccusationTarget"><option value=""\$\{draft\.accusationTargetId == null \? ' selected' : ''\}>Niemand<\/option>/);
   assert.match(source, /function wwRenderHunterField\(contentBox, ww\)/);
   assert.match(source, /#wwAccusationTarget'\)\?\.addEventListener\('change', \(\) => wwRenderHunterField/);
   assert.match(source, /if \(typeof ww\.useCupid !== 'boolean'\) ww\.useCupid = true/);
@@ -241,6 +241,33 @@ test('Werwolf keeps a revealed handoff role only in local UI state through sync 
   assert.doesNotMatch(source, /handoffReveal/);
   assert.match(styles, /\.ww-handoff-view \{[^}]*grid-template-rows: auto auto auto;[^}]*gap: 12px;[^}]*align-content: start;/);
   assert.doesNotMatch(styles, /\.ww-handoff-view \{[^}]*min-height:/);
+});
+
+test('Werwolf preserves a game-and-day-bound accusation draft and resolves only a confirmed day decision', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /let wwLocalDayDraft = null;/);
+  assert.match(source, /function wwIsLocalDayDraft\(ww\)[\s\S]*?wwLocalDayDraft\?\.gameId === String\(state\.currentGame\?\.id\)[\s\S]*?wwLocalDayDraft\?\.number === Number\(ww\.number\)/);
+  assert.match(source, /function wwEnsureState\(\)[\s\S]*?if \(!ww\.dayState \|\| typeof ww\.dayState !== 'object'\) ww\.dayState = \{ number: null, accusationTargetId: null, accusationConfirmed: false \};/);
+  assert.match(source, /Anklage bestätigen/);
+  assert.match(source, /function wwConfirmDayAccusation\(\)[\s\S]*?ww\.dayState = \{ number: Number\(ww\.number\), accusationTargetId: accusationTarget \? Number\(accusationTarget\) : null, accusationConfirmed: true \}/);
+  assert.match(source, /function wwResolveDay\(\)[\s\S]*?if \(!wwDayAccusationIsConfirmed\(ww\) \|\| wwDayDraftDiffersFromConfirmation\(ww\)\) return wwShowMessage\('Anklage bestätigen'/);
+  assert.match(source, /wwDayPlan\(ww, ww\.dayState\.accusationTargetId, shotTarget\)/);
+  assert.match(source, /ww\.dayState = \{ number: null, accusationTargetId: null, accusationConfirmed: false \};/);
+});
+
+test('Werwolf mayor selection is modal-only, excludes the game master, and renders exactly one crown', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const styles = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+
+  assert.match(source, /if \(!Object\.hasOwn\(ww, 'mayorPlayerId'\)\) ww\.mayorPlayerId = null;/);
+  assert.match(source, /data-ww-mayor aria-label="Bürgermeister wählen" title="Bürgermeister wählen"/);
+  assert.match(source, /function wwOpenMayor\(\)[\s\S]*?role\.alive && wwIsActiveRole\(role\)/);
+  assert.match(source, /openModal\('Bürgermeister wählen'/);
+  assert.match(source, /function wwSaveMayor\(\)[\s\S]*?ww\.mayorPlayerId = Number\(playerId\);[\s\S]*?wwEvent\(`Bürgermeister\$\{wasMayor \? ' neu' : ''\} gewählt: \$\{wwPlayerName\(playerId\)\}`\)/);
+  assert.match(source, /ww\.mayorPlayerId != null && String\(ww\.mayorPlayerId\) === String\(role\.playerId\) \? '<span class="ww-mayor-crown" title="Bürgermeister" aria-label="Bürgermeister">/);
+  assert.match(styles, /\.ww-section-actions \{ display: flex;/);
+  assert.match(styles, /\.ww-mayor-crown/);
 });
 
 test('Werwolf game header uses generic minimize instead of a persistent pause state while step status is in the action card', async () => {
