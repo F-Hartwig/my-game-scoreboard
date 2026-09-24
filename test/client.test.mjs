@@ -69,17 +69,17 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-5/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-5/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-7/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-10/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
 
-test('Werwolf client derives night steps from assigned roles and keeps persistent moderator resources', async () => {
+test('Werwolf client keeps configured living night-role steps and persistent moderator resources', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(source, /function wwHasAssignedRole\(ww, roleId\)/);
   assert.match(source, /const WW_STEP_ROLE_IDS = \{ child: \['child'\], prostitute: \['prostitute'\], barkeeper: \['barkeeper'\], werewolves: \['werewolf'\], witch: \['witch'\], seer: \['seer'\] \}/);
-  assert.match(source, /function wwSteps\(ww\) \{[\s\S]*?\(ww\.number === 1 \? WW_NIGHT_ONE : WW_NIGHT\)\.filter\(step => !WW_STEP_ROLE_IDS\[step\] \|\| \(wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\) && wwStepActorIds\(ww, step\)\.length\)\)/);
+  assert.match(source, /function wwSteps\(ww\) \{[\s\S]*?\(ww\.number === 1 \? WW_NIGHT_ONE : WW_NIGHT\)\.filter\(step => !WW_STEP_ROLE_IDS\[step\] \|\| wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\)\)/);
   assert.match(source, /previousBarkeeperTargetId/);
   assert.match(source, /childModelPlayerId/);
   assert.match(source, /ww\.lovers = \[Number\(target\), Number\(target2\)\]/);
@@ -107,7 +107,7 @@ test('Werwolf removes a stale child step when no child is assigned', async () =>
   assert.match(source, /function wwSaveAssignment\(\)[\s\S]*?wwEnsureState\(\);[\s\S]*?await saveWerewolf\(\);/);
 });
 
-test('Werwolf target controls exclude the known actor except barkeeper and witch, and sleeping actors', async () => {
+test('Werwolf target controls exclude the known actor except barkeeper and witch, while sleeping roles keep a confirmable step', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(source, /function wwTargetOptions\(actorIds = \[\], allowSelf = false\)/);
   assert.match(source, /function wwStepAllowsSelf\(step\) \{ return \['barkeeper', 'witch'\]\.includes\(step\); \}/);
@@ -115,20 +115,24 @@ test('Werwolf target controls exclude the known actor except barkeeper and witch
   assert.match(source, /function wwIsSleeping\(ww, playerId\) \{ return ww\.phase === 'night' && ww\.nightState\.prostituteTargetId != null && String\(ww\.nightState\.prostituteTargetId\) === String\(playerId\); \}/);
   assert.match(source, /role\.alive && roleIds\.includes\(role\.roleId\) && !wwIsSleeping\(ww, role\.playerId\)/);
   assert.match(source, /function wwSleepingStepNotice\(ww, step\)/);
-  assert.match(source, /function wwSkipSleepingStep\(\)/);
+  assert.match(source, /function wwConfirmSleepingStep\(\)/);
+  assert.match(source, /data-ww-step-action="confirm-sleep">Schlaf bestätigen &amp; weiter/);
+  assert.match(source, /if \(step === 'werewolves'\) ww\.nightState\.wolfTargetId = null/);
+  assert.match(source, /keine Aktion wird ausgeführt/);
+  assert.doesNotMatch(source, /Schritt überspringen|übersprungen/);
   assert.match(source, /if \(!wwTargetIsValid\(ww, target, wwStepActorIds\(ww, step\), wwStepAllowsSelf\(step\)\)\) return/);
   assert.match(source, /return \['day'\]/);
 });
 
-test('Werwolf shows only awake actors in awakening titles and reaches day without a resolve step', async () => {
+test('Werwolf names all living role holders in awakening titles and marks sleeping actors', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const nightStepDefinitions = source.slice(source.indexOf('const WW_NIGHT_ONE'), source.indexOf('function makeWerewolfRoleState'));
 
   assert.match(source, /function wwAwakeningTitle\(ww, step\)/);
-  assert.match(source, /const actorNames = wwStepActorIds\(ww, step\)\.map\(wwPlayerName\)/);
-  assert.match(source, /return actorNames\.length \? `\$\{title\} \(\$\{actorNames\.join\(', '\)\}\)` : title/);
+  assert.match(source, /const roleNames = ww\.roles\.filter\(role => wwIsActiveRole\(role\) && role\.alive && WW_STEP_ROLE_IDS\[step\]\?\.includes\(role\.roleId\)\)\.map\(role => `\$\{escapeHtml\(wwPlayerName\(role\.playerId\)\)\}\$\{wwIsSleeping\(ww, role\.playerId\) \? ' – schläft' : ''\}`\)/);
+  assert.match(source, /return roleNames\.length \? `\$\{title\} \(\$\{roleNames\.join\(', '\)\}\)` : title/);
   assert.match(source, /<strong>\$\{wwAwakeningTitle\(ww, step\)\}<\/strong>/);
-  assert.match(source, /wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\) && wwStepActorIds\(ww, step\)\.length/);
+  assert.match(source, /wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\)/);
   assert.doesNotMatch(nightStepDefinitions, /resolve|Folgen manuell auflösen/);
 });
 

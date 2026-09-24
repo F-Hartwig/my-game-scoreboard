@@ -1477,7 +1477,7 @@ function wwIsActiveRole(role) { return role?.roleId !== 'gamemaster'; }
 function wwHasAssignedRole(ww, roleId) { return ww.roles.some(role => role.roleId === roleId && role.alive); }
 function wwHasAnyAssignedRole(ww, roleIds) { return roleIds.some(roleId => wwHasAssignedRole(ww, roleId)); }
 function wwSteps(ww) {
-    if (ww.phase === 'night') return (ww.number === 1 ? WW_NIGHT_ONE : WW_NIGHT).filter(step => !WW_STEP_ROLE_IDS[step] || (wwHasAnyAssignedRole(ww, WW_STEP_ROLE_IDS[step]) && wwStepActorIds(ww, step).length));
+    if (ww.phase === 'night') return (ww.number === 1 ? WW_NIGHT_ONE : WW_NIGHT).filter(step => !WW_STEP_ROLE_IDS[step] || wwHasAnyAssignedRole(ww, WW_STEP_ROLE_IDS[step]));
     return ['day'];
 }
 function wwStepLabel(step) { return ({ amor: 'Amor: Liebespaar bestimmen', child: 'Kind: Vorbild bestimmen', prostitute: 'Hure wacht auf', barkeeper: 'Barkeeper schützt', werewolves: 'Werwölfe wählen Opfer', witch: 'Hexe entscheidet', seer: 'Seherin prüft', day: 'Es wird Tag' })[step] || step; }
@@ -1493,8 +1493,8 @@ function wwStepActorIds(ww, step) {
 function wwStepAllowsSelf(step) { return ['barkeeper', 'witch'].includes(step); }
 function wwAwakeningTitle(ww, step) {
     const title = WW_AWAKENING_TITLES[step] || wwStepLabel(step);
-    const actorNames = wwStepActorIds(ww, step).map(wwPlayerName);
-    return actorNames.length ? `${title} (${actorNames.join(', ')})` : title;
+    const roleNames = ww.roles.filter(role => wwIsActiveRole(role) && role.alive && WW_STEP_ROLE_IDS[step]?.includes(role.roleId)).map(role => `${escapeHtml(wwPlayerName(role.playerId))}${wwIsSleeping(ww, role.playerId) ? ' – schläft' : ''}`);
+    return roleNames.length ? `${title} (${roleNames.join(', ')})` : title;
 }
 function wwTargetOptions(actorIds = [], allowSelf = false) {
     return state.currentGame.werewolf.roles.filter(role => wwIsActiveRole(role) && role.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(role.playerId)))).map(role => `<option value="${role.playerId}">${escapeHtml(wwPlayerName(role.playerId))}</option>`).join('');
@@ -1507,7 +1507,7 @@ function wwSleepingStepNotice(ww, step) {
     const sleeping = ww.roles.filter(role => wwIsActiveRole(role) && role.alive && WW_STEP_ROLE_IDS[step]?.includes(role.roleId) && wwIsSleeping(ww, role.playerId));
     if (!sleeping.length) return '';
     const names = escapeHtml(sleeping.map(role => wwPlayerName(role.playerId)).join(', '));
-    return `<p class="ww-sleep-notice"><strong>${names}</strong> ${sleeping.length === 1 ? 'schläft' : 'schlafen'} bei der Hure. ${wwStepActorIds(ww, step).length ? 'Nur die übrigen wachen Rollen handeln.' : 'Niemand aus dieser Rolle wacht auf; der Schritt wird übersprungen.'}</p>`;
+    return `<p class="ww-sleep-notice"><strong>${names}</strong> ${sleeping.length === 1 ? 'schläft' : 'schlafen'} bei der Hure. ${wwStepActorIds(ww, step).length ? 'Nur die übrigen wachen Rollen handeln.' : 'Niemand aus dieser Rolle wacht auf; keine Aktion wird ausgeführt.'}</p>`;
 }
 function wwClearLocalHandoffReveal() { wwLocalHandoffReveal = null; }
 function wwIsLocalHandoffReveal(ww, index) {
@@ -1614,7 +1614,7 @@ function wwActionPanel(ww, step) {
     return `${sleepingNotice}<label>Ziel / Ergebnis<select id="wwTarget">${options}</select></label>`;
 }
 function wwStepFooter(ww, step) {
-    if (wwSleepingStepNotice(ww, step) && wwStepActorIds(ww, step).length === 0) return '<button type="button" data-ww-step-action="skip">Schritt überspringen</button>';
+    if (wwSleepingStepNotice(ww, step) && wwStepActorIds(ww, step).length === 0) return '<button type="button" data-ww-step-action="confirm-sleep">Schlaf bestätigen &amp; weiter</button>';
     if (['amor', 'child', 'prostitute', 'barkeeper', 'werewolves'].includes(step)) return '<button type="button" data-ww-step-action="target">Auswahl bestätigen &amp; weiter</button>';
     if (step === 'witch') return '<button type="button" class="secondary" data-ww-step-action="advance">Schritt bestätigen →</button>';
     if (step === 'seer') return '<button type="button" data-ww-step-action="seer">Gut/Böse geheim prüfen</button><button type="button" class="secondary" data-ww-step-action="advance">Schritt bestätigen →</button>';
@@ -1631,7 +1631,7 @@ function bindWerewolfHeaderActions(contentBox) {
 }
 function bindWerewolfGameActions(contentBox) {
     const actions = {
-        skip: wwSkipSleepingStep,
+        'confirm-sleep': wwConfirmSleepingStep,
         target: wwRecordTarget,
         heal: () => wwUseWitch('heal'),
         poison: () => wwUseWitch('poison'),
@@ -1689,12 +1689,12 @@ async function wwRecordTarget() {
     else wwEvent(`${wwStepLabel(step)}: ${wwPlayerName(target)}`);
     await wwAdvance();
 }
-async function wwSkipSleepingStep() {
+async function wwConfirmSleepingStep() {
     const ww = wwEnsureState(), step = ww.step;
     const sleepingNames = ww.roles.filter(role => wwIsActiveRole(role) && role.alive && WW_STEP_ROLE_IDS[step]?.includes(role.roleId) && wwIsSleeping(ww, role.playerId)).map(role => wwPlayerName(role.playerId));
     if (wwStepActorIds(ww, step).length || !sleepingNames.length) return;
     if (step === 'werewolves') ww.nightState.wolfTargetId = null;
-    wwEvent(`${sleepingNames.join(', ')} ${sleepingNames.length === 1 ? 'schläft' : 'schlafen'} bei der Hure; ${wwStepLabel(step)} übersprungen${step === 'werewolves' ? ', kein Wolfsopfer' : ''}`);
+    wwEvent(`${sleepingNames.join(', ')} ${sleepingNames.length === 1 ? 'schläft' : 'schlafen'} bei der Hure; keine Aktion ausgeführt${step === 'werewolves' ? ', kein Wolfsopfer' : ''}`);
     await wwAdvance();
 }
 async function wwUseWitch(action) {
