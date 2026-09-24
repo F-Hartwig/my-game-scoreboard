@@ -3,7 +3,7 @@ name: scorebuddy-staging
 services:
   scoreboard-staging:
     build:
-      context: .
+      context: ./app
       dockerfile: Dockerfile
     image: scorebuddy-staging:local
     container_name: game-scoreboard-staging
