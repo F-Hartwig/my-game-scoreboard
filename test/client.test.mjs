@@ -70,7 +70,7 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
   assert.match(indexSource, /style\.css\?v=werwolf-flow-7/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-10/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-11/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -116,6 +116,8 @@ test('Werwolf target controls exclude the known actor except barkeeper and witch
   assert.match(source, /role\.alive && roleIds\.includes\(role\.roleId\) && !wwIsSleeping\(ww, role\.playerId\)/);
   assert.match(source, /function wwSleepingStepNotice\(ww, step\)/);
   assert.match(source, /function wwConfirmSleepingStep\(\)/);
+  assert.match(source, /window\.wwConfirmSleepingStep = wwConfirmSleepingStep;/);
+  assert.doesNotMatch(source, /window\.wwSkipSleepingStep = wwSkipSleepingStep;/);
   assert.match(source, /data-ww-step-action="confirm-sleep">Schlaf bestätigen &amp; weiter/);
   assert.match(source, /if \(step === 'werewolves'\) ww\.nightState\.wolfTargetId = null/);
   assert.match(source, /keine Aktion wird ausgeführt/);
