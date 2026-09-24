@@ -70,7 +70,7 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
   assert.match(indexSource, /style\.css\?v=werwolf-flow-7/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-12/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-13/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -106,7 +106,7 @@ test('Werwolf day UI offers one optional accusation, refreshes the hunter field 
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
 
   assert.match(source, /Vom Barkeeper geschützt/);
-  assert.match(source, /ww\.phase === 'night' && String\(ww\.nightState\.barkeeperTargetId\) === String\(role\.playerId\)/);
+  assert.match(source, /ww\.nightState\.barkeeperTargetId != null && String\(ww\.nightState\.barkeeperTargetId\) === String\(role\.playerId\)/);
   assert.match(source, /Tod durch Anklage<select id="wwAccusationTarget"><option value="">Niemand<\/option>/);
   assert.match(source, /function wwRenderHunterField\(contentBox, ww\)/);
   assert.match(source, /#wwAccusationTarget'\)\?\.addEventListener\('change', \(\) => wwRenderHunterField/);

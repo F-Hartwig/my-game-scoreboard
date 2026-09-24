@@ -1540,7 +1540,7 @@ function wwEnsureState() {
 function wwEffectBadges(role, ww) {
     const badges = [];
     if (ww.phase === 'night' && wwIsSleeping(ww, role.playerId)) badges.push('schläft');
-    if (ww.phase === 'night' && String(ww.nightState.barkeeperTargetId) === String(role.playerId)) badges.push('Vom Barkeeper geschützt');
+    if (ww.nightState.barkeeperTargetId != null && String(ww.nightState.barkeeperTargetId) === String(role.playerId)) badges.push('Vom Barkeeper geschützt');
     if (role.effects?.shot) badges.push('Schuss erhalten');
     if (role.effects?.poison) badges.push('Gifttrank erhalten');
     if (role.effects?.heal) badges.push('Heiltrank erhalten');
