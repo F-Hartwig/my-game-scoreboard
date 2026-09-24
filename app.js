@@ -8,6 +8,7 @@ import { hasScoreEntryDraft } from './score-entry-draft.mjs';
 import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from './personal-stats.mjs';
 import { sortSetupPlayersByLastParticipation } from './setup-player-order.mjs';
 import { bindWerewolfRoleCount, updateWerewolfRoleCount as renderWerewolfRoleCount } from './werwolf-role-count.mjs';
+import { planWerewolfDayDeaths } from './werwolf-day-resolution.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 let nextGuestDraftId = -1;
@@ -733,6 +734,7 @@ function startSetup(prefillGame = null) {
                     : `<label class="select-card werwolf-role-card"><input id="ww_${id}" type="checkbox" data-ww-role><span>${label}</span></label>`).join('')}
             </div>
             <label>Verteilung<select id="wwDistribution"><option value="random">Zufällig</option><option value="manual">Manuell in Teilnehmer-Reihenfolge</option></select></label>
+            <label class="select-card werwolf-role-card"><input id="wwUseCupid" type="checkbox" checked><span>Mit Amor spielen</span></label>
             <label class="select-card werwolf-role-card"><input id="wwReveal" type="checkbox"><span>Rolle bei Tod aufdecken</span></label>
         </div>
         
@@ -1279,6 +1281,7 @@ async function createGame() {
             step: 'amor',
             view: 'handoff',
             handoffIndex: 0,
+            useCupid: document.getElementById('wwUseCupid')?.checked !== false,
             revealOnDeath: Boolean(document.getElementById('wwReveal')?.checked),
             distribution: document.getElementById('wwDistribution')?.value || 'random',
             roles: state.currentGame.players.map(player => makeWerewolfRoleState(player.id, String(player.id) === String(gameMasterId) ? 'gamemaster' : roleIds.shift())),
@@ -1477,7 +1480,7 @@ function wwIsActiveRole(role) { return role?.roleId !== 'gamemaster'; }
 function wwHasAssignedRole(ww, roleId) { return ww.roles.some(role => role.roleId === roleId && role.alive); }
 function wwHasAnyAssignedRole(ww, roleIds) { return roleIds.some(roleId => wwHasAssignedRole(ww, roleId)); }
 function wwSteps(ww) {
-    if (ww.phase === 'night') return (ww.number === 1 ? WW_NIGHT_ONE : WW_NIGHT).filter(step => !WW_STEP_ROLE_IDS[step] || wwHasAnyAssignedRole(ww, WW_STEP_ROLE_IDS[step]));
+    if (ww.phase === 'night') return (ww.number === 1 ? WW_NIGHT_ONE : WW_NIGHT).filter(step => (step !== 'amor' || ww.useCupid !== false) && (!WW_STEP_ROLE_IDS[step] || wwHasAnyAssignedRole(ww, WW_STEP_ROLE_IDS[step])));
     return ['day'];
 }
 function wwStepLabel(step) { return ({ amor: 'Amor: Liebespaar bestimmen', child: 'Kind: Vorbild bestimmen', prostitute: 'Hure wacht auf', barkeeper: 'Barkeeper schützt', werewolves: 'Werwölfe wählen Opfer', witch: 'Hexe entscheidet', seer: 'Seherin prüft', day: 'Es wird Tag' })[step] || step; }
@@ -1520,6 +1523,7 @@ function wwIsLocalHandoffReveal(ww, index) {
 function wwEnsureState() {
     const ww = state.currentGame.werewolf;
     if (!Array.isArray(ww.lovers)) ww.lovers = [];
+    if (typeof ww.useCupid !== 'boolean') ww.useCupid = true;
     if (!ww.nightState) ww.nightState = {};
     for (const key of ['prostituteTargetId', 'barkeeperTargetId', 'previousBarkeeperTargetId', 'wolfTargetId', 'healedTargetId', 'poisonTargetId']) {
         if (!(key in ww.nightState)) ww.nightState[key] = null;
@@ -1536,6 +1540,7 @@ function wwEnsureState() {
 function wwEffectBadges(role, ww) {
     const badges = [];
     if (ww.phase === 'night' && wwIsSleeping(ww, role.playerId)) badges.push('schläft');
+    if (ww.phase === 'night' && String(ww.nightState.barkeeperTargetId) === String(role.playerId)) badges.push('Vom Barkeeper geschützt');
     if (role.effects?.shot) badges.push('Schuss erhalten');
     if (role.effects?.poison) badges.push('Gifttrank erhalten');
     if (role.effects?.heal) badges.push('Heiltrank erhalten');
@@ -1598,6 +1603,22 @@ function wwRoleStatus(role, ww) {
     if (role.roleId === 'child' && role.resources.transformed) notes.push('zum Werwolf geworden');
     return notes.length ? ` · ${notes.join(' · ')}` : '';
 }
+function wwDayPlan(ww, accusationId = null, hunterShotId = null) {
+    return planWerewolfDayDeaths({ roles: ww.roles, lovers: ww.lovers, nightDeathIds: wwPendingDayDeathIds(ww), accusationId, hunterShotId });
+}
+function wwDayTargetOptions(playerIds) {
+    return playerIds.map(playerId => `<option value="${playerId}">${escapeHtml(wwPlayerName(playerId))}</option>`).join('');
+}
+function wwRenderHunterField(contentBox, ww) {
+    const accusationId = contentBox.querySelector('#wwAccusationTarget')?.value;
+    const currentShotTarget = contentBox.querySelector('#wwHunterTarget')?.value;
+    const plan = wwDayPlan(ww, accusationId, currentShotTarget);
+    const field = contentBox.querySelector('#wwHunterField');
+    if (!field) return;
+    field.innerHTML = plan.hunterId == null ? '' : `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwDayTargetOptions(plan.hunterTargetIds)}</select></label>`;
+    const hunterTarget = field.querySelector('#wwHunterTarget');
+    if (hunterTarget && plan.hunterShotId != null) hunterTarget.value = String(plan.hunterShotId);
+}
 function wwActionPanel(ww, step) {
     const actorIds = wwStepActorIds(ww, step);
     const sleepingNotice = wwSleepingStepNotice(ww, step);
@@ -1607,9 +1628,8 @@ function wwActionPanel(ww, step) {
     if (step === 'witch') { const witch = ww.roles.find(role => role.roleId === 'witch' && role.alive && !wwIsSleeping(ww, role.playerId)), target = ww.nightState.wolfTargetId, victim = target ? escapeHtml(wwPlayerName(target)) : 'kein Wolfsopfer', canHeal = witch?.resources.heal && wwRole(target)?.alive; return `${sleepingNotice}<div class="ww-witch-heal-action"><p>Wolfsopfer: <strong>${victim}</strong></p><button type="button" ${canHeal ? '' : 'disabled'} data-ww-step-action="heal">Heiltrank verwenden</button></div><div class="ww-witch-poison-action"><label>Giftziel<select id="wwTarget">${options}</select></label><button type="button" ${witch?.resources.poison ? '' : 'disabled'} class="secondary" data-ww-step-action="poison">Gift verwenden</button></div>`; }
     if (step === 'seer') return `${sleepingNotice}<label>Person prüfen<select id="wwTarget">${options}</select></label>`;
     if (step === 'day') {
-        const pendingIds = wwPendingDayDeathIds(ww);
-        const hunter = ww.roles.find(role => role.roleId === 'hunter' && role.alive && pendingIds.some(id => String(id) === String(role.playerId)));
-        return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p>${hunter ? `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwTargetOptions([hunter.playerId])}</select></label>` : ''}`;
+        const plan = wwDayPlan(ww);
+        return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p><label>Tod durch Anklage<select id="wwAccusationTarget"><option value="">Niemand</option>${wwDayTargetOptions(plan.accusationTargetIds)}</select></label><div id="wwHunterField">${plan.hunterId == null ? '' : `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwDayTargetOptions(plan.hunterTargetIds)}</select></label>`}</div>`;
     }
     return `${sleepingNotice}<label>Ziel / Ergebnis<select id="wwTarget">${options}</select></label>`;
 }
@@ -1640,6 +1660,7 @@ function bindWerewolfGameActions(contentBox) {
         advance: wwAdvance
     };
     contentBox.querySelectorAll('[data-ww-step-action]').forEach(button => button.addEventListener('click', actions[button.dataset.wwStepAction]));
+    contentBox.querySelector('#wwAccusationTarget')?.addEventListener('change', () => wwRenderHunterField(contentBox, wwEnsureState()));
     contentBox.querySelector('[data-ww-assignment]')?.addEventListener('click', wwOpenAssignment);
     contentBox.querySelectorAll('[data-ww-life]').forEach(button => button.addEventListener('click', () => wwToggleLife(button.dataset.wwLife)));
 }
@@ -1735,11 +1756,12 @@ async function wwConfirmToggleLife(playerId) {
     await saveWerewolf();
 }
 async function wwResolveDay() {
-    const ww = wwEnsureState(), pendingIds = wwPendingDayDeathIds(ww), summary = wwDeathSummary(ww), hunter = ww.roles.find(role => role.roleId === 'hunter' && role.alive && pendingIds.some(id => String(id) === String(role.playerId))), shotTarget = document.getElementById('wwHunterTarget')?.value;
-    const deathIds = [...pendingIds];
-    if (hunter && shotTarget) { const shotRole = wwRole(shotTarget); if (!wwTargetIsValid(ww, shotTarget, [hunter.playerId]) || !shotRole) return wwShowMessage('Jäger', 'Bitte ein gültiges Ziel oder „Kein Schuss“ wählen.'); shotRole.effects.shot = { night: ww.number }; deathIds.push(Number(shotTarget)); }
-    wwApplyDeaths(ww, deathIds, { phase: 'night', number: ww.number });
-    wwEvent(`Es wird Tag: ${summary}${hunter && shotTarget ? ` Jägerschuss auf ${wwPlayerName(shotTarget)}.` : ''}`);
+    const ww = wwEnsureState(), summary = wwDeathSummary(ww), accusationTarget = document.getElementById('wwAccusationTarget')?.value, shotTarget = document.getElementById('wwHunterTarget')?.value, plan = wwDayPlan(ww, accusationTarget, shotTarget);
+    if (accusationTarget && plan.accusationId == null) return wwShowMessage('Anklage', 'Bitte eine lebende Person wählen, die nicht bereits sicher stirbt.');
+    if (shotTarget && plan.hunterShotId == null) return wwShowMessage('Jäger', 'Bitte ein gültiges Ziel oder „Kein Schuss“ wählen.');
+    if (plan.hunterShotId != null) wwRole(plan.hunterShotId).effects.shot = { night: ww.number };
+    wwApplyDeaths(ww, plan.deathIds, { phase: 'day', number: ww.number });
+    wwEvent(`Es wird Tag: ${summary}${plan.accusationId != null ? ` Anklage gegen ${wwPlayerName(plan.accusationId)}.` : ' Keine Anklage.'}${plan.hunterShotId != null ? ` Jägerschuss auf ${wwPlayerName(plan.hunterShotId)}.` : ''}`);
     ww.nightState.previousBarkeeperTargetId = ww.nightState.barkeeperTargetId;
     ww.phase = 'night'; ww.number += 1;
     for (const key of ['prostituteTargetId', 'barkeeperTargetId', 'wolfTargetId', 'healedTargetId', 'poisonTargetId']) ww.nightState[key] = null;

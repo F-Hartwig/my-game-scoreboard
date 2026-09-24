@@ -70,7 +70,7 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
   assert.match(indexSource, /style\.css\?v=werwolf-flow-7/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-11/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-12/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -79,7 +79,7 @@ test('Werwolf client keeps configured living night-role steps and persistent mod
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   assert.match(source, /function wwHasAssignedRole\(ww, roleId\)/);
   assert.match(source, /const WW_STEP_ROLE_IDS = \{ child: \['child'\], prostitute: \['prostitute'\], barkeeper: \['barkeeper'\], werewolves: \['werewolf'\], witch: \['witch'\], seer: \['seer'\] \}/);
-  assert.match(source, /function wwSteps\(ww\) \{[\s\S]*?\(ww\.number === 1 \? WW_NIGHT_ONE : WW_NIGHT\)\.filter\(step => !WW_STEP_ROLE_IDS\[step\] \|\| wwHasAnyAssignedRole\(ww, WW_STEP_ROLE_IDS\[step\]\)\)/);
+  assert.match(source, /function wwSteps\(ww\) \{[\s\S]*?step !== 'amor' \|\| ww\.useCupid !== false/);
   assert.match(source, /previousBarkeeperTargetId/);
   assert.match(source, /childModelPlayerId/);
   assert.match(source, /ww\.lovers = \[Number\(target\), Number\(target2\)\]/);
@@ -98,7 +98,21 @@ test('Werwolf applies lover deaths to every death source including hunter shots 
   assert.deepEqual(deathIdsWithLovers({ lovers: [2, 3] }, [4]), [4]);
   assert.match(source, /function wwApplyDeaths\(ww, playerIds, death\)/);
   assert.match(source, /wwApplyDeaths\(ww, \[playerId\], \{ phase: ww\.phase, number: ww\.number \}\)/);
-  assert.match(source, /deathIds\.push\(Number\(shotTarget\)\)[\s\S]*?wwApplyDeaths\(ww, deathIds, \{ phase: 'night', number: ww\.number \}\)/);
+  assert.match(source, /import \{ planWerewolfDayDeaths \} from '\.\/werwolf-day-resolution\.mjs';/);
+  assert.match(source, /wwApplyDeaths\(ww, plan\.deathIds, \{ phase: 'day', number: ww\.number \}\)/);
+});
+
+test('Werwolf day UI offers one optional accusation, refreshes the hunter field locally, and keeps Amor compatible', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /Vom Barkeeper geschützt/);
+  assert.match(source, /ww\.phase === 'night' && String\(ww\.nightState\.barkeeperTargetId\) === String\(role\.playerId\)/);
+  assert.match(source, /Tod durch Anklage<select id="wwAccusationTarget"><option value="">Niemand<\/option>/);
+  assert.match(source, /function wwRenderHunterField\(contentBox, ww\)/);
+  assert.match(source, /#wwAccusationTarget'\)\?\.addEventListener\('change', \(\) => wwRenderHunterField/);
+  assert.match(source, /if \(typeof ww\.useCupid !== 'boolean'\) ww\.useCupid = true/);
+  assert.match(source, /step !== 'amor' \|\| ww\.useCupid !== false/);
+  assert.match(source, /Anklage gegen \$\{wwPlayerName\(plan\.accusationId\)\}/);
 });
 
 test('Werwolf removes a stale child step when no child is assigned', async () => {
@@ -208,7 +222,7 @@ test('Werwolf separates handoff from moderation, resolves one day step, and uses
   assert.doesNotMatch(source, /Seherin[^\n]*WW_ROLE_NAMES\[role\.roleId\]/);
   assert.match(source, /role\.effects\.heal = \{ night: ww\.number \}/);
   assert.match(source, /role\.effects\.poison = \{ night: ww\.number \}/);
-  assert.match(source, /shotRole\.effects\.shot = \{ night: ww\.number \}/);
+  assert.match(source, /plan\.hunterShotId != null\) wwRole\(plan\.hunterShotId\)\.effects\.shot = \{ night: ww\.number \}/);
   assert.match(styleSource, /\.ww-effect-badge/);
   assert.doesNotMatch(werewolfFlow, /\b(?:window\.)?(?:alert|confirm)\s*\(/);
 });
