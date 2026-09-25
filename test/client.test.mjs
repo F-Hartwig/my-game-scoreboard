@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-8/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-14/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-9/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-15/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -123,7 +123,7 @@ test('Werwolf removes a stale child step when no child is assigned', async () =>
 
 test('Werwolf target controls exclude the known actor except barkeeper and witch, while sleeping roles keep a confirmable step', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
-  assert.match(source, /function wwTargetOptions\(actorIds = \[\], allowSelf = false\)/);
+  assert.match(source, /function wwTargetOptions\(actorIds = \[\], allowSelf = false, selectedId = null\)/);
   assert.match(source, /function wwStepAllowsSelf\(step\) \{ return \['barkeeper', 'witch'\]\.includes\(step\); \}/);
   assert.match(source, /allowSelf \|\| !actorIds\.some\(actorId => String\(actorId\) === String\(role\.playerId\)\)/);
   assert.match(source, /function wwIsSleeping\(ww, playerId\) \{ return ww\.phase === 'night' && ww\.nightState\.prostituteTargetId != null && String\(ww\.nightState\.prostituteTargetId\) === String\(playerId\); \}/);
@@ -254,6 +254,16 @@ test('Werwolf preserves a game-and-day-bound accusation draft and resolves only 
   assert.match(source, /function wwResolveDay\(\)[\s\S]*?if \(!wwDayAccusationIsConfirmed\(ww\) \|\| wwDayDraftDiffersFromConfirmation\(ww\)\) return wwShowMessage\('Anklage bestätigen'/);
   assert.match(source, /wwDayPlan\(ww, ww\.dayState\.accusationTargetId, shotTarget\)/);
   assert.match(source, /ww\.dayState = \{ number: null, accusationTargetId: null, accusationConfirmed: false \};/);
+});
+
+test('Werwolf starts the day with persisted night deaths, retains a poison selection, and applies a confirmed accusation once', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+
+  assert.match(source, /function wwStartDay\(\)[\s\S]*?const deathIds = wwPendingDayDeathIds\(ww\);[\s\S]*?wwApplyDeaths\(ww, deathIds, \{ phase: 'night', number: ww\.number \}\)[\s\S]*?ww\.phase = 'day'; ww\.step = 'day'/);
+  assert.match(source, /ww\.nightState\.poisonTargetId = Number\(target\);[\s\S]*?role\.effects\.poison = \{ night: ww\.number \}/);
+  assert.match(source, /<select id="wwTarget">\$\{wwTargetOptions\(actorIds, wwStepAllowsSelf\(step\), ww\.nightState\.poisonTargetId\)\}<\/select>/);
+  assert.match(source, /function wwConfirmDayAccusation\(\)[\s\S]*?wwApplyDeaths\(ww, plan\.deathIds, \{ phase: 'day', number: ww\.number \}\)/);
+  assert.match(source, /function wwResolveDay\(\)[\s\S]*?ww\.dayState\.accusationTargetId/);
 });
 
 test('Werwolf mayor selection is modal-only, excludes the game master, and renders exactly one crown', async () => {

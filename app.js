@@ -1500,8 +1500,8 @@ function wwAwakeningTitle(ww, step) {
     const roleNames = ww.roles.filter(role => wwIsActiveRole(role) && role.alive && WW_STEP_ROLE_IDS[step]?.includes(role.roleId)).map(role => `${escapeHtml(wwPlayerName(role.playerId))}${wwIsSleeping(ww, role.playerId) ? ' – schläft' : ''}`);
     return roleNames.length ? `${title} (${roleNames.join(', ')})` : title;
 }
-function wwTargetOptions(actorIds = [], allowSelf = false) {
-    return state.currentGame.werewolf.roles.filter(role => wwIsActiveRole(role) && role.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(role.playerId)))).map(role => `<option value="${role.playerId}">${escapeHtml(wwPlayerName(role.playerId))}</option>`).join('');
+function wwTargetOptions(actorIds = [], allowSelf = false, selectedId = null) {
+    return state.currentGame.werewolf.roles.filter(role => wwIsActiveRole(role) && role.alive && (allowSelf || !actorIds.some(actorId => String(actorId) === String(role.playerId)))).map(role => `<option value="${role.playerId}"${String(role.playerId) === String(selectedId) ? ' selected' : ''}>${escapeHtml(wwPlayerName(role.playerId))}</option>`).join('');
 }
 function wwTargetIsValid(ww, target, actorIds = [], allowSelf = false) {
     const role = wwRole(target);
@@ -1653,15 +1653,14 @@ function wwActionPanel(ww, step) {
     const actorIds = wwStepActorIds(ww, step);
     const sleepingNotice = wwSleepingStepNotice(ww, step);
     if (sleepingNotice && actorIds.length === 0) return sleepingNotice;
-    const options = wwTargetOptions(actorIds, wwStepAllowsSelf(step));
+    const options = wwTargetOptions(actorIds, wwStepAllowsSelf(step), step === 'witch' ? ww.nightState.poisonTargetId : null);
     if (step === 'amor') return `<div class="ww-field-group"><label>Erste verliebte Person<select id="wwTarget">${wwTargetOptions()}</select></label><label>Zweite verliebte Person<select id="wwTarget2">${wwTargetOptions()}</select></label></div>`;
-    if (step === 'witch') { const witch = ww.roles.find(role => role.roleId === 'witch' && role.alive && !wwIsSleeping(ww, role.playerId)), target = ww.nightState.wolfTargetId, victim = target ? escapeHtml(wwPlayerName(target)) : 'kein Wolfsopfer', canHeal = witch?.resources.heal && wwRole(target)?.alive; return `${sleepingNotice}<div class="ww-witch-heal-action"><p>Wolfsopfer: <strong>${victim}</strong></p><button type="button" ${canHeal ? '' : 'disabled'} data-ww-step-action="heal">Heiltrank verwenden</button></div><div class="ww-witch-poison-action"><label>Giftziel<select id="wwTarget">${options}</select></label><button type="button" ${witch?.resources.poison ? '' : 'disabled'} class="secondary" data-ww-step-action="poison">Gift verwenden</button></div>`; }
+    if (step === 'witch') { const witch = ww.roles.find(role => role.roleId === 'witch' && role.alive && !wwIsSleeping(ww, role.playerId)), target = ww.nightState.wolfTargetId, victim = target ? escapeHtml(wwPlayerName(target)) : 'kein Wolfsopfer', canHeal = witch?.resources.heal && wwRole(target)?.alive; return `${sleepingNotice}<div class="ww-witch-heal-action"><p>Wolfsopfer: <strong>${victim}</strong></p><button type="button" ${canHeal ? '' : 'disabled'} data-ww-step-action="heal">Heiltrank verwenden</button></div><div class="ww-witch-poison-action"><label>Giftziel<select id="wwTarget">${wwTargetOptions(actorIds, wwStepAllowsSelf(step), ww.nightState.poisonTargetId)}</select></label><button type="button" ${witch?.resources.poison ? '' : 'disabled'} class="secondary" data-ww-step-action="poison">Gift verwenden</button></div>`; }
     if (step === 'seer') return `${sleepingNotice}<label>Person prüfen<select id="wwTarget">${options}</select></label>`;
     if (step === 'day') {
         const draft = wwDayDraft(ww), plan = wwDayPlan(ww, draft.accusationTargetId, draft.hunterShotId);
-        const confirmed = wwDayAccusationIsConfirmed(ww);
-        const confirmation = confirmed ? `<p class="ww-day-confirmation"><strong>Bestätigt:</strong> ${ww.dayState.accusationTargetId == null ? 'Niemand' : escapeHtml(wwPlayerName(ww.dayState.accusationTargetId))}${wwDayDraftDiffersFromConfirmation(ww) ? ' · Änderung noch nicht bestätigt' : ''}</p>` : '<p class="ww-day-confirmation">Noch keine Anklageentscheidung bestätigt.</p>';
-        return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p><label>Tod durch Anklage<select id="wwAccusationTarget"><option value=""${draft.accusationTargetId == null ? ' selected' : ''}>Niemand</option>${wwDayTargetOptions(plan.accusationTargetIds, draft.accusationTargetId)}</select></label><div class="ww-day-action"><button type="button" data-ww-day-action="confirm-accusation">Anklage bestätigen</button>${confirmation}</div><div id="wwHunterField">${plan.hunterId == null ? '' : `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwDayTargetOptions(plan.hunterTargetIds, plan.hunterShotId)}</select></label>`}</div>`;
+        if (wwDayAccusationIsConfirmed(ww)) return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p><div class="ww-day-action"><button type="button" class="secondary game-action-icon" data-ww-day-action="edit-accusation" aria-label="Anklage ändern" title="Anklage ändern">✎</button></div>`;
+        return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p><label>Tod durch Anklage<select id="wwAccusationTarget"><option value=""${draft.accusationTargetId == null ? ' selected' : ''}>Niemand</option>${wwDayTargetOptions(plan.accusationTargetIds, draft.accusationTargetId)}</select></label><div class="ww-day-action"><button type="button" data-ww-day-action="confirm-accusation">Anklage bestätigen</button></div><div id="wwHunterField">${plan.hunterId == null ? '' : `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwDayTargetOptions(plan.hunterTargetIds, plan.hunterShotId)}</select></label>`}</div>`;
     }
     return `${sleepingNotice}<label>Ziel / Ergebnis<select id="wwTarget">${options}</select></label>`;
 }
@@ -1694,6 +1693,7 @@ function bindWerewolfGameActions(contentBox) {
     contentBox.querySelectorAll('[data-ww-step-action]').forEach(button => button.addEventListener('click', actions[button.dataset.wwStepAction]));
     contentBox.querySelector('#wwAccusationTarget')?.addEventListener('change', () => wwRenderHunterField(contentBox, wwEnsureState()));
     contentBox.querySelector('[data-ww-day-action="confirm-accusation"]')?.addEventListener('click', wwConfirmDayAccusation);
+    contentBox.querySelector('[data-ww-day-action="edit-accusation"]')?.addEventListener('click', wwEditDayAccusation);
     contentBox.querySelector('[data-ww-assignment]')?.addEventListener('click', wwOpenAssignment);
     contentBox.querySelector('[data-ww-mayor]')?.addEventListener('click', wwOpenMayor);
     contentBox.querySelectorAll('[data-ww-life]').forEach(button => button.addEventListener('click', () => wwToggleLife(button.dataset.wwLife)));
@@ -1795,18 +1795,26 @@ async function wwConfirmDayAccusation() {
     const draft = wwUpdateLocalDayDraft(ww, { accusationTargetId: accusationTarget ? Number(accusationTarget) : null });
     const plan = wwDayPlan(ww, draft.accusationTargetId, draft.hunterShotId);
     if (accusationTarget && plan.accusationId == null) return wwShowMessage('Anklage', 'Bitte eine lebende Person wählen, die nicht bereits sicher stirbt.');
+    if (plan.hunterShotId != null) wwRole(plan.hunterShotId).effects.shot = { night: ww.number };
+    wwApplyDeaths(ww, plan.deathIds, { phase: 'day', number: ww.number });
     ww.dayState = { number: Number(ww.number), accusationTargetId: accusationTarget ? Number(accusationTarget) : null, accusationConfirmed: true };
     wwEvent(`Anklage bestätigt: ${ww.dayState.accusationTargetId == null ? 'Niemand' : wwPlayerName(ww.dayState.accusationTargetId)}`);
     await saveWerewolf();
+}
+function wwEditDayAccusation() {
+    wwOpenConfirm('Anklage ändern', 'Für eine Korrektur die bereits markierte Person bei Bedarf in der Spielleiterübersicht wiederbeleben und anschließend die neue Anklage bestätigen.', 'Anklage ändern', async () => {
+        const ww = wwEnsureState();
+        wwUpdateLocalDayDraft(ww, { accusationTargetId: ww.dayState.accusationTargetId, hunterShotId: null });
+        ww.dayState = { number: null, accusationTargetId: null, accusationConfirmed: false };
+        await saveWerewolf();
+    });
 }
 async function wwResolveDay() {
     const ww = wwEnsureState(), summary = wwDeathSummary(ww), draft = wwDayDraft(ww);
     if (!wwDayAccusationIsConfirmed(ww) || wwDayDraftDiffersFromConfirmation(ww)) return wwShowMessage('Anklage bestätigen', 'Bitte bestätige die aktuelle Anklageentscheidung, bevor du den Tag abschließt.');
     const shotTarget = document.getElementById('wwHunterTarget')?.value ?? draft.hunterShotId ?? '', plan = wwDayPlan(ww, ww.dayState.accusationTargetId, shotTarget);
     if (shotTarget && plan.hunterShotId == null) return wwShowMessage('Jäger', 'Bitte ein gültiges Ziel oder „Kein Schuss“ wählen.');
-    if (plan.hunterShotId != null) wwRole(plan.hunterShotId).effects.shot = { night: ww.number };
-    wwApplyDeaths(ww, plan.deathIds, { phase: 'day', number: ww.number });
-    wwEvent(`Es wird Tag: ${summary}${plan.accusationId != null ? ` Anklage gegen ${wwPlayerName(plan.accusationId)}.` : ' Keine Anklage.'}${plan.hunterShotId != null ? ` Jägerschuss auf ${wwPlayerName(plan.hunterShotId)}.` : ''}`);
+    wwEvent(`Tag abgeschlossen: ${summary}${plan.accusationId != null ? ` Anklage gegen ${wwPlayerName(plan.accusationId)}.` : ' Keine Anklage.'}${plan.hunterShotId != null ? ` Jägerschuss auf ${wwPlayerName(plan.hunterShotId)}.` : ''}`);
     ww.nightState.previousBarkeeperTargetId = ww.nightState.barkeeperTargetId;
     ww.dayState = { number: null, accusationTargetId: null, accusationConfirmed: false };
     wwClearLocalDayDraft();
@@ -1814,7 +1822,20 @@ async function wwResolveDay() {
     for (const key of ['prostituteTargetId', 'barkeeperTargetId', 'wolfTargetId', 'healedTargetId', 'poisonTargetId']) ww.nightState[key] = null;
     ww.step = wwSteps(ww)[0]; await saveWerewolf();
 }
-async function wwAdvance() { const ww = wwEnsureState(), steps = wwSteps(ww), index = steps.indexOf(ww.step); if (index < steps.length - 1) ww.step = steps[index + 1]; else if (ww.phase === 'night') { ww.phase = 'day'; ww.step = 'day'; } wwEvent(`Weiter: ${wwStepLabel(ww.step)}`); await saveWerewolf(); }
+async function wwStartDay() {
+    const ww = wwEnsureState();
+    const deathIds = wwPendingDayDeathIds(ww);
+    const summary = wwDeathSummary(ww);
+    wwApplyDeaths(ww, deathIds, { phase: 'night', number: ww.number });
+    ww.phase = 'day'; ww.step = 'day';
+    wwEvent(`Es wird Tag: ${summary}`);
+    await saveWerewolf();
+}
+async function wwAdvance() {
+    const ww = wwEnsureState(), steps = wwSteps(ww), index = steps.indexOf(ww.step);
+    if (index < steps.length - 1) { ww.step = steps[index + 1]; wwEvent(`Weiter: ${wwStepLabel(ww.step)}`); return saveWerewolf(); }
+    if (ww.phase === 'night') return wwStartDay();
+}
 function wwOpenMayor() {
     const ww = wwEnsureState(), eligible = ww.roles.filter(role => role.alive && wwIsActiveRole(role));
     if (!eligible.length) return wwShowMessage('Bürgermeister wählen', 'Es gibt keine lebende aktive Person zur Auswahl.');
