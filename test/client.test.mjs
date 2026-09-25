@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-9/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-15/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-16/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-16/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -250,7 +250,7 @@ test('Werwolf preserves a game-and-day-bound accusation draft and resolves only 
   assert.match(source, /function wwIsLocalDayDraft\(ww\)[\s\S]*?wwLocalDayDraft\?\.gameId === String\(state\.currentGame\?\.id\)[\s\S]*?wwLocalDayDraft\?\.number === Number\(ww\.number\)/);
   assert.match(source, /function wwEnsureState\(\)[\s\S]*?if \(!ww\.dayState \|\| typeof ww\.dayState !== 'object'\) ww\.dayState = \{ number: null, accusationTargetId: null, accusationConfirmed: false \};/);
   assert.match(source, /Anklage bestätigen/);
-  assert.match(source, /function wwConfirmDayAccusation\(\)[\s\S]*?ww\.dayState = \{ number: Number\(ww\.number\), accusationTargetId: accusationTarget \? Number\(accusationTarget\) : null, accusationConfirmed: true \}/);
+  assert.match(source, /function wwConfirmDayAccusation\(\)[\s\S]*?ww\.dayState = \{ number: Number\(ww\.number\), accusationTargetId: accusationTarget \? Number\(accusationTarget\) : null, accusationConfirmed: true, nightDeathIds:/);
   assert.match(source, /function wwResolveDay\(\)[\s\S]*?if \(!wwDayAccusationIsConfirmed\(ww\) \|\| wwDayDraftDiffersFromConfirmation\(ww\)\) return wwShowMessage\('Anklage bestätigen'/);
   assert.match(source, /wwDayPlan\(ww, ww\.dayState\.accusationTargetId, shotTarget\)/);
   assert.match(source, /ww\.dayState = \{ number: null, accusationTargetId: null, accusationConfirmed: false \};/);
@@ -260,6 +260,10 @@ test('Werwolf starts the day with persisted night deaths, retains a poison selec
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
 
   assert.match(source, /function wwStartDay\(\)[\s\S]*?const deathIds = wwPendingDayDeathIds\(ww\);[\s\S]*?wwApplyDeaths\(ww, deathIds, \{ phase: 'night', number: ww\.number \}\)[\s\S]*?ww\.phase = 'day'; ww\.step = 'day'/);
+  assert.match(source, /function wwNightDeathIdsForDay\(ww\)[\s\S]*?ww\.phase === 'day'[\s\S]*?ww\.dayState\?\.nightDeathIds/);
+  assert.match(source, /function wwDeathSummary\(ww\)[\s\S]*?wwNightDeathIdsForDay\(ww\)/);
+  assert.match(source, /function wwDayPlan\(ww[\s\S]*?nightDeathIds: wwNightDeathIdsForDay\(ww\)/);
+  assert.match(source, /function wwStartDay\(\)[\s\S]*?ww\.dayState = \{ \.\.\.ww\.dayState, number: Number\(ww\.number\), nightDeathIds: deathIds \}/);
   assert.match(source, /ww\.nightState\.poisonTargetId = Number\(target\);[\s\S]*?role\.effects\.poison = \{ night: ww\.number \}/);
   assert.match(source, /<select id="wwTarget">\$\{wwTargetOptions\(actorIds, wwStepAllowsSelf\(step\), ww\.nightState\.poisonTargetId\)\}<\/select>/);
   assert.match(source, /function wwConfirmDayAccusation\(\)[\s\S]*?wwApplyDeaths\(ww, plan\.deathIds, \{ phase: 'day', number: ww\.number \}\)/);

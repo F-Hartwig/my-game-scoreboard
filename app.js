@@ -1614,8 +1614,12 @@ function wwPendingDayDeathIds(ww) {
     if (ww.nightState.poisonTargetId) pending.push(Number(ww.nightState.poisonTargetId));
     return wwDeathIdsWithLovers(ww, pending).filter(playerId => wwRole(playerId)?.alive);
 }
+function wwNightDeathIdsForDay(ww) {
+    if (ww.phase === 'day' && Array.isArray(ww.dayState?.nightDeathIds)) return ww.dayState.nightDeathIds;
+    return wwPendingDayDeathIds(ww);
+}
 function wwDeathSummary(ww) {
-    const names = wwPendingDayDeathIds(ww).map(wwPlayerName);
+    const names = wwNightDeathIdsForDay(ww).map(wwPlayerName);
     if (!names.length) return 'Niemand ist gestorben.';
     if (names.length === 1) return `${names[0]} ist gestorben.`;
     if (names.length === 2) return `${names[0]} und ${names[1]} sind gestorben.`;
@@ -1632,7 +1636,7 @@ function wwRoleStatus(role, ww) {
     return notes.length ? ` · ${notes.join(' · ')}` : '';
 }
 function wwDayPlan(ww, accusationId = null, hunterShotId = null) {
-    return planWerewolfDayDeaths({ roles: ww.roles, lovers: ww.lovers, nightDeathIds: wwPendingDayDeathIds(ww), accusationId, hunterShotId });
+    return planWerewolfDayDeaths({ roles: ww.roles, lovers: ww.lovers, nightDeathIds: wwNightDeathIdsForDay(ww), accusationId, hunterShotId });
 }
 function wwDayTargetOptions(playerIds, selectedId = null) {
     return playerIds.map(playerId => `<option value="${playerId}"${String(playerId) === String(selectedId) ? ' selected' : ''}>${escapeHtml(wwPlayerName(playerId))}</option>`).join('');
@@ -1797,7 +1801,7 @@ async function wwConfirmDayAccusation() {
     if (accusationTarget && plan.accusationId == null) return wwShowMessage('Anklage', 'Bitte eine lebende Person wählen, die nicht bereits sicher stirbt.');
     if (plan.hunterShotId != null) wwRole(plan.hunterShotId).effects.shot = { night: ww.number };
     wwApplyDeaths(ww, plan.deathIds, { phase: 'day', number: ww.number });
-    ww.dayState = { number: Number(ww.number), accusationTargetId: accusationTarget ? Number(accusationTarget) : null, accusationConfirmed: true };
+    ww.dayState = { number: Number(ww.number), accusationTargetId: accusationTarget ? Number(accusationTarget) : null, accusationConfirmed: true, nightDeathIds: [...(ww.dayState.nightDeathIds || [])] };
     wwEvent(`Anklage bestätigt: ${ww.dayState.accusationTargetId == null ? 'Niemand' : wwPlayerName(ww.dayState.accusationTargetId)}`);
     await saveWerewolf();
 }
@@ -1805,7 +1809,7 @@ function wwEditDayAccusation() {
     wwOpenConfirm('Anklage ändern', 'Für eine Korrektur die bereits markierte Person bei Bedarf in der Spielleiterübersicht wiederbeleben und anschließend die neue Anklage bestätigen.', 'Anklage ändern', async () => {
         const ww = wwEnsureState();
         wwUpdateLocalDayDraft(ww, { accusationTargetId: ww.dayState.accusationTargetId, hunterShotId: null });
-        ww.dayState = { number: null, accusationTargetId: null, accusationConfirmed: false };
+        ww.dayState = { number: null, accusationTargetId: null, accusationConfirmed: false, nightDeathIds: [...(ww.dayState.nightDeathIds || [])] };
         await saveWerewolf();
     });
 }
@@ -1827,6 +1831,7 @@ async function wwStartDay() {
     const deathIds = wwPendingDayDeathIds(ww);
     const summary = wwDeathSummary(ww);
     wwApplyDeaths(ww, deathIds, { phase: 'night', number: ww.number });
+    ww.dayState = { ...ww.dayState, number: Number(ww.number), nightDeathIds: deathIds };
     ww.phase = 'day'; ww.step = 'day';
     wwEvent(`Es wird Tag: ${summary}`);
     await saveWerewolf();
