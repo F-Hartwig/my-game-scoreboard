@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { planWerewolfDayDeaths } from '../werwolf-day-resolution.mjs';
+import { planWerewolfDayDeaths, planWerewolfNightDeaths } from '../werwolf-day-resolution.mjs';
 
 const roles = [
   { playerId: 1, roleId: 'villager', alive: true },
@@ -50,4 +50,51 @@ test('no hunter selector is planned unless the full predicted death set kills th
 
   assert.equal(result.hunterId, null);
   assert.deepEqual(result.hunterTargetIds, []);
+});
+
+const nightRoles = [
+  { playerId: 1, roleId: 'witch', alive: true },
+  { playerId: 2, roleId: 'prostitute', alive: true },
+  { playerId: 3, roleId: 'hunter', alive: true },
+  { playerId: 4, roleId: 'werewolf', alive: true },
+  { playerId: 5, roleId: 'villager', alive: true },
+  { playerId: 6, roleId: 'gamemaster', alive: false }
+];
+
+function nightPlan(overrides = {}) {
+  return planWerewolfNightDeaths({ roles: nightRoles, lovers: [], nightState: {}, ...overrides });
+}
+
+test('a witch killed by wolves kills the visiting prostitute and her hunter lover before day planning', () => {
+  const nightDeathIds = nightPlan({
+    lovers: [2, 3],
+    nightState: { prostituteTargetId: 1, wolfTargetId: 1 }
+  });
+  const dayPlan = plan({
+    roles: nightRoles,
+    lovers: [2, 3],
+    nightDeathIds,
+    hunterShotId: 4
+  });
+
+  assert.deepEqual(nightDeathIds, [1, 2, 3]);
+  assert.equal(dayPlan.hunterId, 3);
+  assert.deepEqual(dayPlan.hunterTargetIds, [4, 5]);
+  assert.deepEqual(dayPlan.deathIds, [1, 2, 3, 4]);
+});
+
+test('a visiting prostitute survives when the wolf victim is healed or protected by the barkeeper', () => {
+  assert.deepEqual(nightPlan({ nightState: { prostituteTargetId: 1, wolfTargetId: 1, healedTargetId: 1 } }), []);
+  assert.deepEqual(nightPlan({ nightState: { prostituteTargetId: 1, wolfTargetId: 1, barkeeperTargetId: 1 } }), []);
+});
+
+test('poisoning the visited person kills the visiting prostitute', () => {
+  assert.deepEqual(nightPlan({ nightState: { prostituteTargetId: 1, poisonTargetId: 1 } }), [1, 2]);
+});
+
+test('night death closure remains unique when sources and follow-up rules overlap', () => {
+  assert.deepEqual(nightPlan({
+    lovers: [1, 2],
+    nightState: { prostituteTargetId: 1, wolfTargetId: 1, poisonTargetId: 1 }
+  }), [1, 2]);
 });

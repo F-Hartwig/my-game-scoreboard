@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-16/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-16/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-17/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-17/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -98,7 +98,8 @@ test('Werwolf applies lover deaths to every death source including hunter shots 
   assert.deepEqual(deathIdsWithLovers({ lovers: [2, 3] }, [4]), [4]);
   assert.match(source, /function wwApplyDeaths\(ww, playerIds, death\)/);
   assert.match(source, /wwApplyDeaths\(ww, \[playerId\], \{ phase: ww\.phase, number: ww\.number \}\)/);
-  assert.match(source, /import \{ planWerewolfDayDeaths \} from '\.\/werwolf-day-resolution\.mjs';/);
+  assert.match(source, /import \{ planWerewolfDayDeaths, planWerewolfNightDeaths \} from '\.\/werwolf-day-resolution\.mjs';/);
+  assert.match(source, /function wwPendingDayDeathIds\(ww\) \{\s+return planWerewolfNightDeaths\(\{ roles: ww\.roles, lovers: ww\.lovers, nightState: ww\.nightState \}\);\s+\}/);
   assert.match(source, /wwApplyDeaths\(ww, plan\.deathIds, \{ phase: 'day', number: ww\.number \}\)/);
 });
 

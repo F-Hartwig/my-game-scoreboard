@@ -2,6 +2,36 @@ function ids(values = []) {
   return [...new Set(values.map(Number).filter(Number.isFinite))];
 }
 
+export function planWerewolfNightDeaths({ roles = [], lovers = [], nightState = {} } = {}) {
+  const activeLivingIds = roles
+    .filter(role => role.roleId !== 'gamemaster' && role.alive)
+    .map(role => Number(role.playerId));
+  const livingIds = new Set(activeLivingIds);
+  const deathIds = new Set();
+  const addLiving = playerId => {
+    const id = Number(playerId);
+    if (!livingIds.has(id) || deathIds.has(id)) return false;
+    deathIds.add(id);
+    return true;
+  };
+  const wolfTargetId = nightState.wolfTargetId;
+  if (wolfTargetId != null && String(wolfTargetId) !== String(nightState.healedTargetId) && String(wolfTargetId) !== String(nightState.barkeeperTargetId)) addLiving(wolfTargetId);
+  addLiving(nightState.poisonTargetId);
+
+  const loverIds = ids(lovers).filter(playerId => livingIds.has(playerId));
+  const prostitute = roles.find(role => role.roleId === 'prostitute' && role.alive);
+  const prostituteTargetId = Number(nightState.prostituteTargetId);
+  let changed = true;
+  while (changed) {
+    changed = false;
+    if (loverIds.some(playerId => deathIds.has(playerId))) {
+      for (const loverId of loverIds) changed = addLiving(loverId) || changed;
+    }
+    if (Number.isFinite(prostituteTargetId) && deathIds.has(prostituteTargetId) && prostitute) changed = addLiving(prostitute.playerId) || changed;
+  }
+  return [...deathIds];
+}
+
 export function planWerewolfDayDeaths({ roles = [], lovers = [], nightDeathIds = [], accusationId = null, hunterShotId = null } = {}) {
   const activeLivingIds = roles
     .filter(role => role.roleId !== 'gamemaster' && role.alive)

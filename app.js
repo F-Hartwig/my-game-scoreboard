@@ -8,7 +8,7 @@ import { hasScoreEntryDraft } from './score-entry-draft.mjs';
 import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from './personal-stats.mjs';
 import { sortSetupPlayersByLastParticipation } from './setup-player-order.mjs';
 import { bindWerewolfRoleCount, updateWerewolfRoleCount as renderWerewolfRoleCount } from './werwolf-role-count.mjs';
-import { planWerewolfDayDeaths } from './werwolf-day-resolution.mjs';
+import { planWerewolfDayDeaths, planWerewolfNightDeaths } from './werwolf-day-resolution.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 let nextGuestDraftId = -1;
@@ -1608,11 +1608,7 @@ function wwApplyDeaths(ww, playerIds, death) {
     return deathIds;
 }
 function wwPendingDayDeathIds(ww) {
-    const pending = [];
-    const wolfTarget = ww.nightState.wolfTargetId;
-    if (wolfTarget && String(wolfTarget) !== String(ww.nightState.healedTargetId) && String(wolfTarget) !== String(ww.nightState.barkeeperTargetId)) pending.push(Number(wolfTarget));
-    if (ww.nightState.poisonTargetId) pending.push(Number(ww.nightState.poisonTargetId));
-    return wwDeathIdsWithLovers(ww, pending).filter(playerId => wwRole(playerId)?.alive);
+    return planWerewolfNightDeaths({ roles: ww.roles, lovers: ww.lovers, nightState: ww.nightState });
 }
 function wwNightDeathIdsForDay(ww) {
     if (ww.phase === 'day' && Array.isArray(ww.dayState?.nightDeathIds)) return ww.dayState.nightDeathIds;
