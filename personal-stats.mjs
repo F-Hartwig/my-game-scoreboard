@@ -1,5 +1,5 @@
 function playerParty(game, playerId) {
-    return (game?.players || []).find(party => (
+    return (game?.players || []).find(party => party?.self === true || (
         party?.playerIds || [party?.id]
     ).some(id => String(id) === String(playerId)));
 }
