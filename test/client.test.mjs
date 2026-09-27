@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-19/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-19/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-20/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-20/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -346,6 +346,15 @@ test('login offers an unchecked remember-me checkbox and sends its boolean state
   assert.match(source, /name="rememberMe" type="checkbox"/);
   assert.doesNotMatch(source, /name="rememberMe"[^>]*\schecked/);
   assert.match(source, /rememberMe: values\.get\('rememberMe'\) === 'on'/);
+});
+
+test('multi-device Werewolf read-only views expose a local return to overview action', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const playerView = source.slice(source.indexOf('function renderMultiDeviceWerewolfPlayer'), source.indexOf('function renderMultiDeviceWerewolfWaiting'));
+  const waitingView = source.slice(source.indexOf('function renderMultiDeviceWerewolfWaiting'), source.indexOf('function renderWerewolfGame'));
+
+  assert.match(playerView, /aria-label="Zur Übersicht"[\s\S]*?onclick="pauseCurrentGame\(\)"/);
+  assert.match(waitingView, /aria-label="Zur Übersicht"[\s\S]*?onclick="pauseCurrentGame\(\)"/);
 });
 
 test('multi-device Werewolf setup and read-only player views have dedicated safe UI paths', async () => {
