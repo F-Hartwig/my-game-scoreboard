@@ -52,6 +52,31 @@ function participantIdsForGame(game) {
     return (game?.players || []).flatMap(party => party?.playerIds || [party?.id]).map(String);
 }
 
+function isMultiDeviceWerewolf(game) {
+    return game?.gameTypeId === 'werwolf' && game?.werewolf?.multiDevice === true;
+}
+
+function isMultiDeviceOwner(req, game) {
+    return isMultiDeviceWerewolf(game) && Number(game.werewolf.ownerUserId) === Number(req.auth?.user?.id);
+}
+
+function redactMultiDeviceWerewolf(game, user) {
+    if (!isMultiDeviceWerewolf(game) || Number(game.werewolf.ownerUserId) === Number(user?.id)) return game;
+    const ownRole = game.werewolf.roles?.find(role => role.roleId !== 'gamemaster' && String(role.playerId) === String(user?.playerId));
+    const roles = (game.werewolf.roles || [])
+        .filter(role => role.roleId !== 'gamemaster')
+        .map(role => role === ownRole
+            ? { roleId: role.roleId, alive: Boolean(role.alive), self: true, name: game.players?.find(player => String(player.id) === String(role.playerId))?.name || 'Du' }
+            : { roleId: role.roleId, alive: Boolean(role.alive) });
+    return {
+        ...game,
+        players: [],
+        werewolf: ownRole
+            ? { version: 1, multiDevice: true, access: 'player', phase: game.werewolf.phase, number: game.werewolf.number, roles }
+            : { version: 1, multiDevice: true, access: 'waiting', phase: game.werewolf.phase, number: game.werewolf.number, roles: [] }
+    };
+}
+
 function migrateDatabase(db) {
     db.pragma('busy_timeout = 5000');
     db.pragma('journal_mode = WAL');
@@ -408,12 +433,38 @@ async function createRuntime(options = {}) {
     };
     const gameIdMatches = (game, id) => String(game?.id) === String(id);
     const saveActiveGames = active => saveState.run('activeGames', JSON.stringify(active));
+    const requireMultiDeviceOwner = (req, game) => {
+        if (isMultiDeviceWerewolf(game) && !isMultiDeviceOwner(req, game)) {
+            throw Object.assign(new Error('Nur die Spielleitung darf diese Mehrgeräte-Partie ändern.'), { status: 403 });
+        }
+    };
+    const assertImmutableMultiDeviceFields = (before, next) => {
+        if (!isMultiDeviceWerewolf(before)) return;
+        if (next?.werewolf?.multiDevice !== true || Number(next.werewolf.ownerUserId) !== Number(before.werewolf.ownerUserId)) {
+            throw Object.assign(new Error('Mehrgeräte-Modus und Spielleitungseigentümer sind unveränderbar.'), { status: 400 });
+        }
+    };
+    const assertBulkActiveGamesSafe = (req, next) => {
+        if (!Array.isArray(next)) return;
+        const current = readActiveGames();
+        for (const game of current.filter(isMultiDeviceWerewolf)) {
+            requireMultiDeviceOwner(req, game);
+            const replacement = next.find(item => gameIdMatches(item, game.id));
+            if (JSON.stringify(replacement) !== JSON.stringify(game)) {
+                throw Object.assign(new Error('Mehrgeräte-Partien dürfen nur über ihren geschützten Einzelspiel-Endpunkt gespeichert werden.'), { status: 400 });
+            }
+        }
+        if (next.some(isMultiDeviceWerewolf)) {
+            throw Object.assign(new Error('Mehrgeräte-Partien werden ausschließlich über den geschützten Einzelspiel-Endpunkt angelegt.'), { status: 400 });
+        }
+    };
     const collaboration = createCollaboration({
         db,
         auth,
         readActiveGames,
         saveActiveGames,
-        now: options.now || Date.now
+        now: options.now || Date.now,
+        canCollaborate: (req, game) => !isMultiDeviceWerewolf(game) || isMultiDeviceOwner(req, game)
     });
     collaboration.installRoutes(app);
 
@@ -444,6 +495,11 @@ async function createRuntime(options = {}) {
         try {
             const create = db.transaction(() => {
                 const game = materializeGuestDrafts(req.body);
+                if (isMultiDeviceWerewolf(game)) {
+                    game.werewolf.ownerUserId = req.auth.user.id;
+                    game.werewolf.view = 'moderator';
+                    game.werewolf.handoffIndex = game.werewolf.roles.filter(role => role.roleId !== 'gamemaster').length;
+                }
                 validatePayload('currentGame', game);
                 validateWerewolfGame(game);
                 validateGameParticipants(game);
@@ -461,6 +517,8 @@ async function createRuntime(options = {}) {
 
     app.put('/api/active-games/:id', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
+            const beforeForAuthorization = readActiveGames().find(game => gameIdMatches(game, req.params.id));
+            if (beforeForAuthorization) requireMultiDeviceOwner(req, beforeForAuthorization);
             validatePayload('currentGame', req.body);
             validateWerewolfGame(req.body);
             validateGameParticipants(req.body);
@@ -470,6 +528,8 @@ async function createRuntime(options = {}) {
                 const index = active.findIndex(game => gameIdMatches(game, req.params.id));
                 if (index < 0) throw Object.assign(new Error('Spiel nicht gefunden.'), { status: 404 });
                 const before = active[index];
+                requireMultiDeviceOwner(req, before);
+                assertImmutableMultiDeviceFields(before, req.body);
                 active[index] = req.body;
                 saveActiveGames(active);
                 if (JSON.stringify(gameActivitySnapshot(before)) !== JSON.stringify(gameActivitySnapshot(req.body))) {
@@ -487,6 +547,7 @@ async function createRuntime(options = {}) {
                 const active = readActiveGames();
                 const game = active.find(item => gameIdMatches(item, req.params.id));
                 if (!game) throw Object.assign(new Error('Spiel nicht gefunden.'), { status: 404 });
+                requireMultiDeviceOwner(req, game);
                 saveActiveGames(active.filter(item => !gameIdMatches(item, req.params.id)));
                 collaboration.recordDeleted(req, game);
             });
@@ -497,13 +558,18 @@ async function createRuntime(options = {}) {
 
     app.post('/api/active-games/:id/finish', auth.requireAuth, auth.requireCsrf, (req, res) => {
         try {
+            const beforeForAuthorization = readActiveGames().find(game => gameIdMatches(game, req.params.id));
+            if (beforeForAuthorization) requireMultiDeviceOwner(req, beforeForAuthorization);
             validatePayload('currentGame', req.body);
             validateWerewolfGame(req.body);
             validateGameParticipants(req.body);
             if (!gameIdMatches(req.body, req.params.id)) return res.status(400).json({ error: 'Spiel-ID stimmt nicht überein.' });
             const finish = db.transaction(() => {
                 const active = readActiveGames();
-                if (!active.some(game => gameIdMatches(game, req.params.id))) throw new Error('Spiel nicht gefunden.');
+                const activeGame = active.find(game => gameIdMatches(game, req.params.id));
+                if (!activeGame) throw new Error('Spiel nicht gefunden.');
+                requireMultiDeviceOwner(req, activeGame);
+                assertImmutableMultiDeviceFields(activeGame, req.body);
                 const gamesRow = readState.get('games');
                 const playersRow = readState.get('players');
                 const games = gamesRow ? JSON.parse(gamesRow.json_data) : [];
@@ -537,7 +603,7 @@ async function createRuntime(options = {}) {
             });
             return res.json(finish.immediate());
         } catch (error) {
-            const status = error.message === 'Spiel nicht gefunden.' ? 404 : 400;
+            const status = error.status || (error.message === 'Spiel nicht gefunden.' ? 404 : 400);
             return res.status(status).json({ error: error.message });
         }
     });
@@ -550,9 +616,11 @@ async function createRuntime(options = {}) {
                 if (!row) return res.json(config.empty);
                 try {
                     const payload = JSON.parse(row.json_data);
-                    return res.json(req.query.preview === '1' && endpoint === 'activeGames' && Array.isArray(payload)
-                        ? payload.filter(game => game?.gameTypeId !== 'werwolf')
-                        : payload);
+                    if (endpoint === 'activeGames' && Array.isArray(payload)) {
+                        if (req.query.preview === '1') return res.json(payload.filter(game => game?.gameTypeId !== 'werwolf'));
+                        return res.json(payload.map(game => redactMultiDeviceWerewolf(game, req.auth.user)));
+                    }
+                    return res.json(payload);
                 }
                 catch { return res.status(500).json({ error: `Gespeicherte Daten für ${endpoint} sind beschädigt.` }); }
             } catch { return res.status(500).json({ error: 'Datenbankfehler.' }); }
@@ -562,6 +630,7 @@ async function createRuntime(options = {}) {
             const payload = endpoint === 'currentGame' && req.body && !Array.isArray(req.body) && Object.keys(req.body).length === 0 ? null : req.body;
             try {
                 validatePayload(endpoint, payload);
+                if (endpoint === 'activeGames') assertBulkActiveGamesSafe(req, payload);
                 if (req.auth.user.role !== 'admin' && config.userStatsOnly) {
                     const current = readState.get(endpoint);
                     validateUserPlayerStatsUpdate(current ? JSON.parse(current.json_data) : [], payload);
@@ -595,7 +664,7 @@ async function createRuntime(options = {}) {
                 }
                 return res.json({ success: true });
             } catch (error) {
-                if (error.message && !/SQLITE/.test(error.message)) return res.status(400).json({ error: error.message });
+                if (error.message && !/SQLITE/.test(error.message)) return res.status(error.status || 400).json({ error: error.message });
                 return res.status(500).json({ error: 'Datenbankfehler.' });
             }
         });

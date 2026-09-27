@@ -3269,11 +3269,18 @@ body.focus-mode #gameContent:has(.scoreboard-card) { gap: 16px; }
 .ww-step-footer button:last-child { grid-column: 1 / -1; }
 @media (max-width: 540px) { .werwolf-role-grid, .ww-step-footer { grid-template-columns: 1fr; } .ww-step-footer button:last-child { grid-column: auto; } }
 .ww-player { display: grid; grid-template-columns: 1fr auto; gap: 3px 10px; align-items: center; padding: 10px; background: var(--surface-soft); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
-.ww-player span { color: var(--muted); font-size: 12px; } .ww-player button { grid-column: 2; grid-row: 1 / 3; width: auto; } .ww-player.dead { opacity: .58; }
+.ww-player > strong { min-width: 0; overflow-wrap: anywhere; } .ww-player span { color: var(--muted); font-size: 12px; overflow-wrap: anywhere; } .ww-player button { grid-column: 2; grid-row: 1 / 3; width: auto; } .ww-player.dead { opacity: .58; }
 .ww-effect-list { grid-column: 1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
 .ww-effect-badge { padding: 4px 8px; color: var(--text) !important; background: var(--warning-light); border: 1px solid color-mix(in srgb, var(--warning) 34%, transparent); border-radius: 999px; font-size: 10px !important; font-weight: 760; }
 .ww-day-summary { padding: 14px; color: var(--text); background: var(--surface-soft); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); }
 .ww-events { color: var(--muted); font-size: 13px; } .ww-events > div { padding: 7px 0; border-bottom: 1px solid var(--border-strong); }
+.ww-readonly-card { display: grid; gap: 14px; overflow: hidden; }
+.ww-personal-role { display: grid; gap: 7px; padding: 16px; color: var(--text); background: linear-gradient(145deg, var(--primary-light), var(--surface-soft)); border: 1px solid var(--border-strong); border-radius: var(--radius-md); }
+.ww-personal-role > span, .ww-waiting-state { color: var(--primary); font-size: 11px; font-weight: 850; letter-spacing: .6px; text-transform: uppercase; }
+.ww-personal-role strong { overflow-wrap: anywhere; }
+.ww-personal-role small { color: var(--muted); }
+.ww-readonly-roster { display: grid; gap: 8px; min-width: 0; }
+.ww-waiting-state { display: inline-flex; width: fit-content; padding: 7px 9px; background: var(--surface-soft); border: 1px solid var(--border-strong); border-radius: 999px; }
 .ww-sleep-notice { margin: 0; padding: 12px; color: var(--text); background: var(--warning-light); border: 1px solid color-mix(in srgb, var(--warning) 38%, transparent); border-radius: var(--radius-sm); }
 .ww-handoff-modal { width: min(100%, 560px); min-height: min(100%, 680px); max-height: none; overflow: hidden; display: grid; grid-template-rows: auto 1fr auto; padding: clamp(24px, 6vh, 56px) clamp(20px, 7vw, 48px); text-align: center; }
 .ww-handoff-modal #modalBody { min-height: 0; display: grid; place-items: center; }

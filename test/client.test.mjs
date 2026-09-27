@@ -347,3 +347,16 @@ test('login offers an unchecked remember-me checkbox and sends its boolean state
   assert.doesNotMatch(source, /name="rememberMe"[^>]*\schecked/);
   assert.match(source, /rememberMe: values\.get\('rememberMe'\) === 'on'/);
 });
+
+test('multi-device Werewolf setup and read-only player views have dedicated safe UI paths', async () => {
+  const appSource = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const styleSource = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+  assert.match(appSource, /id="wwMultiDevice" type="checkbox"/);
+  assert.match(appSource, /multiDevice: Boolean\(document\.getElementById\('wwMultiDevice'\)\?\.checked\)/);
+  assert.match(appSource, /function renderMultiDeviceWerewolfPlayer\(ww\)/);
+  assert.match(appSource, /function renderMultiDeviceWerewolfWaiting\(ww\)/);
+  assert.match(appSource, /ww\?\.multiDevice && ww\.access === 'player'/);
+  assert.match(appSource, /ww\?\.multiDevice && ww\.access === 'waiting'/);
+  assert.match(styleSource, /\.ww-personal-role/);
+  assert.match(styleSource, /\.ww-readonly-roster/);
+});

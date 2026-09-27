@@ -50,7 +50,7 @@ function summarizeUpdate(before, after) {
     return 'Spielstand aktualisiert';
 }
 
-function createCollaboration({ db, auth, readActiveGames, saveActiveGames, now = Date.now }) {
+function createCollaboration({ db, auth, readActiveGames, saveActiveGames, now = Date.now, canCollaborate = () => true }) {
     const presence = new Map();
     const insertActivity = db.prepare(`INSERT INTO activity_log
         (game_id, user_id, username, action, summary, before_json, after_json, created_at)
@@ -106,6 +106,8 @@ function createCollaboration({ db, auth, readActiveGames, saveActiveGames, now =
             if (gameId && !readActiveGames().some(game => sameId(game.id, gameId))) {
                 return res.status(404).json({ error: 'Spiel nicht gefunden.' });
             }
+            const game = gameId && readActiveGames().find(item => sameId(item.id, gameId));
+            if (game && !canCollaborate(req, game)) return res.status(403).json({ error: 'Für diese Partie ist keine Zusammenarbeit verfügbar.' });
             const page = ['home', 'game', 'stats'].includes(req.body?.page) ? req.body.page : 'home';
             presence.set(req.auth.sessionHash, {
                 userId: req.auth.user.id,
@@ -122,6 +124,8 @@ function createCollaboration({ db, auth, readActiveGames, saveActiveGames, now =
         app.get('/api/presence', auth.requireAuth, (req, res) => {
             cleanupPresence();
             const gameId = req.query.gameId === undefined || req.query.gameId === '' ? null : String(req.query.gameId);
+            const game = gameId && readActiveGames().find(item => sameId(item.id, gameId));
+            if (game && !canCollaborate(req, game)) return res.status(403).json({ error: 'Für diese Partie ist keine Zusammenarbeit verfügbar.' });
             const entries = [...presence.entries()]
                 .filter(([, entry]) => gameId === null ? entry.gameId === null : entry.gameId === gameId)
                 .map(([sessionHash, entry]) => ({ ...entry, self: sessionHash === req.auth.sessionHash }))
@@ -131,6 +135,7 @@ function createCollaboration({ db, auth, readActiveGames, saveActiveGames, now =
 
         app.get('/api/active-games/:id/activity', auth.requireAuth, (req, res) => {
             const activeGame = readActiveGames().find(game => sameId(game.id, req.params.id));
+            if (activeGame && !canCollaborate(req, activeGame)) return res.status(403).json({ error: 'Für diese Partie ist keine Aktivität verfügbar.' });
             const activeSnapshot = activeGame ? JSON.stringify(activeGame) : null;
             const rows = readActivity.all(String(req.params.id), ACTIVITY_LIMIT);
             return res.set('Cache-Control', 'no-store').json(rows.map((row, index) => ({
@@ -160,6 +165,7 @@ function createCollaboration({ db, auth, readActiveGames, saveActiveGames, now =
                     if (index < 0 || JSON.stringify(active[index]) !== event.after_json) {
                         throw Object.assign(new Error('Der Spielstand wurde inzwischen weiter verändert.'), { status: 409 });
                     }
+                    if (!canCollaborate(req, active[index])) throw Object.assign(new Error('Nur die Spielleitung darf diese Mehrgeräte-Partie ändern.'), { status: 403 });
                     const previous = JSON.parse(event.before_json);
                     active[index] = previous;
                     saveActiveGames(active);

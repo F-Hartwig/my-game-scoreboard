@@ -487,3 +487,52 @@ test('each account manages an independent player favorite list', async t => {
     assert.equal((await admin.post('/api/players', storedPlayers.filter(player => player.id !== 102))).response.status, 200);
     assert.deepEqual((await alice.request('/api/favorites')).data, [], 'deleted players are removed from favorites');
 });
+
+test('multi-device Werewolf redacts non-owner reads and rejects every write bypass', async t => {
+    const f = await fixture(t);
+    const owner = await setupAdmin(f, 'owner');
+    await savePlayers(owner, [{ id: 101, name: 'Alice', favorite: false }, { id: 102, name: 'Bob', favorite: false }, { id: 103, name: 'Cara', favorite: false }, { id: 104, name: 'Dana', favorite: false }]);
+    assert.equal((await owner.post('/api/users', { username: 'player', password: USER_PASSWORD, playerId: 102 })).response.status, 201);
+    assert.equal((await owner.post('/api/users', { username: 'observer', password: USER_PASSWORD, playerId: 104 })).response.status, 201);
+    const player = await login(f.base, 'player');
+    const observer = await login(f.base, 'observer');
+    const game = { id: 1201, gameTypeId: 'werwolf', name: 'Mehrgeräte', mode: 'assistant', rated: false,
+        players: [{ id: 101, name: 'Alice', playerIds: [101], rounds: [], total: 0 }, { id: 102, name: 'Bob', playerIds: [102], rounds: [], total: 0 }, { id: 103, name: 'Cara', playerIds: [103], rounds: [], total: 0 }],
+        werewolf: { version: 1, multiDevice: true, ownerUserId: 999999, phase: 'night', number: 1, step: 'werewolves', view: 'handoff', handoffIndex: 0, revealOnDeath: true,
+            roles: [{ playerId: 101, roleId: 'gamemaster', baseTeam: 'moderator', currentTeam: 'moderator', alive: false }, { playerId: 102, roleId: 'werewolf', baseTeam: 'wolves', currentTeam: 'wolves', alive: true, resources: { secret: true }, effects: { poison: { night: 1 } } }, { playerId: 103, roleId: 'seer', baseTeam: 'village', currentTeam: 'village', alive: false }],
+            lovers: [102, 103], childModelPlayerId: 102, nightState: { wolfTargetId: 103 }, dayState: { accusationTargetId: 102 }, events: [{ text: 'secret' }] } };
+    const created = await owner.post('/api/active-games', game);
+    assert.equal(created.response.status, 201, created.text);
+    assert.equal(created.data.werewolf.ownerUserId, 1, 'server assigns creator as owner');
+    assert.equal(created.data.werewolf.view, 'moderator', 'multi-device skips physical handoff');
+
+    const playerGame = (await player.request('/api/activeGames')).data.find(item => item.id === 1201);
+    assert.equal(playerGame.werewolf.access, 'player');
+    assert.equal(playerGame.werewolf.roles.find(role => role.self).name, 'Bob');
+    assert.deepEqual(playerGame.werewolf.roles.map(role => Object.keys(role).sort()), [
+        ['alive', 'name', 'roleId', 'self'], ['alive', 'roleId']
+    ]);
+    assert.doesNotMatch(JSON.stringify(playerGame), /ownerUserId|nightState|dayState|lovers|events|resources|effects|playerId|Cara|Alice|wolves|village/);
+
+    const observerGame = (await observer.request('/api/activeGames')).data.find(item => item.id === 1201);
+    assert.equal(observerGame.werewolf.access, 'waiting');
+    assert.deepEqual(observerGame.werewolf.roles, []);
+    assert.doesNotMatch(JSON.stringify(observerGame), /ownerUserId|nightState|dayState|lovers|events|resources|effects|playerId/);
+
+    for (const client of [player, observer]) {
+        assert.equal((await client.put('/api/active-games/1201', { ...game, werewolf: { ...game.werewolf, ownerUserId: 1 } })).response.status, 403);
+        assert.equal((await client.delete('/api/active-games/1201')).response.status, 403);
+        assert.equal((await client.post('/api/active-games/1201/finish', { ...game, werewolf: { ...game.werewolf, ownerUserId: 1 } })).response.status, 403);
+        assert.equal((await client.post('/api/activeGames', [])).response.status, 403, 'bulk payload cannot remove a protected game');
+        assert.equal((await client.request('/api/active-games/1201/activity')).response.status, 403);
+        assert.equal((await client.post('/api/presence', { gameId: 1201, page: 'game', editing: true })).response.status, 403);
+    }
+    const ownerUpdate = structuredClone(created.data);
+    ownerUpdate.werewolf.ownerUserId = 2;
+    assert.equal((await owner.put('/api/active-games/1201', ownerUpdate)).response.status, 400, 'owner field is immutable');
+    const ownerRead = (await owner.request('/api/activeGames')).data.find(item => item.id === 1201);
+    ownerRead.werewolf.roles[1].alive = false;
+    assert.equal((await owner.put('/api/active-games/1201', ownerRead)).response.status, 200, 'owner can persist');
+    const polled = (await player.request('/api/activeGames')).data.find(item => item.id === 1201);
+    assert.equal(polled.werewolf.roles.find(role => role.self).alive, false, 'player polling updates own life state');
+});

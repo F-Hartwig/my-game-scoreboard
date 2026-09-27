@@ -112,6 +112,7 @@ function isEnteringScores() {
 
 async function refreshCollaboration() {
     if (IS_PREVIEW_MODE || !authState.user) return;
+    if (state.currentGame?.werewolf?.multiDevice && state.currentGame.werewolf.access !== undefined) return;
     const gameId = state.currentGame?.id ?? null;
     try {
         await authRequest('/api/presence', {
@@ -737,6 +738,7 @@ function startSetup(prefillGame = null) {
             <label>Verteilung<select id="wwDistribution"><option value="random">Zufällig</option><option value="manual">Manuell in Teilnehmer-Reihenfolge</option></select></label>
             <label class="select-card werwolf-role-card"><input id="wwUseCupid" type="checkbox" checked><span>Mit Amor spielen</span></label>
             <label class="select-card werwolf-role-card"><input id="wwReveal" type="checkbox"><span>Rolle bei Tod aufdecken</span></label>
+            <label class="select-card werwolf-role-card"><input id="wwMultiDevice" type="checkbox"><span>Mehrgeräte-Modus</span></label>
         </div>
         
         <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">
@@ -1284,6 +1286,7 @@ async function createGame() {
             handoffIndex: 0,
             useCupid: document.getElementById('wwUseCupid')?.checked !== false,
             revealOnDeath: Boolean(document.getElementById('wwReveal')?.checked),
+            multiDevice: Boolean(document.getElementById('wwMultiDevice')?.checked),
             distribution: document.getElementById('wwDistribution')?.value || 'random',
             roles: state.currentGame.players.map(player => makeWerewolfRoleState(player.id, String(player.id) === String(gameMasterId) ? 'gamemaster' : roleIds.shift())),
             lovers: [],
@@ -1698,8 +1701,19 @@ function bindWerewolfGameActions(contentBox) {
     contentBox.querySelector('[data-ww-mayor]')?.addEventListener('click', wwOpenMayor);
     contentBox.querySelectorAll('[data-ww-life]').forEach(button => button.addEventListener('click', () => wwToggleLife(button.dataset.wwLife)));
 }
+function renderMultiDeviceWerewolfPlayer(ww) {
+    const ownRole = ww.roles?.find(role => role.self);
+    const roster = (ww.roles || []).map(role => `<div class="ww-player ${role.alive ? '' : 'dead'}"><strong>${role.self ? escapeHtml(role.name || 'Du') : 'Anonyme Rolle'}</strong><span>${escapeHtml(WW_ROLE_NAMES[role.roleId] || role.roleId)} · ${role.alive ? 'lebend' : 'tot'}</span></div>`).join('');
+    return `<section class="card ww-readonly-card"><div class="title">Deine Werwolf-Rolle</div>${ownRole ? `<section class="ww-personal-role"><span>Nur für dich</span><strong>${escapeHtml(ownRole.name || 'Du')} · ${escapeHtml(WW_ROLE_NAMES[ownRole.roleId] || ownRole.roleId)}</strong><small>${ownRole.alive ? 'Du bist lebend.' : 'Du bist tot.'}</small></section>` : ''}<p class="modal-copy">Diese Ansicht aktualisiert deinen Lebensstatus automatisch. Aktionen und Moderation bleiben bei der Spielleitung.</p><div class="ww-readonly-roster">${roster}</div></section>`;
+}
+function renderMultiDeviceWerewolfWaiting(ww) {
+    return `<section class="card ww-readonly-card"><div class="title">Werwolf läuft</div><p class="modal-copy">Warte, bis die Spielleitung deine Spielerbindung für diese Partie verwendet. Diese Ansicht zeigt keine Rollen oder Spielgeheimnisse.</p><span class="ww-waiting-state">${ww.phase === 'day' ? 'Tag' : 'Nacht'} ${Number(ww.number) || 1}</span></section>`;
+}
 function renderWerewolfGame(contentBox) {
-    const ww = wwEnsureState(), roles = ww.roles || [];
+    const ww = state.currentGame?.werewolf;
+    if (ww?.multiDevice && ww.access === 'player') { contentBox.innerHTML = `${renderPreviewBanner()}${renderMultiDeviceWerewolfPlayer(ww)}`; return; }
+    if (ww?.multiDevice && ww.access === 'waiting') { contentBox.innerHTML = `${renderPreviewBanner()}${renderMultiDeviceWerewolfWaiting(ww)}`; return; }
+    const fullWerewolf = wwEnsureState(), roles = fullWerewolf.roles || [];
     if (ww.view === 'handoff') {
         const handoffRoles = roles.filter(wwIsActiveRole), index = Number(ww.handoffIndex || 0), role = handoffRoles[index], reveal = wwIsLocalHandoffReveal(ww, index) && role;
         const copy = !role ? '<p>Alle Rollen wurden einzeln und geheim übergeben.</p>' : reveal
@@ -1907,6 +1921,7 @@ function renderGame(isSyncUpdate = false) {
             html += `<div class="title" style="margin-top:20px; padding:0 4px;">Laufende Spiele (${state.activeGames.length})</div>`;
                 
             state.activeGames.forEach(ag => {
+                const isReadOnlyMultiDeviceWerewolf = ag.gameTypeId === 'werwolf' && ag.werewolf?.multiDevice && ag.werewolf.access !== undefined;
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
                 let ratedBadge = ag.rated === false ? ' <span style="font-size:10px; background:var(--card-raised); color:var(--muted); padding:3px 7px; border:1px solid var(--border-strong); border-radius:999px; font-weight:bold;">Ungewertet</span>' : '';
                 
@@ -1928,7 +1943,7 @@ function renderGame(isSyncUpdate = false) {
                         </div>
                         <div class="active-game-actions">
                             <button class="resume-btn" onclick="resumeGame(${ag.id})">Öffnen</button>
-                            <button class="abort-btn" onclick="triggerDeleteActiveGame(${ag.id})" aria-label="Spielstand löschen" title="Spielstand löschen">×</button>
+                            ${isReadOnlyMultiDeviceWerewolf ? '' : `<button class="abort-btn" onclick="triggerDeleteActiveGame(${ag.id})" aria-label="Spielstand löschen" title="Spielstand löschen">×</button>`}
                         </div>
                     </div>`;
             });
