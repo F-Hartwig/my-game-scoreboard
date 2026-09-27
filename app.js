@@ -1703,7 +1703,10 @@ function bindWerewolfGameActions(contentBox) {
 }
 function renderMultiDeviceWerewolfPlayer(ww) {
     const ownRole = ww.roles?.find(role => role.self);
-    const roster = (ww.roles || []).map(role => `<div class="ww-player ${role.alive ? '' : 'dead'}"><strong>${role.self ? escapeHtml(role.name || 'Du') : 'Anonyme Rolle'}</strong><span>${escapeHtml(WW_ROLE_NAMES[role.roleId] || role.roleId)} · ${role.alive ? 'lebend' : 'tot'}</span></div>`).join('');
+    const roster = (ww.roles || []).map(role => {
+        const roleLabel = role.roleId ? ` · ${escapeHtml(WW_ROLE_NAMES[role.roleId] || role.roleId)}` : '';
+        return `<div class="ww-player ${role.alive ? '' : 'dead'}"><strong>${escapeHtml(role.name || (role.self ? 'Du' : '?'))}${role.self ? ' (Du)' : ''}</strong><span>${role.alive ? 'lebend' : 'tot'}${roleLabel}</span></div>`;
+    }).join('');
     return `<section class="card ww-readonly-card"><div class="title">Deine Werwolf-Rolle</div>${ownRole ? `<section class="ww-personal-role"><span>Nur für dich</span><strong>${escapeHtml(ownRole.name || 'Du')} · ${escapeHtml(WW_ROLE_NAMES[ownRole.roleId] || ownRole.roleId)}</strong><small>${ownRole.alive ? 'Du bist lebend.' : 'Du bist tot.'}</small></section>` : ''}<p class="modal-copy">Diese Ansicht aktualisiert deinen Lebensstatus automatisch. Aktionen und Moderation bleiben bei der Spielleitung.</p><div class="ww-readonly-roster">${roster}</div></section>`;
 }
 function renderMultiDeviceWerewolfWaiting(ww) {
@@ -1924,6 +1927,9 @@ function renderGame(isSyncUpdate = false) {
                 const isReadOnlyMultiDeviceWerewolf = ag.gameTypeId === 'werwolf' && ag.werewolf?.multiDevice && ag.werewolf.access !== undefined;
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
                 let ratedBadge = ag.rated === false ? ' <span style="font-size:10px; background:var(--card-raised); color:var(--muted); padding:3px 7px; border:1px solid var(--border-strong); border-radius:999px; font-weight:bold;">Ungewertet</span>' : '';
+                const playerLines = isReadOnlyMultiDeviceWerewolf
+                    ? ag.players.map(player => `<div class="active-game-player-line"><span>${escapeHtml(player.name)}${player.self ? ' (Du)' : ''}</span></div>`).join("")
+                    : ag.players.map(player => `<div class="active-game-player-line"><span>${escapeHtml(player.name)}</span><strong>${player.total} Pkt</strong></div>`).join("");
                 
                 html += `
                     <div class="active-game-card">
@@ -1934,12 +1940,7 @@ function renderGame(isSyncUpdate = false) {
                             </div>
                         </div>
                         <div class="active-game-players-box">
-                            ${ag.players.map(x => `
-                                <div class="active-game-player-line">
-                                    <span>${escapeHtml(x.name)}</span>
-                                    <strong>${x.total} Pkt</strong>
-                                </div>
-                            `).join("")}
+                            ${playerLines}
                         </div>
                         <div class="active-game-actions">
                             <button class="resume-btn" onclick="resumeGame(${ag.id})">Öffnen</button>

@@ -499,7 +499,7 @@ test('multi-device Werewolf redacts non-owner reads and rejects every write bypa
     const game = { id: 1201, gameTypeId: 'werwolf', name: 'Mehrgeräte', mode: 'assistant', rated: false,
         players: [{ id: 101, name: 'Alice', playerIds: [101], rounds: [], total: 0 }, { id: 102, name: 'Bob', playerIds: [102], rounds: [], total: 0 }, { id: 103, name: 'Cara', playerIds: [103], rounds: [], total: 0 }],
         werewolf: { version: 1, multiDevice: true, ownerUserId: 999999, phase: 'night', number: 1, step: 'werewolves', view: 'handoff', handoffIndex: 0, revealOnDeath: true,
-            roles: [{ playerId: 101, roleId: 'gamemaster', baseTeam: 'moderator', currentTeam: 'moderator', alive: false }, { playerId: 102, roleId: 'werewolf', baseTeam: 'wolves', currentTeam: 'wolves', alive: true, resources: { secret: true }, effects: { poison: { night: 1 } } }, { playerId: 103, roleId: 'seer', baseTeam: 'village', currentTeam: 'village', alive: false }],
+            roles: [{ playerId: 101, roleId: 'gamemaster', baseTeam: 'moderator', currentTeam: 'moderator', alive: false }, { playerId: 102, roleId: 'werewolf', baseTeam: 'wolves', currentTeam: 'wolves', alive: true, resources: { secret: true }, effects: { poison: { night: 1 } } }, { playerId: 103, roleId: 'seer', baseTeam: 'village', currentTeam: 'village', alive: true }],
             lovers: [102, 103], childModelPlayerId: 102, nightState: { wolfTargetId: 103 }, dayState: { accusationTargetId: 102 }, events: [{ text: 'secret' }] } };
     const created = await owner.post('/api/active-games', game);
     assert.equal(created.response.status, 201, created.text);
@@ -510,13 +510,15 @@ test('multi-device Werewolf redacts non-owner reads and rejects every write bypa
     assert.equal(playerGame.werewolf.access, 'player');
     assert.equal(playerGame.werewolf.roles.find(role => role.self).name, 'Bob');
     assert.deepEqual(playerGame.werewolf.roles.map(role => Object.keys(role).sort()), [
-        ['alive', 'name', 'roleId', 'self'], ['alive', 'roleId']
+        ['alive', 'name', 'roleId', 'self'], ['alive', 'name']
     ]);
-    assert.doesNotMatch(JSON.stringify(playerGame), /ownerUserId|nightState|dayState|lovers|events|resources|effects|playerId|Cara|Alice|wolves|village/);
+    assert.deepEqual(playerGame.players, [{ name: 'Bob', self: true }, { name: 'Cara' }], 'active-game card receives a safe named roster');
+    assert.doesNotMatch(JSON.stringify(playerGame), /ownerUserId|nightState|dayState|lovers|events|resources|effects|playerId|baseTeam|currentTeam|wolves|village/);
 
     const observerGame = (await observer.request('/api/activeGames')).data.find(item => item.id === 1201);
     assert.equal(observerGame.werewolf.access, 'waiting');
     assert.deepEqual(observerGame.werewolf.roles, []);
+    assert.deepEqual(observerGame.players, []);
     assert.doesNotMatch(JSON.stringify(observerGame), /ownerUserId|nightState|dayState|lovers|events|resources|effects|playerId/);
 
     for (const client of [player, observer]) {
@@ -531,8 +533,17 @@ test('multi-device Werewolf redacts non-owner reads and rejects every write bypa
     ownerUpdate.werewolf.ownerUserId = 2;
     assert.equal((await owner.put('/api/active-games/1201', ownerUpdate)).response.status, 400, 'owner field is immutable');
     const ownerRead = (await owner.request('/api/activeGames')).data.find(item => item.id === 1201);
-    ownerRead.werewolf.roles[1].alive = false;
+    ownerRead.werewolf.roles[2].alive = false;
     assert.equal((await owner.put('/api/active-games/1201', ownerRead)).response.status, 200, 'owner can persist');
     const polled = (await player.request('/api/activeGames')).data.find(item => item.id === 1201);
-    assert.equal(polled.werewolf.roles.find(role => role.self).alive, false, 'player polling updates own life state');
+    assert.equal(polled.werewolf.roles.find(role => role.self).roleId, 'werewolf', 'own role remains visible');
+    assert.equal(polled.werewolf.roles.find(role => !role.self).roleId, 'seer', 'a dead foreign role is revealed only when configured');
+
+    const hiddenRoles = structuredClone(ownerRead);
+    hiddenRoles.id = 1202;
+    hiddenRoles.werewolf.revealOnDeath = false;
+
+    assert.equal((await owner.post('/api/active-games', hiddenRoles)).response.status, 201);
+    const hiddenGame = (await player.request('/api/activeGames')).data.find(item => item.id === 1202);
+    assert.deepEqual(hiddenGame.werewolf.roles.find(role => !role.self), { name: 'Cara', alive: false }, 'a dead foreign role remains hidden without revealOnDeath');
 });

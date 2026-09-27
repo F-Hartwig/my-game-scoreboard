@@ -69,8 +69,8 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=werwolf-flow-18/);
-  assert.match(indexSource, /app\.js\?v=werwolf-flow-18/);
+  assert.match(indexSource, /style\.css\?v=werwolf-flow-19/);
+  assert.match(indexSource, /app\.js\?v=werwolf-flow-19/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -357,6 +357,11 @@ test('multi-device Werewolf setup and read-only player views have dedicated safe
   assert.match(appSource, /function renderMultiDeviceWerewolfWaiting\(ww\)/);
   assert.match(appSource, /ww\?\.multiDevice && ww\.access === 'player'/);
   assert.match(appSource, /ww\?\.multiDevice && ww\.access === 'waiting'/);
+  assert.doesNotMatch(appSource.slice(appSource.indexOf('function renderMultiDeviceWerewolfPlayer'), appSource.indexOf('function renderMultiDeviceWerewolfWaiting')), /Anonyme Rolle/);
+  assert.match(appSource, /escapeHtml\(role\.name \|\| \(role\.self \? 'Du' : '\?'\)\)/);
+  assert.match(appSource, /const roleLabel = role\.roleId \? ` · \$\{escapeHtml\(WW_ROLE_NAMES\[role\.roleId\] \|\| role\.roleId\)\}` : ''/);
+  assert.match(appSource, /const playerLines = isReadOnlyMultiDeviceWerewolf[\s\S]*?player\.self \? ' \(Du\)' : ''/);
+  assert.match(appSource, /isReadOnlyMultiDeviceWerewolf[\s\S]*?playerLines/);
   assert.match(styleSource, /\.ww-personal-role/);
   assert.match(styleSource, /\.ww-readonly-roster/);
 });

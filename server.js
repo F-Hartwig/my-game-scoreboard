@@ -63,16 +63,28 @@ function isMultiDeviceOwner(req, game) {
 function redactMultiDeviceWerewolf(game, user) {
     if (!isMultiDeviceWerewolf(game) || Number(game.werewolf.ownerUserId) === Number(user?.id)) return game;
     const ownRole = game.werewolf.roles?.find(role => role.roleId !== 'gamemaster' && String(role.playerId) === String(user?.playerId));
-    const roles = (game.werewolf.roles || [])
+    const roster = (game.werewolf.roles || [])
         .filter(role => role.roleId !== 'gamemaster')
-        .map(role => role === ownRole
-            ? { roleId: role.roleId, alive: Boolean(role.alive), self: true, name: game.players?.find(player => String(player.id) === String(role.playerId))?.name || 'Du' }
-            : { roleId: role.roleId, alive: Boolean(role.alive) });
+        .map(role => {
+            const name = game.players?.find(player => String(player.id) === String(role.playerId))?.name || '?';
+            if (role === ownRole) return { name, alive: Boolean(role.alive), self: true, roleId: role.roleId };
+            const safeRole = { name, alive: Boolean(role.alive) };
+            if (!role.alive && game.werewolf.revealOnDeath === true) safeRole.roleId = role.roleId;
+            return safeRole;
+        });
+    const safeGame = {
+        id: game.id,
+        gameTypeId: game.gameTypeId,
+        name: game.name,
+        date: game.date,
+        mode: game.mode,
+        rated: game.rated,
+        players: ownRole ? roster.map(({ name, self }) => self ? { name, self: true } : { name }) : []
+    };
     return {
-        ...game,
-        players: [],
+        ...safeGame,
         werewolf: ownRole
-            ? { version: 1, multiDevice: true, access: 'player', phase: game.werewolf.phase, number: game.werewolf.number, roles }
+            ? { version: 1, multiDevice: true, access: 'player', phase: game.werewolf.phase, number: game.werewolf.number, roles: roster }
             : { version: 1, multiDevice: true, access: 'waiting', phase: game.werewolf.phase, number: game.werewolf.number, roles: [] }
     };
 }
