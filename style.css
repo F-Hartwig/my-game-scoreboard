@@ -41,3 +41,23 @@ input,select,textarea{min-height:44px;min-width:0;padding:10px 12px;color:var(--
 .scoreboard-list.is-grid-view .history-scroll { display: none; }
 .scoreboard-list:not(.is-grid-view) .round-pill { min-width: 36px !important; min-height: 36px !important; }
 .scoreboard-list:not(.is-grid-view) .scoreboard-row { padding: 12px 14px; gap: 7px; }
+
+/* Authentication and management forms retain a clear one-column rhythm. */
+.auth-card { display: grid; gap: 16px; }
+.auth-card > img { margin-inline: auto; border-radius: 10px; }
+.auth-card h1 { text-align: center; font-size: 28px; }
+.auth-intro { color: var(--muted); text-align: center; }
+.auth-form { display: grid; gap: 13px; }
+.auth-form label { display: grid; gap: 6px; color: var(--muted); font-size: 12px; font-weight: 600; }
+.auth-form .remember-me { display: flex; align-items: center; gap: 9px; width: fit-content; font-size: 13px; }
+.auth-form .remember-me input { width: 18px; height: 18px; min-height: 18px; margin: 0; }
+.auth-form small { color: var(--muted); font-size: 12px; line-height: 1.5; }
+.auth-error { padding: 10px 12px; color: var(--danger); background: var(--danger-light); border: 1px solid var(--danger); border-radius: 10px; font-size: 12px; }
+.preview-link { color: var(--primary-strong); text-align: center; font-size: 13px; font-weight: 700; }
+.user-list, .ranking-list, .history-list, .rules-game-list { display: grid; gap: 8px; }
+.user-row { padding: 12px; display: grid; gap: 12px; }
+.user-account-row { grid-template-columns: minmax(80px, 1fr) minmax(140px, 1.4fr) 44px; }
+.invitation-row { grid-template-columns: minmax(0, 1fr) 44px; }
+.user-row > div { min-width: 0; }.user-row strong { overflow: hidden; text-overflow: ellipsis; }.user-row small { color: var(--muted); }
+.user-row-delete { width: 44px; height: 44px; min-height: 44px; justify-self: end; }
+body:not(.is-admin) .admin-only, body.is-user .scoreboard-share-btn { display: none !important; }
