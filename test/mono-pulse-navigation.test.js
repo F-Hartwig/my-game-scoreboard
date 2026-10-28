@@ -9,8 +9,8 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
-    assert.match(index, /style\.css\?v=mono-pulse-4/);
-    assert.match(index, /app\.js\?v=mono-pulse-2/);
+    assert.match(index, /style\.css\?v=mono-pulse-5/);
+    assert.match(index, /app\.js\?v=mono-pulse-3/);
     const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
     assert.match(index, /nav-item nav-item--play[\s\S]*?openNewGameSetup\(this\)[\s\S]*?aria-label="Spiel anlegen"[\s\S]*?>[\s\S]*?<span>Spielen<\/span>/);
     assert.match(app, /async function openNewGameSetup\(element\)\s*\{\s*await navigate\('gamePage', element\);\s*startSetup\(\);\s*\}/s);

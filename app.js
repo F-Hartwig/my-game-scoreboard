@@ -713,7 +713,7 @@ function startSetup(prefillGame = null) {
             </div>
             
             <div style="margin-bottom: 14px;">
-                <button class="secondary" style="height: 44px; font-size: 14px; background: var(--primary-light); color: var(--primary); border-color: rgba(79, 70, 229, 0.2); font-weight:700;" onclick="openTeamBuilderModal()">Neues Team erstellen</button>
+            <button class="secondary" style="height: 44px; font-size: 14px;" onclick="openTeamBuilderModal()">Neues Team erstellen</button>
             </div>
 
             <div class="setup-player-filter-toolbar">
