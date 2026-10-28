@@ -4371,6 +4371,7 @@ window.quickStartGame = quickStartGame;
 window.renderRulesPage = renderRulesPage;
 window.openCollectionRulesModal = openCollectionRulesModal;
 window.navigate = navigate;
+window.openNewGameSetup = openNewGameSetup;
 window.removeSyncBlockAndNavigate = removeSyncBlockAndNavigate;
 window.addPlayer = addPlayer;
 window.toggleFav = toggleFav;
