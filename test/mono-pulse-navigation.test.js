@@ -10,7 +10,9 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
     assert.match(index, /style\.css\?v=mono-pulse-3/);
-    assert.match(index, /nav-item nav-item--play[\s\S]*?navigate\('gamePage', this\)[\s\S]*?>[\s\S]*?<span>Spielen<\/span>/);
+    const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+    assert.match(index, /nav-item nav-item--play[\s\S]*?openNewGameSetup\(this\)[\s\S]*?aria-label="Spiel anlegen"[\s\S]*?>[\s\S]*?<span>Spielen<\/span>/);
+    assert.match(app, /async function openNewGameSetup\(element\)\s*\{\s*await navigate\('gamePage', element\);\s*startSetup\(\);\s*\}/s);
     assert.match(index, /<span>Übersicht<\/span>[\s\S]*?<span>Spieler<\/span>[\s\S]*?<span>Spielen<\/span>[\s\S]*?<span>Statistik<\/span>[\s\S]*?<span>Regeln<\/span>/);
     assert.match(index, /removeSyncBlockAndNavigate\('playersPage', this\)/);
     assert.match(index, /removeSyncBlockAndNavigate\('statsPage', this\)/);

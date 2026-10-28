@@ -270,6 +270,11 @@ async function navigate(pageId, element) {
     syncLiveSyncState();
 }
 
+async function openNewGameSetup(element) {
+    await navigate('gamePage', element);
+    startSetup();
+}
+
 // ===============================
 // MODAL ENGINE
 // ===============================
