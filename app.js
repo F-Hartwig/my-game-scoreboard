@@ -3481,7 +3481,7 @@ function applyTheme(theme) {
     if (label) label.innerText = theme === "dark" ? "Hell" : "Dunkel";
 
     const themeMeta = document.getElementById("themeColorMeta");
-    if (themeMeta) themeMeta.setAttribute("content", theme === "dark" ? "#151b28" : "#f4f7fc");
+    if (themeMeta) themeMeta.setAttribute("content", theme === "dark" ? "#0B0B0C" : "#F7F7F5");
 }
 
 function toggleTheme() {
