@@ -9,6 +9,7 @@ import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from
 import { sortSetupPlayersByLastParticipation } from './setup-player-order.mjs';
 import { bindWerewolfRoleCount, updateWerewolfRoleCount as renderWerewolfRoleCount } from './werwolf-role-count.mjs';
 import { planWerewolfDayDeaths, planWerewolfNightDeaths } from './werwolf-day-resolution.mjs';
+import { getGameSwitcherItems, renderGameSwitcherItems } from './game-switcher.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 let nextGuestDraftId = -1;
@@ -274,6 +275,81 @@ async function openNewGameSetup(element) {
     if (IS_PREVIEW_MODE) return;
     await navigate('gamePage', element);
     startSetup();
+}
+
+let gameSwitcherReturnFocus = null;
+let gameSwitcherHistoryOpen = false;
+
+function closeGameSwitcher(restoreHistory = true) {
+    const popover = document.getElementById('gameSwitcherPopover');
+    const trigger = document.getElementById('gameSwitcherTrigger');
+    if (!popover || popover.hidden) return;
+    popover.hidden = true;
+    trigger?.setAttribute('aria-expanded', 'false');
+    if (restoreHistory && gameSwitcherHistoryOpen) {
+        gameSwitcherHistoryOpen = false;
+        history.back();
+    } else {
+        gameSwitcherHistoryOpen = false;
+    }
+    if (gameSwitcherReturnFocus?.isConnected) gameSwitcherReturnFocus.focus({ preventScroll: true });
+}
+
+function openGameSwitcher(trigger) {
+    if (IS_PREVIEW_MODE || !state.activeGames.length) return;
+    const popover = document.getElementById('gameSwitcherPopover');
+    const list = document.getElementById('gameSwitcherList');
+    if (!popover || !list) return;
+    const items = getGameSwitcherItems(state.activeGames, state.currentGame?.id, authState.user?.playerId);
+    list.innerHTML = renderGameSwitcherItems(items);
+    popover.hidden = false;
+    gameSwitcherReturnFocus = trigger;
+    trigger.setAttribute('aria-expanded', 'true');
+    if (!gameSwitcherHistoryOpen) {
+        history.pushState({ gameSwitcher: true }, '');
+        gameSwitcherHistoryOpen = true;
+    }
+    list.querySelector('button')?.focus({ preventScroll: true });
+}
+
+async function handleGameSwitcherTrigger(element) {
+    if (IS_PREVIEW_MODE) return;
+    await loadAllFromDb();
+    if (!state.activeGames.length) {
+        await openNewGameSetup(element);
+        return;
+    }
+    openGameSwitcher(element);
+}
+
+async function selectGameFromSwitcher(gameId) {
+    closeGameSwitcher();
+    await resumeGame(gameId);
+}
+
+function bindGameSwitcher() {
+    const popover = document.getElementById('gameSwitcherPopover');
+    if (!popover) return;
+    popover.addEventListener('click', event => {
+        const gameButton = event.target.closest('[data-game-switcher-id]');
+        if (gameButton) void selectGameFromSwitcher(gameButton.dataset.gameSwitcherId);
+        if (event.target.closest('[data-game-switcher-new]')) {
+            closeGameSwitcher();
+            void openNewGameSetup(document.getElementById('gameSwitcherTrigger'));
+        }
+    });
+    document.addEventListener('pointerdown', event => {
+        if (!popover.hidden && !popover.contains(event.target) && !document.getElementById('gameSwitcherTrigger')?.contains(event.target)) closeGameSwitcher();
+    });
+    document.addEventListener('keydown', event => {
+        if (event.key === 'Escape' && !popover.hidden) {
+            event.preventDefault();
+            closeGameSwitcher();
+        }
+    });
+    window.addEventListener('popstate', () => {
+        if (!popover.hidden) closeGameSwitcher(false);
+    });
 }
 
 // ===============================
@@ -1474,12 +1550,6 @@ function renderPersonalDashboardCard() {
     </section>`;
 }
 
-function renderNewGameAction() {
-    return `<section class="card new-game-action" aria-label="Neue Partie anlegen">
-        <div><span class="new-game-action-label">Neue Partie</span><strong>Bereit zu spielen?</strong></div>
-        <button onclick="startSetup()">Spiel anlegen</button>
-    </section>`;
-}
 
 const WW_REPEATABLE_ROLE_IDS = new Set(['werewolf', 'villager']);
 const WW_UNIQUE_ROLE_IDS = new Set(['gamemaster', 'seer', 'witch', 'hunter', 'prostitute', 'barkeeper', 'terrorist', 'child', 'priest']);
@@ -1932,7 +2002,7 @@ function renderGame(isSyncUpdate = false) {
             contentBox.innerHTML = `${renderPreviewBanner()}<section class="card preview-empty-card"><strong>Keine aktive Partie</strong><span>Sobald ein Spiel gestartet wird, erscheint der Spielstand automatisch hier.</span></section>`;
             return;
         }
-        let html = `${renderNewGameAction()}${renderPersonalDashboardCard()}`;
+        let html = `${renderPersonalDashboardCard()}`;
 
         if(state.activeGames && state.activeGames.length > 0) {
             html += `<div class="title active-games-heading">Laufende Spiele (${state.activeGames.length})</div>`;
@@ -3514,6 +3584,7 @@ async function initApp() {
     applyTheme(savedTheme);
 
     document.body.classList.toggle('preview-mode', IS_PREVIEW_MODE);
+    bindGameSwitcher();
     if (IS_PREVIEW_MODE) {
         document.getElementById('headerTitle').innerText = 'Live-Vorschau';
         const eyebrow = document.querySelector('.brand-eyebrow');
@@ -4383,6 +4454,7 @@ window.renderRulesPage = renderRulesPage;
 window.openCollectionRulesModal = openCollectionRulesModal;
 window.navigate = navigate;
 window.openNewGameSetup = openNewGameSetup;
+window.handleGameSwitcherTrigger = handleGameSwitcherTrigger;
 window.removeSyncBlockAndNavigate = removeSyncBlockAndNavigate;
 window.addPlayer = addPlayer;
 window.toggleFav = toggleFav;

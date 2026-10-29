@@ -239,6 +239,47 @@ button.secondary, button.ghost { color: var(--text); background: var(--surface);
 .nav-item:hover { color: var(--text); background: transparent; border-color: transparent; }
 .nav-item.active, .nav-item.active span, .nav-item--play, .nav-item--play span:last-child { color: var(--accent); background: transparent; box-shadow: none; }
 .nav-play-icon { color: #ffffff; background: var(--accent); border: 1px solid var(--accent); border-radius: 50%; }
+.game-switcher {
+    width: min(calc(100% - 24px), 440px);
+    max-height: min(60dvh, 420px);
+    position: fixed;
+    z-index: 1001;
+    right: 0;
+    bottom: calc(max(12px, env(safe-area-inset-bottom)) + 90px);
+    left: 0;
+    margin-inline: auto;
+    padding: 8px;
+    overflow-y: auto;
+    color: var(--text);
+    background: var(--surface);
+    border: 1px solid var(--line-strong);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-nav);
+}
+.game-switcher[hidden] { display: none; }
+.game-switcher__list { display: grid; gap: 6px; }
+.game-switcher-item,
+.game-switcher__new {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    color: var(--text);
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+    font: inherit;
+    font-weight: 720;
+    text-align: left;
+}
+.game-switcher-item__name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.game-switcher-item.is-current { color: var(--accent-text); border-color: var(--accent); }
+.game-switcher-item__self { padding: 3px 7px; flex: 0 0 auto; color: var(--accent-text); background: var(--accent-soft); border: 1px solid var(--accent); border-radius: var(--radius-pill); font-size: 10px; font-weight: 800; }
+.game-switcher__divider { height: 1px; margin: 8px 2px; background: var(--line); }
+.game-switcher__new { justify-content: flex-start; color: var(--accent-text); background: var(--surface); border-color: var(--accent); }
 
 /* Scoreboard and statistics */
 .game-status-card { border-left: 3px solid var(--accent); }

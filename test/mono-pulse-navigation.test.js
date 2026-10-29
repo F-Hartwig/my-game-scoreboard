@@ -9,12 +9,14 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
-    assert.match(index, /style\.css\?v=mono-pulse-20/);
-    assert.match(index, /app\.js\?v=mono-pulse-6/);
+    assert.match(index, /style\.css\?v=mono-pulse-21/);
+    assert.match(index, /app\.js\?v=mono-pulse-7/);
     const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
-    assert.match(index, /nav-item nav-item--play[\s\S]*?openNewGameSetup\(this\)[\s\S]*?aria-label="Spiel anlegen"[\s\S]*?>[\s\S]*?<span>Spielen<\/span>/);
+    assert.match(index, /nav-item nav-item--play[\s\S]*?handleGameSwitcherTrigger\(this\)[\s\S]*?aria-controls="gameSwitcherPopover"[\s\S]*?<span>Spielen<\/span>/);
     assert.match(app, /async function openNewGameSetup\(element\)\s*\{\s*if \(IS_PREVIEW_MODE\) return;\s*await navigate\('gamePage', element\);\s*startSetup\(\);\s*\}/s);
     assert.match(app, /window\.openNewGameSetup\s*=\s*openNewGameSetup\s*;/);
+    assert.match(app, /function bindGameSwitcher\(\)/);
+    assert.match(index, /id="gameSwitcherPopover"[\s\S]*?data-game-switcher-new/);
     assert.match(index, /<span>Übersicht<\/span>[\s\S]*?<span>Spieler<\/span>[\s\S]*?<span>Spielen<\/span>[\s\S]*?<span>Statistik<\/span>[\s\S]*?<span>Regeln<\/span>/);
     assert.match(index, /removeSyncBlockAndNavigate\('playersPage', this\)/);
     assert.match(index, /removeSyncBlockAndNavigate\('statsPage', this\)/);
@@ -25,4 +27,6 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     assert.match(css, /\.nav-play-icon\s*\{[^}]*background:\s*var\(--accent\);/s);
     assert.match(css, /\.nav-play-icon\s*\{[^}]*width:\s*40px;[^}]*height:\s*40px;[^}]*translateY\(-6px\);/s);
     assert.match(css, /\.nav-item--play span:last-child\s*\{[^}]*margin-top:\s*-1px;/s);
+    assert.match(css, /\.game-switcher-item\.is-current\s*\{[^}]*border-color:\s*var\(--accent\);/s);
+    assert.match(css, /\.game-switcher-item__self\s*\{[^}]*color:\s*var\(--accent-text\);/s);
 });

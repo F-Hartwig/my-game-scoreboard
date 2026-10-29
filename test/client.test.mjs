@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
 
-const clientFiles = ['app.js', 'state.js', 'index.html', 'style.css'];
+const clientFiles = ['app.js', 'state.js', 'index.html', 'style.css', 'game-switcher.mjs'];
 
 test('client no longer loads, creates or renders game nights', async () => {
   for (const file of clientFiles) {
@@ -60,17 +60,18 @@ test('guest-player setup is local to the current game and promotion is exposed o
   assert.match(stateSource, /setupGuestPlayers/);
 });
 
-test('collaboration refresh preserves activity disclosure and home keeps a compact primary action first', async () => {
+test('collaboration refresh preserves activity disclosure and the overview has no new-game entry point', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const indexSource = await fs.readFile(new URL('../index.html', import.meta.url), 'utf8');
   assert.match(source, /activityWasOpen = Boolean\(panel\.querySelector\('\.activity-card'\)\?\.open\)/);
   assert.match(source, /<details class="activity-card"\$\{activityWasOpen \? ' open' : ''\}>/);
-  assert.match(source, /let html = `\$\{renderNewGameAction\(\)\}\$\{renderPersonalDashboardCard\(\)\}`/);
+  assert.match(source, /let html = `\$\{renderPersonalDashboardCard\(\)\}`/);
+  assert.doesNotMatch(source, /function renderNewGameAction/);
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=mono-pulse-20/);
-  assert.match(indexSource, /app\.js\?v=mono-pulse-6/);
+  assert.match(indexSource, /style\.css\?v=mono-pulse-21/);
+  assert.match(indexSource, /app\.js\?v=mono-pulse-7/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -80,6 +81,7 @@ test('preview keeps navigation and rules read-only while blocking all setup entr
   const css = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
 
   assert.match(source, /async function openNewGameSetup\(element\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
+  assert.match(source, /async function handleGameSwitcherTrigger\(element\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
   assert.match(source, /function startSetup\(prefillGame = null\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
   assert.match(source, /async function quickStartGame\(gameId\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
   assert.match(source, /let playBtnHtml = !IS_PREVIEW_MODE && !g\.hideFromSelection/);

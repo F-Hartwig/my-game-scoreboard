@@ -73,6 +73,13 @@ test('Werwolf role-counter module is served to the browser', async t => {
     assert.match(await response.text(), /bindWerewolfRoleCount/);
 });
 
+test('game switcher module is served to the browser', async t => {
+    const f = await fixture(t);
+    const response = await fetch(`${f.base}/game-switcher.mjs`);
+    assert.equal(response.status, 200);
+    assert.match(await response.text(), /getGameSwitcherItems/);
+});
+
 test('legacy-compatible payloads validate and malformed payloads fail', () => {
     const legacy = [{ id: 1720000000000, name: 'Alice <Admin>', favorite: false, wins: 1, games: 2, points: -10 }];
     assert.doesNotThrow(() => validatePayload('players', legacy));
@@ -169,6 +176,7 @@ test('public access is limited to explicit read-only preview', async t => {
     }
     assert.equal((await anonymous.request('/api/preview-qr')).response.status, 401);
     assert.equal((await anonymous.request('/preview-selection.mjs')).response.status, 200);
+    assert.equal((await anonymous.request('/game-switcher.mjs')).response.status, 200);
     assert.equal((await anonymous.request('/score-entry-draft.mjs')).response.status, 200);
     assert.equal((await anonymous.request('/personal-stats.mjs')).response.status, 200);
     assert.equal((await anonymous.request('/setup-player-order.mjs')).response.status, 200);
