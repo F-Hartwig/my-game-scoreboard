@@ -109,7 +109,8 @@ button, input, select, textarea { min-height: 44px; font: inherit; }
 :where(.scoreboard-row, .round-player-row, .user-row, .ww-player, .dashboard-game,
 .active-game-players-box, .stats-overview-tile, .personal-dashboard-metrics,
 .personal-comparison-grid, .activity-entry, .drag-card, .select-card,
-.winner-select-card, .mode-select-card, .start-player-card, .wizard-starter-option) {
+.winner-select-card, .mode-select-card, .start-player-card, .wizard-starter-option,
+.info-card) {
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-control);

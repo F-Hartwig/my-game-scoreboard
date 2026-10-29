@@ -2290,7 +2290,7 @@ function renderGame(isSyncUpdate = false) {
             <div class="card score-entry-card">
                 <div class="title">Wizard Rundenwertung</div>
                 <p class="section-hint-loose">Runde ${wizardRoundInfo.currentRound} von ${wizardRoundInfo.maxRounds}: Trage die gebotenen und gemachten Stiche ein.</p>
-                <div class="wizard-turn-card">
+                <div class="info-card wizard-turn-card">
                     <div class="wizard-turn-copy">
                         <span>Beginnt diese Runde</span>
                         <strong>${escapeHtml(wizardTurnInfo.starter?.name || "–")}</strong>
@@ -4144,7 +4144,7 @@ function openWizardRoundModal() {
             Runde ${currentRoundNum} · ${currentRoundNum} Karte/n pro Person
         </p>
 
-        <div class="wizard-turn-card wizard-turn-card-modal">
+        <div class="info-card wizard-turn-card wizard-turn-card-modal">
             <div class="wizard-turn-copy">
                 <span>Beginnt diese Runde</span>
                 <strong>${escapeHtml(turnInfo.starter?.name || "–")}</strong>
