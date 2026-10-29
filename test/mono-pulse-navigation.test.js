@@ -10,7 +10,7 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
     assert.match(index, /style\.css\?v=mono-pulse-21/);
-    assert.match(index, /app\.js\?v=mono-pulse-12/);
+    assert.match(index, /app\.js\?v=mono-pulse-13/);
     const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
     assert.match(index, /nav-item nav-item--play[\s\S]*?handleGameSwitcherTrigger\(this\)[\s\S]*?aria-controls="gameSwitcherPopover"[\s\S]*?<span>Spielen<\/span>/);
     assert.match(app, /async function openNewGameSetup\(element\)\s*\{\s*if \(IS_PREVIEW_MODE\) return;\s*await navigate\('gamePage', element\);\s*startSetup\(\);\s*\}/s);
@@ -21,7 +21,8 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     assert.match(index, /id="gameSwitcherPopover"[\s\S]*?data-game-switcher-new/);
     assert.match(index, /<span>Übersicht<\/span>[\s\S]*?<span>Spieler<\/span>[\s\S]*?<span>Spielen<\/span>[\s\S]*?<span>Statistik<\/span>[\s\S]*?<span>Regeln<\/span>/);
     assert.match(index, /removeSyncBlockAndNavigate\('playersPage', this\)/);
-    assert.match(index, /removeSyncBlockAndNavigate\('gamePage', this\)[\s\S]*?<span>Übersicht<\/span>/);
+    assert.match(index, /openOverview\(this\)[\s\S]*?<span>Übersicht<\/span>/);
+    assert.match(app, /window\.openOverview\s*=\s*openOverview\s*;/);
     assert.match(index, /removeSyncBlockAndNavigate\('statsPage', this\)/);
     assert.match(index, /removeSyncBlockAndNavigate\('rulesPage', this\)/);
     assert.match(index, /class="modal-close"[^>]*aria-label="Schließen"[\s\S]*?m6 6 12 12M18 6 6 18/);

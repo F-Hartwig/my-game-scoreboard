@@ -71,7 +71,7 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
   assert.match(indexSource, /style\.css\?v=mono-pulse-21/);
-  assert.match(indexSource, /app\.js\?v=mono-pulse-12/);
+  assert.match(indexSource, /app\.js\?v=mono-pulse-13/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -87,6 +87,7 @@ test('preview keeps navigation and rules read-only while blocking all setup entr
   assert.match(source, /async function selectGameFromSwitcher\(gameId\) \{\s+await closeGameSwitcherForNavigation\(\);\s+await resumeGame\(gameId\);/);
   assert.match(source, /async function createGameFromSwitcher\(\) \{\s+await closeGameSwitcherForNavigation\(\);\s+await openNewGameSetup/);
   assert.match(source, /const currentGameId = state\.isSettingUpGame \? null : state\.currentGame\?\.id;\s+const items = getGameSwitcherItems\(state\.activeGames, currentGameId,/);
+  assert.match(source, /async function openOverview\(element\) \{\s+discardSetupDraft\(\);\s+state\.currentGame = null;\s+rememberCurrentGame\(\);\s+await navigate\('gamePage', element\);/);
   assert.match(source, /async function resumeGame\(gameId\) \{\s+discardSetupDraft\(\);\s+let ag = state\.activeGames\.find\(x => String\(x\.id\) === String\(gameId\)\);/);
   assert.match(source, /function startSetup\(prefillGame = null\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
   assert.match(source, /async function quickStartGame\(gameId\) \{\s+if \(IS_PREVIEW_MODE\) return;/);

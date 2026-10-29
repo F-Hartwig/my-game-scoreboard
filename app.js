@@ -251,6 +251,13 @@ function removeSyncBlockAndNavigate(pageId, element) {
     navigate(pageId, element);
 }
 
+async function openOverview(element) {
+    discardSetupDraft();
+    state.currentGame = null;
+    rememberCurrentGame();
+    await navigate('gamePage', element);
+}
+
 // ===============================
 // NAVIGATION
 // ===============================
@@ -4489,6 +4496,7 @@ window.quickStartGame = quickStartGame;
 window.renderRulesPage = renderRulesPage;
 window.openCollectionRulesModal = openCollectionRulesModal;
 window.navigate = navigate;
+window.openOverview = openOverview;
 window.openNewGameSetup = openNewGameSetup;
 window.handleGameSwitcherTrigger = handleGameSwitcherTrigger;
 window.removeSyncBlockAndNavigate = removeSyncBlockAndNavigate;
