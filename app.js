@@ -2561,6 +2561,8 @@ async function pauseCurrentGame() {
 
 async function resumeGame(gameId) {
     discardSetupDraft();
+    const playNavigation = document.getElementById('gameSwitcherTrigger');
+    if (playNavigation) await navigate('gamePage', playNavigation);
     let ag = state.activeGames.find(x => String(x.id) === String(gameId));
     if(ag) {
         state.currentGame = ag;
