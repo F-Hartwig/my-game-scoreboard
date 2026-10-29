@@ -33,7 +33,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-21/);
+  assert.match(index, /style\.css\?v=mono-pulse-22/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -62,10 +62,11 @@ test('activity disclosure is structured and only signed score values use semanti
   assert.doesNotMatch(css, /\.round-pill\.val-(?:pos|neg)/);
 });
 
-test('activity card uses the full content width and the leading player gets an accent border', () => {
+test('presence and activity cards use the full content width and the leading player gets an accent border', () => {
   assert.match(css, /\.collaboration-panel\s*\{[\s\S]*?padding:\s*12px 0/);
-  assert.match(css, /\.collaboration-presence,[\s\S]*?\.editing-notice\s*\{[\s\S]*?margin-inline:\s*14px/);
-  assert.match(css, /\.collaboration-presence\s*\{[\s\S]*?background:\s*var\(--surface\)[\s\S]*?border:\s*1px solid var\(--line\)/);
+  assert.doesNotMatch(css, /\.collaboration-presence[^}]*margin-inline/);
+  assert.match(css, /\.editing-notice\s*\{\s*margin-inline:\s*14px/);
+  assert.match(css, /\.collaboration-presence\s*\{[\s\S]*?background:\s*var\(--surface\)[\s\S]*?border:\s*1px solid var\(--line\)[\s\S]*?border-radius:\s*var\(--radius-card\)/);
   assert.match(css, /\.scoreboard-row:has\(\.leader-badge\)\s*\{[\s\S]*?border-color:\s*var\(--accent\)/);
 });
 
