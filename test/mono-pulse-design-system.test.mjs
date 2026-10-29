@@ -32,7 +32,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-11/);
+  assert.match(index, /style\.css\?v=mono-pulse-12/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -59,4 +59,10 @@ test('activity disclosure is structured and only signed score values use semanti
   assert.match(css, /\.val-pos\s*\{[\s\S]*?color:\s*var\(--success\)/);
   assert.match(css, /\.val-neg\s*\{[\s\S]*?color:\s*var\(--danger\)/);
   assert.doesNotMatch(css, /\.round-pill\.val-(?:pos|neg)/);
+});
+
+test('activity card uses the full content width and the leading player gets an accent border', () => {
+  assert.match(css, /\.collaboration-panel\s*\{[\s\S]*?padding:\s*12px 0/);
+  assert.match(css, /\.collaboration-presence,[\s\S]*?\.editing-notice\s*\{[\s\S]*?margin-inline:\s*14px/);
+  assert.match(css, /\.scoreboard-row:has\(\.leader-badge\)\s*\{[\s\S]*?border-color:\s*var\(--accent\)/);
 });

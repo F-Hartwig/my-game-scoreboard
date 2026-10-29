@@ -188,7 +188,10 @@ button.secondary, button.ghost { color: var(--text); background: var(--surface);
 
 /* Scoreboard and statistics */
 .game-status-card { border-left: 3px solid var(--accent); }
-.scoreboard-row:has(.leader-badge) { background: var(--surface); border-color: var(--line); }
+.scoreboard-row:has(.leader-badge) {
+    background: var(--surface);
+    border-color: var(--accent);
+}
 .leader-badge, .ww-mayor-crown { color: var(--accent); background: transparent; }
 :where(.scoreboard-row .total-badge, .modal-total-badge, .rank-score,
 .history-score, .round-pill, .dashboard-win-rate, .stats-overview-value) {
@@ -2677,7 +2680,15 @@ body { padding-inline: 24px; }
 .scoreboard-list:not(.is-grid-view) .history-scroll { padding: 2px; margin: -2px; gap: 5px; }
 .scoreboard-list:not(.is-grid-view) .round-pill { min-width: 36px !important; min-height: 36px !important; padding: 5px 8px; gap: 3px; font-size: 11px; }
 .scoreboard-list:not(.is-grid-view) .empty-round-pill { min-width: auto !important; padding-inline: 9px; }
-.collaboration-panel { padding: 12px 14px; display: grid; gap: 10px; }
+.collaboration-panel {
+    padding: 12px 0;
+    display: grid;
+    gap: 10px;
+}
+.collaboration-presence,
+.editing-notice {
+    margin-inline: 14px;
+}
 .collaboration-presence > div:first-child { display: flex; align-items: center; gap: 7px; font-size: 12px; }
 .presence-dot { width: 8px; height: 8px; display: inline-block; }
 .presence-people { display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
