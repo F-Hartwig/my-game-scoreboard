@@ -328,7 +328,8 @@ function openGameSwitcher(trigger) {
     const popover = document.getElementById('gameSwitcherPopover');
     const list = document.getElementById('gameSwitcherList');
     if (!popover || !list) return;
-    const items = getGameSwitcherItems(state.activeGames, state.currentGame?.id, authState.user?.playerId);
+    const currentGameId = state.isSettingUpGame ? null : state.currentGame?.id;
+    const items = getGameSwitcherItems(state.activeGames, currentGameId, authState.user?.playerId);
     list.innerHTML = renderGameSwitcherItems(items);
     popover.hidden = false;
     gameSwitcherReturnFocus = trigger;
