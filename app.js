@@ -1454,7 +1454,7 @@ function renderPersonalDashboardCard() {
         ? stats.recentForm.map(result => `<span class="dashboard-form-result is-${result}" title="${formTitles[result]}">${formLabels[result]}</span>`).join('')
         : '<small>Noch keine gewertete Partie.</small>';
     const frequent = dashboard.frequentPlayers.length
-        ? dashboard.frequentPlayers.map(entry => `<span>${escapeHtml(entry.player.name)} · ${entry.count}×</span>`).join('')
+        ? dashboard.frequentPlayers.map(entry => `<span class="badge-neutral dashboard-person-badge">${escapeHtml(entry.player.name)} · ${entry.count}×</span>`).join('')
         : '<small>Noch keine gemeinsamen Partien.</small>';
     return `<section class="personal-dashboard-card" aria-label="Dein persönliches Dashboard">
         <div class="personal-dashboard-head"><div><span class="dashboard-eyebrow">Für dich</span><strong>Hallo ${escapeHtml(dashboard.player.name)}</strong></div><span class="dashboard-win-rate">${stats.winRate} % Siege</span></div>
@@ -1931,7 +1931,7 @@ function renderGame(isSyncUpdate = false) {
             state.activeGames.forEach(ag => {
                 const isReadOnlyMultiDeviceWerewolf = ag.gameTypeId === 'werwolf' && ag.werewolf?.multiDevice && ag.werewolf.access !== undefined;
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
-                let ratedBadge = ag.rated === false ? ' <span class="badge-neutral">Ungewertet</span>' : '';
+                let ratedBadge = ag.rated === false ? '<span class="badge-neutral active-game-rating-badge">Ungewertet</span>' : '';
                 const playerLines = isReadOnlyMultiDeviceWerewolf
                     ? ag.players.map(player => `<div class="active-game-player-line"><span>${escapeHtml(player.name)}${player.self ? ' (Du)' : ''}</span></div>`).join("")
                     : ag.players.map(player => `<div class="active-game-player-line"><span>${escapeHtml(player.name)}</span><strong>${player.total} Pkt</strong></div>`).join("");
@@ -1940,9 +1940,10 @@ function renderGame(isSyncUpdate = false) {
                     <div class="active-game-card">
                         <div class="active-game-card-top">
                             <div class="active-game-meta">
-                                <strong class="label-title">${escapeHtml(ag.name)}${ratedBadge}</strong>
+                                <strong class="label-title">${escapeHtml(ag.name)}</strong>
                                 <span style="font-size:11px; font-weight:600;">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
+                            ${ratedBadge}
                         </div>
                         <div class="active-game-players-box">
                             ${playerLines}

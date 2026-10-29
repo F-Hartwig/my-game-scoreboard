@@ -1211,6 +1211,11 @@ input::placeholder {
     font-size: 12px;
     font-weight: 550;
 }
+.active-game-rating-badge {
+    margin-left: auto;
+    flex: 0 0 auto;
+    align-self: flex-start;
+}
 
 .active-game-players-box {
     padding: 11px 13px;
@@ -2637,7 +2642,7 @@ body { padding-inline: 24px; }
 .dashboard-game strong { font-size: 11px; }
 .dashboard-result { font-size: 11px; font-style: normal; font-weight: 760; }
 .dashboard-people { display: flex; flex-wrap: wrap; gap: 6px; }
-.dashboard-people > span { padding: 6px 9px; font-size: 11px; font-weight: 700; }
+.dashboard-person-badge { padding: 6px 9px; font-size: 11px; font-weight: 700; }
 .dashboard-form-section { grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; }
 .dashboard-form { min-height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
 .dashboard-form-result { width: 28px; height: 28px; display: grid; place-items: center; font-size: 10px; font-weight: 850; }
