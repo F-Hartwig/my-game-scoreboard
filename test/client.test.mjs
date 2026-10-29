@@ -70,8 +70,8 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=mono-pulse-26/);
-  assert.match(indexSource, /app\.js\?v=mono-pulse-16/);
+  assert.match(indexSource, /style\.css\?v=mono-pulse-27/);
+  assert.match(indexSource, /app\.js\?v=mono-pulse-17/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -175,15 +175,20 @@ test('Werwolf day close renders reusable death badges and a labelled confirmed a
   assert.match(source, /class="status-badge status-badge--danger">\$\{escapeHtml\(wwPlayerName\(playerId\)\)\}/);
   assert.match(source, /class="status-badge status-badge--neutral">Niemand/);
   assert.match(source, /Todesfälle/);
-  assert.match(source, /class="status-badge status-badge--success">Anklage bestätigt/);
-  assert.match(source, /class="secondary ww-day-edit-action" data-ww-day-action="edit-accusation"[\s\S]*?Anklage ändern/);
+  assert.match(source, /class="confirmation-action confirmation-action--success" data-ww-day-action="edit-accusation"/);
+  assert.match(source, /confirmation-action__status[\s\S]*?Anklage bestätigt/);
+  assert.match(source, /confirmation-action__edit[\s\S]*?Ändern/);
+  assert.doesNotMatch(source, /status-badge status-badge--success">Anklage bestätigt/);
+  assert.doesNotMatch(source, /ww-day-edit-action/);
   assert.doesNotMatch(source, /data-ww-day-action="edit-accusation"[^>]*>✎/);
   assert.match(source, /data-ww-day-action="confirm-accusation">Anklage bestätigen/);
   assert.match(css, /\.status-badge\s*\{[^}]*display:\s*inline-flex[^}]*border-radius:\s*var\(--radius-pill\)/s);
   assert.match(css, /\.status-badge--danger\s*\{[^}]*background:\s*var\(--danger-soft\)/s);
   assert.match(css, /\.status-badge--success\s*\{[^}]*background:\s*var\(--success-soft\)/s);
   assert.match(css, /\.ww-day-death-badges\s*\{[^}]*flex-wrap:\s*wrap/);
-  assert.match(css, /\.ww-day-edit-action\s*\{[^}]*min-height:\s*44px/);
+  assert.match(css, /\.confirmation-action\s*\{[^}]*width:\s*100%[^}]*min-height:\s*48px[^}]*border-radius:\s*var\(--radius-control\)/s);
+  assert.match(css, /\.confirmation-action--success\s*\{[^}]*background:\s*var\(--success-soft\)/s);
+  assert.doesNotMatch(css, /\.ww-day-edit-action/);
 });
 
 test('Werwolf removes a stale child step when no child is assigned', async () => {

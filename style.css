@@ -2844,11 +2844,16 @@ body { padding-inline: 24px; }
 .ww-day-section-title { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
 .ww-day-death-badges { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
 .ww-day-action { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
-.ww-day-action > button { width: auto; }
-.ww-day-edit-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
-.ww-day-edit-action svg { width: 18px; height: 18px; flex: none; }
+.ww-day-action > button:not(.confirmation-action) { width: auto; }
+.confirmation-action { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; min-height: 48px; padding: 10px 12px; border-radius: var(--radius-control); text-align: left; }
+.confirmation-action--success { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.confirmation-action--success:hover { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.confirmation-action__status, .confirmation-action__edit { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.confirmation-action__status { font-weight: 800; overflow-wrap: anywhere; }
+.confirmation-action__edit { flex: 0 0 auto; font-size: 13px; font-weight: 800; }
+.confirmation-action svg { width: 18px; height: 18px; flex: none; }
 .ww-day-confirmation { margin: 0; font-size: 13px; }
-@media (max-width: 420px) { .ww-section-heading { align-items: flex-start; } .ww-section-actions { gap: 6px; } .ww-section-actions > button:not(.game-action-icon) { padding-inline: 10px; } }
+@media (max-width: 420px) { .ww-section-heading { align-items: flex-start; } .ww-section-actions { gap: 6px; } .ww-section-actions > button:not(.game-action-icon) { padding-inline: 10px; } .confirmation-action { align-items: flex-start; } }
 .ww-roster, .ww-events, .ww-field-group, .ww-step-content, .ww-witch-heal-action, .ww-witch-poison-action { display: grid; gap: 12px; margin: 0; }
 .ww-step-content > p, .ww-step-content > :last-child { margin-bottom: 0; }
 .ww-witch-heal-action p { margin: 0; }
