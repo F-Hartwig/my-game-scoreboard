@@ -76,6 +76,17 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
 
+test('navigation renders the game dashboard before exposing gamePage', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const navigate = source.slice(source.indexOf('async function navigate('), source.indexOf('async function openNewGameSetup('));
+  const renderGame = navigate.indexOf("if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }");
+  const activateGamePage = navigate.indexOf('activePage.classList.add("active");');
+
+  assert.ok(renderGame >= 0, 'navigate renders gamePage content');
+  assert.ok(activateGamePage > renderGame, 'gamePage is activated only after its content is rendered');
+  assert.ok(navigate.indexOf('await loadAllFromDb();') < activateGamePage, 'gamePage is activated only after current state is loaded');
+});
+
 test('preview keeps navigation and rules read-only while blocking all setup entry points', async () => {
   const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
   const css = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');

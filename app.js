@@ -263,12 +263,6 @@ async function openOverview(element) {
 // ===============================
 async function navigate(pageId, element) {
     if (pageId !== 'gamePage') wwClearLocalHandoffReveal();
-    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
-    document.getElementById(pageId).classList.add("active");
-    
-    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
-    element.classList.add("active");
-    document.querySelectorAll(".nav-item").forEach(item => item.setAttribute("aria-current", item === element ? "page" : "false"));
     const activePage = document.getElementById(pageId);
     document.querySelector(".skip-link").href = `#${pageId}`;
     activePage.tabIndex = -1;
@@ -281,6 +275,13 @@ async function navigate(pageId, element) {
     if(pageId === 'statsPage') { state.showAllHistory = false; renderStatsPage(); }
     if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
     if(pageId === 'rulesPage') renderRulesPage();
+
+    // Prepare the target while it is still hidden so its previous DOM never flashes.
+    document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+    activePage.classList.add("active");
+    document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+    element.classList.add("active");
+    document.querySelectorAll(".nav-item").forEach(item => item.setAttribute("aria-current", item === element ? "page" : "false"));
     if (pageId === 'gamePage') rememberCurrentGame();
     else if (!IS_PREVIEW_MODE) {
         try { sessionStorage.removeItem(ACTIVE_GAME_SESSION_KEY); } catch {}
