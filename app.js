@@ -2538,7 +2538,7 @@ async function pauseCurrentGame() {
 }
 
 async function resumeGame(gameId) {
-    let ag = state.activeGames.find(x => x.id === gameId);
+    let ag = state.activeGames.find(x => String(x.id) === String(gameId));
     if(ag) {
         state.currentGame = ag;
         rememberCurrentGame();
