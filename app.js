@@ -1118,7 +1118,10 @@ function updateDragOrderList() {
                 e.dataTransfer.setDragImage(card, 24, card.offsetHeight / 2);
             }
         });
-        reorderHandle.addEventListener('dragend', () => card.classList.remove('dragging'));
+        reorderHandle.addEventListener('dragend', () => {
+            card.classList.remove('dragging');
+            captureSetupSelection();
+        });
 
         reorderHandle.addEventListener('keydown', (e) => {
             if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') return;
@@ -1136,6 +1139,7 @@ function updateDragOrderList() {
                 }
             }
 
+            captureSetupSelection();
             reorderHandle.focus();
         });
         
@@ -1169,6 +1173,7 @@ function updateDragOrderList() {
             card.classList.remove('dragging');
             card.style.opacity = '1';
             card.style.transform = 'none';
+            captureSetupSelection();
         };
 
         reorderHandle.addEventListener('touchend', finishTouchDrag);

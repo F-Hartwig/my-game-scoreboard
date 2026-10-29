@@ -1006,6 +1006,7 @@ input::placeholder {
     display: grid;
     place-items: center;
     position: relative;
+    color: var(--text-muted);
     cursor: grab;
     touch-action: none;
     transition: color 0.16s ease, background 0.16s ease, transform 0.16s ease;
@@ -1015,6 +1016,9 @@ input::placeholder {
     content: "";
     width: 19px;
     height: 2px;
+    background: currentColor;
+    border-radius: var(--radius-pill);
+    box-shadow: 0 -6px 0 currentColor, 0 6px 0 currentColor;
     opacity: 0.72;
 }
 .reorder-handle:active {
@@ -1065,9 +1069,15 @@ input::placeholder {
     content: "";
     width: 5px;
     height: 10px;
+    border-right: 2px solid #ffffff;
+    border-bottom: 2px solid #ffffff;
     transform: translateY(-1px) rotate(45deg) scale(0);
     transform-origin: center;
     transition: transform 0.12s ease;
+}
+.select-card input[type="checkbox"]:checked {
+    background: var(--accent);
+    border-color: var(--accent);
 }
 .select-card input[type="checkbox"]:checked::after {
     transform: translateY(-1px) rotate(45deg) scale(1);
@@ -2366,7 +2376,7 @@ body {
 .title { font-size: 19px; line-height: 1.3; letter-spacing: -.45px; }
 button { min-height: 48px; line-height: 1.25; padding-block: 10px; font-weight: 650; }
 button:active { transform: scale(.98); transition-duration: 80ms; }
-button, [onclick]:not(.modal-overlay):not(.modal), .reorder-handle { touch-action: manipulation; }
+button, [onclick]:not(.modal-overlay):not(.modal) { touch-action: manipulation; }
 button, .reorder-handle, .round-pill[onclick] { min-width: 44px !important; min-height: 44px !important; }
 select { min-height: 44px; }
 .select-card, .mode-select-card { min-height: 44px; }

@@ -33,7 +33,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-17/);
+  assert.match(index, /style\.css\?v=mono-pulse-18/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -89,4 +89,14 @@ test('frequent players use badges and unrated active games align their badge rig
   assert.match(app, /<div class="active-game-meta">[\s\S]*?<\/div>\s*\$\{ratedBadge\}/);
   assert.match(css, /\.dashboard-person-badge\s*\{[\s\S]*?padding:\s*6px 9px/);
   assert.match(css, /\.active-game-rating-badge\s*\{[\s\S]*?margin-left:\s*auto/);
+});
+
+test('selected setup checkboxes and mobile reorder handles remain visible and draggable', () => {
+  assert.match(css, /\.select-card input\[type="checkbox"\]:checked\s*\{[^}]*background:\s*var\(--accent\);[^}]*border-color:\s*var\(--accent\);/s);
+  assert.match(css, /\.select-card input\[type="checkbox"\]::after\s*\{[^}]*border-right:\s*2px solid #ffffff;[^}]*border-bottom:\s*2px solid #ffffff;/s);
+  assert.match(css, /\.reorder-handle\s*\{[^}]*touch-action:\s*none;/s);
+  assert.match(css, /\.reorder-handle::before\s*\{[^}]*background:\s*currentColor;[^}]*box-shadow:\s*0 -6px 0 currentColor, 0 6px 0 currentColor;/s);
+  assert.doesNotMatch(css, /button, \[onclick\][^{]*, \.reorder-handle\s*\{\s*touch-action:\s*manipulation/);
+  assert.match(app, /reorderHandle\.addEventListener\('dragend',[\s\S]*?captureSetupSelection\(\);/);
+  assert.match(app, /const finishTouchDrag = \(\) => \{[\s\S]*?captureSetupSelection\(\);/);
 });
