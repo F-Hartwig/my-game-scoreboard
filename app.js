@@ -283,16 +283,34 @@ let gameSwitcherHistoryOpen = false;
 function closeGameSwitcher(restoreHistory = true) {
     const popover = document.getElementById('gameSwitcherPopover');
     const trigger = document.getElementById('gameSwitcherTrigger');
-    if (!popover || popover.hidden) return;
+    if (!popover || popover.hidden) return false;
+    const hadHistoryEntry = gameSwitcherHistoryOpen;
     popover.hidden = true;
     trigger?.setAttribute('aria-expanded', 'false');
-    if (restoreHistory && gameSwitcherHistoryOpen) {
+    if (restoreHistory && hadHistoryEntry) {
         gameSwitcherHistoryOpen = false;
         history.back();
     } else {
         gameSwitcherHistoryOpen = false;
     }
     if (gameSwitcherReturnFocus?.isConnected) gameSwitcherReturnFocus.focus({ preventScroll: true });
+    return hadHistoryEntry;
+}
+
+async function closeGameSwitcherForNavigation() {
+    const hadHistoryEntry = closeGameSwitcher(false);
+    if (!hadHistoryEntry) return;
+    await new Promise(resolve => {
+        let settled = false;
+        const finish = () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+        };
+        window.addEventListener('popstate', finish, { once: true });
+        history.back();
+        window.setTimeout(finish, 250);
+    });
 }
 
 function openGameSwitcher(trigger) {
@@ -323,8 +341,13 @@ async function handleGameSwitcherTrigger(element) {
 }
 
 async function selectGameFromSwitcher(gameId) {
-    closeGameSwitcher();
+    await closeGameSwitcherForNavigation();
     await resumeGame(gameId);
+}
+
+async function createGameFromSwitcher() {
+    await closeGameSwitcherForNavigation();
+    await openNewGameSetup(document.getElementById('gameSwitcherTrigger'));
 }
 
 function bindGameSwitcher() {
@@ -333,10 +356,7 @@ function bindGameSwitcher() {
     popover.addEventListener('click', event => {
         const gameButton = event.target.closest('[data-game-switcher-id]');
         if (gameButton) void selectGameFromSwitcher(gameButton.dataset.gameSwitcherId);
-        if (event.target.closest('[data-game-switcher-new]')) {
-            closeGameSwitcher();
-            void openNewGameSetup(document.getElementById('gameSwitcherTrigger'));
-        }
+        if (event.target.closest('[data-game-switcher-new]')) void createGameFromSwitcher();
     });
     document.addEventListener('pointerdown', event => {
         if (!popover.hidden && !popover.contains(event.target) && !document.getElementById('gameSwitcherTrigger')?.contains(event.target)) closeGameSwitcher();
