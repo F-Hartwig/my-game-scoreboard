@@ -70,7 +70,7 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=mono-pulse-28/);
+  assert.match(indexSource, /style\.css\?v=mono-pulse-29/);
   assert.match(indexSource, /app\.js\?v=mono-pulse-18/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);

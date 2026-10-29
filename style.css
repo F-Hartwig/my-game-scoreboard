@@ -2025,7 +2025,7 @@ input::placeholder {
 }
 
 .wizard-player-card {
-    padding: 10px 11px;
+    padding: 10px 0;
     }
 
 .wizard-player-heading {
@@ -2051,7 +2051,7 @@ input::placeholder {
 
 .wizard-input-field span {
     display: block;
-    margin: 0 0 4px 2px;
+    margin: 0 0 4px;
     font-size: 10px;
     font-weight: 680;
 }

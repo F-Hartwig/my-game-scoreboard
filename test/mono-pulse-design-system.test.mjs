@@ -34,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-28/);
+  assert.match(index, /style\.css\?v=mono-pulse-29/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -51,6 +51,8 @@ test('wizard round information uses the shared neutral info-card surface', () =>
   assert.match(app, /<div class="info-card wizard-turn-card">[\s\S]*?Beginnt diese Runde/);
   assert.match(app, /<div class="info-card wizard-turn-card wizard-turn-card-modal">[\s\S]*?Beginnt diese Runde/);
   assert.doesNotMatch(css, /\.wizard-turn-card\s*\{[^}]*?(?:background|border(?:-color|-radius)?|box-shadow)\s*:/s);
+  assert.match(css, /\.wizard-player-card\s*\{\s*padding:\s*10px 0;/);
+  assert.match(css, /\.wizard-input-field span\s*\{[\s\S]*?margin:\s*0 0 4px;/);
 });
 
 test('ranking and history use compact statistic boxes with semantic winners', () => {

@@ -9,7 +9,7 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
-    assert.match(index, /style\.css\?v=mono-pulse-28/);
+    assert.match(index, /style\.css\?v=mono-pulse-29/);
     assert.match(index, /app\.js\?v=mono-pulse-18/);
     const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
     assert.match(index, /nav-item nav-item--play[\s\S]*?handleGameSwitcherTrigger\(this\)[\s\S]*?aria-controls="gameSwitcherPopover"[\s\S]*?<span>Spielen<\/span>/);
