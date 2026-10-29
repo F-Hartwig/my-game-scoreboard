@@ -290,7 +290,23 @@ button.secondary, button.ghost { color: var(--text); background: var(--surface);
 .auth-error { padding: 10px 12px; font-size: 12px; }
 .preview-link { text-align: center; font-size: 13px; font-weight: 700; }
 .header-actions { display: flex; align-items: center; gap: 7px; }
-.account-btn { width: auto; min-height: 42px; padding: 0 12px; font-size: 11px; }
+.account-btn {
+    width: auto;
+    min-height: 42px;
+    padding: 0 12px;
+    gap: 7px;
+    font-size: 11px;
+}
+.account-btn-icon {
+    width: 19px;
+    height: 19px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+}
 .user-list { display: grid; gap: 9px; }
 .user-row { padding: 10px; display: grid; align-items: center; gap: 12px; }
 .user-account-row { grid-template-columns: minmax(80px, 1fr) minmax(140px, 1.4fr) 42px; }
@@ -2809,7 +2825,12 @@ input, select, textarea { min-height: 44px; }
     .brand-mark { width: 36px; height: 36px; }
     .brand-eyebrow { display: none; }
     .header h1 { font-size: 24px; }
-    .account-btn { display: none; }
+    .account-btn {
+        width: 44px;
+        height: 44px;
+        padding: 0;
+    }
+    .account-btn #accountLabel { display: none; }
     .theme-toggle-btn { width: 44px; padding: 0; justify-content: center; }
     .theme-toggle-btn #themeToggleLabel { display: none; }
     .card, .scoreboard-card { padding: 16px !important; margin-bottom: 12px; }
