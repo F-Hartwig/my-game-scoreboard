@@ -1706,22 +1706,39 @@ input::placeholder {
     font-size: 10px;
     font-weight: 820;
     letter-spacing: 0.7px;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: 8px;
 }
 .profile-link {
     flex: 0 0 auto;
     padding: 5px 9px;
     font-size: 10px;
     font-weight: 760;
+    color: var(--text-muted);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
 }
 .stat-grid {
-    padding: 11px 8px;
+    padding: 0;
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    background: transparent;
+    border: 0;
     text-align: center;
-    }
+}
 
 .stat-grid.is-game-specific {
     grid-template-columns: repeat(4, 1fr);
+}
+.stat-grid > div {
+    min-width: 0;
+    padding: 10px 6px;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
 }
 .stat-grid strong {
     display: block;
@@ -1751,7 +1768,7 @@ input::placeholder {
     align-items: flex-start;
     justify-content: space-between;
     gap: 10px;
-    }
+}
 
 .history-card-info {
     min-width: 0;
@@ -1956,18 +1973,29 @@ input::placeholder {
 }
 
 .history-card-scores {
-    padding: 2px 3px;
+    padding: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 8px 15px;
+    gap: 7px;
 }
 
 .history-player-score {
+    padding: 7px 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--text-muted);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
     font-size: 13px;
 }
 
 .history-player-score.is-winner {
-    font-weight: 740;
+    color: var(--success);
+    background: var(--success-soft);
+    border-color: var(--success);
+    font-weight: 800;
 }
 
 .match-history-header {
@@ -1983,7 +2011,17 @@ input::placeholder {
     grid-template-columns: auto minmax(0, 1fr);
     align-items: center;
     gap: 10px;
-    }
+    color: var(--success);
+    background: var(--success-soft);
+    border: 1px solid var(--success);
+    border-radius: var(--radius-control);
+}
+
+.history-winner-summary.is-draw {
+    color: var(--text-muted);
+    background: var(--surface-soft);
+    border-color: var(--line);
+}
 
 .history-winner-summary span {
     font-size: 9px;

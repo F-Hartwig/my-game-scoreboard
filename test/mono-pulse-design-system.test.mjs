@@ -32,7 +32,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-9/);
+  assert.match(index, /style\.css\?v=mono-pulse-10/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -42,4 +42,12 @@ test('statistics containers stay transparent and theme toggle has visible icons'
   assert.match(css, /\.personal-stats-grid > div\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.personal-comparison-grid > div\s*\{[^}]*background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.stats-overview-balance\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
+});
+
+test('ranking and history use compact statistic boxes with semantic winners', () => {
+  assert.match(css, /\.stat-grid > div\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
+  assert.match(css, /\.history-player-score\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
+  assert.match(css, /\.history-player-score\.is-winner\s*\{[\s\S]*?color:\s*var\(--success\)/);
+  assert.match(css, /\.history-winner-summary\s*\{[\s\S]*?background:\s*var\(--success-soft\)/);
+  assert.match(css, /\.history-winner-summary\.is-draw\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
 });
