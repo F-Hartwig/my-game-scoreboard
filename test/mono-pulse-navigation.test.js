@@ -9,11 +9,11 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
-    assert.match(index, /style\.css\?v=mono-pulse-16/);
-    assert.match(index, /app\.js\?v=mono-pulse-4/);
+    assert.match(index, /style\.css\?v=mono-pulse-17/);
+    assert.match(index, /app\.js\?v=mono-pulse-5/);
     const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
     assert.match(index, /nav-item nav-item--play[\s\S]*?openNewGameSetup\(this\)[\s\S]*?aria-label="Spiel anlegen"[\s\S]*?>[\s\S]*?<span>Spielen<\/span>/);
-    assert.match(app, /async function openNewGameSetup\(element\)\s*\{\s*await navigate\('gamePage', element\);\s*startSetup\(\);\s*\}/s);
+    assert.match(app, /async function openNewGameSetup\(element\)\s*\{\s*if \(IS_PREVIEW_MODE\) return;\s*await navigate\('gamePage', element\);\s*startSetup\(\);\s*\}/s);
     assert.match(app, /window\.openNewGameSetup\s*=\s*openNewGameSetup\s*;/);
     assert.match(index, /<span>Übersicht<\/span>[\s\S]*?<span>Spieler<\/span>[\s\S]*?<span>Spielen<\/span>[\s\S]*?<span>Statistik<\/span>[\s\S]*?<span>Regeln<\/span>/);
     assert.match(index, /removeSyncBlockAndNavigate\('playersPage', this\)/);

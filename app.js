@@ -271,6 +271,7 @@ async function navigate(pageId, element) {
 }
 
 async function openNewGameSetup(element) {
+    if (IS_PREVIEW_MODE) return;
     await navigate('gamePage', element);
     startSetup();
 }
@@ -475,6 +476,7 @@ document.addEventListener("keydown", event => {
 let playerListFilter = "all";
 
 async function addPlayer() {
+    if (IS_PREVIEW_MODE) return;
     let input = document.getElementById("playerInput");
     let name = input.value.trim();
     if(!name) return;
@@ -485,6 +487,7 @@ async function addPlayer() {
 }
 
 async function toggleFav(id) {
+    if (IS_PREVIEW_MODE) return;
     let p = state.players.find(x => x.id === id);
     if(!p) return;
     const nextFavorite = !p.favorite;
@@ -528,7 +531,7 @@ async function submitRename() {
 function triggerDelete(id) {
     state.activeEditPlayerId = id;
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button class="red" onclick="submitDelete()">Löschen</button>`;
-    openModal("Spieler löschen?", "<p style='color:var(--muted)'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
+    openModal("Spieler löschen?", "<p class='text-muted'>Möchtest du diesen Spieler wirklich unwiderruflich entfernen?</p>", actions);
 }
 
 async function submitDelete() {
@@ -599,11 +602,11 @@ function renderPlayers() {
                 </div>
                 <div class="actions">
                     <button class="icon-btn edit-btn admin-only" onclick="openPlayerAccount('${String(p.id)}')" aria-label="Konto verwalten" title="Konto verwalten">ID</button>
-                    <button class="icon-btn favorite-btn ${p.favorite ? "is-favorite" : ""}"
+                    ${IS_PREVIEW_MODE ? '' : `<button class="icon-btn favorite-btn ${p.favorite ? "is-favorite" : ""}"
                             onclick="toggleFav(${p.id})"
                             aria-label="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}"
                             aria-pressed="${Boolean(p.favorite)}"
-                            title="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}">${p.favorite ? "★" : "☆"}</button>
+                            title="${p.favorite ? "Aus Favoriten entfernen" : "Als Favorit markieren"}">${p.favorite ? "★" : "☆"}</button>`}
                     <button class="icon-btn edit-btn admin-only" onclick="triggerRename(${p.id})" aria-label="Namen ändern" title="Namen ändern">Aa</button>
                     <button class="icon-btn delete-btn admin-only" onclick="triggerDelete(${p.id})" aria-label="Spieler löschen" title="Spieler löschen">×</button>
                 </div>
@@ -619,6 +622,7 @@ let setupDraftSelection = [];
 let setupPlayerListExpanded = false;
 
 function startSetup(prefillGame = null) {
+    if (IS_PREVIEW_MODE) return;
     if(state.players.length < 1) {
         alert("Bitte lege zuerst mindestens einen festen Spieler an!");
         return;
@@ -674,7 +678,7 @@ function startSetup(prefillGame = null) {
                 ${firstGame.description}
             </p>
 
-            <div id="customGameNameContainer" style="display: ${isCustomActive ? 'block' : 'none'}; margin-bottom: 20px;">
+            <div id="customGameNameContainer" class="setup-custom-name" style="display: ${isCustomActive ? 'block' : 'none'};">
                 <div class="title">Name des Spiels</div>
                 <input id="gameNameInput" value="${String(customGameName).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}" placeholder="z.B. Kniffel, Scrabble, Rommé... (optional)">
             </div>
@@ -701,25 +705,25 @@ function startSetup(prefillGame = null) {
                 <p class="custom-win-condition-hint">Bestimmt die Gewinnerempfehlung und die Sortierung in der Statistik.</p>
             </div>
 
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;">
-                <div class="title" style="margin:0;">Teilnehmer wählen</div>
+            <div class="setup-section-heading">
+                <div class="title">Teilnehmer wählen</div>
                 <div class="toggle-container">
                     <button class="toggle-btn ${state.ratedMode ? "active" : ""}" id="toggleRated" onclick="setRated(true)">Gewertet</button>
                     <button class="toggle-btn ${state.ratedMode ? "" : "active"}" id="toggleUnrated" onclick="setRated(false)">Ungewertet</button>
                 </div>
             </div>
-            <div style="margin-bottom: 14px;">
+            <div class="setup-action-row">
                 <button type="button" class="secondary" onclick="openGuestModal()">Gast hinzufügen</button>
             </div>
             
-            <div style="margin-bottom: 14px;">
+            <div class="setup-action-row">
                 <button class="secondary setup-team-builder-btn" onclick="openTeamBuilderModal()">Neues Team erstellen</button>
             </div>
 
             <div class="setup-player-filter-toolbar">
                 ${renderSetupPlayerFilterHtml()}
             </div>
-            <div id="selectList" style="margin-bottom: 20px;">`;
+            <div id="selectList" class="setup-selection-list">`;
             
     html += renderSetupPoolHtml();
 
@@ -748,13 +752,13 @@ function startSetup(prefillGame = null) {
         
         <div id="customGameModeContainer" style="display: ${isCustomActive ? 'block' : 'none'};">
     <div class="title">Eingabe-Modus wählen</div>
-    <div style="display:grid; gap:10px; margin-bottom:20px;">
+    <div class="game-mode-options">
         
         <!-- Runden-Modus -->
         <div class="mode-select-card ${initialMode === "round" ? "selected" : ""}" id="modeCardRound" onclick="selectGameMode('round', this)">
             <input type="radio" name="gameMode" aria-label="Klassischer Runden-Modus" value="round" ${initialMode === "round" ? "checked" : ""} onclick="event.stopPropagation();" onchange="selectGameMode('round', this.closest('.mode-select-card'))">
             <div class="mode-select-card-content">
-                <span style="font-weight:700;">Klassischer Runden-Modus</span>
+                <span class="mode-select-title">Klassischer Runden-Modus</span>
                 <span class="text-meta">Alle Spieler tragen am Ende jeder Runde gleichzeitig Punkte ein.</span>
             </div>
         </div>
@@ -763,7 +767,7 @@ function startSetup(prefillGame = null) {
         <div class="mode-select-card ${initialMode === "single" ? "selected" : ""}" id="modeCardSingle" onclick="selectGameMode('single', this)">
             <input type="radio" name="gameMode" aria-label="Flexibler Einzel-Modus" value="single" ${initialMode === "single" ? "checked" : ""} onclick="event.stopPropagation();" onchange="selectGameMode('single', this.closest('.mode-select-card'))">
             <div class="mode-select-card-content">
-                <span style="font-weight:700;">Flexibler Einzel-Modus</span>
+                <span class="mode-select-title">Flexibler Einzel-Modus</span>
                 <span class="text-meta">Punkte werden einzeln oder unregelmäßig eingetragen.</span>
             </div>
         </div>
@@ -772,7 +776,7 @@ function startSetup(prefillGame = null) {
 </div>
 
         <button onclick="createGame()">Spiel erstellen</button>
-        <button class="secondary" style="margin-top:8px;" onclick="cancelSetup()">Abbrechen</button>
+        <button class="secondary setup-cancel-btn" onclick="cancelSetup()">Abbrechen</button>
     </div>`;
 
     document.getElementById("gameContent").innerHTML = html;
@@ -854,12 +858,12 @@ function renderSetupPoolHtml() {
             const isSelected = setupDraftSelection.some(item => item.type === "team" && Number(item.id) === Number(t.id));
             html += `
                 <div class="select-card ${isSelected ? "selected" : ""}" data-type="team" data-id="${t.id}" onclick="toggleSelectCard(event, this)">
-                    <div class="player-left" style="flex:1; min-width:0;">
+                    <div class="player-left setup-team-main">
                         <input type="checkbox" aria-label="${escapeHtml(t.name)} auswählen" value="${t.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
                         <div class="avatar icon-button-success">T</div>
-                        <strong style="word-break: break-all; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(t.name)}</strong>
+                        <strong class="setup-team-name">${escapeHtml(t.name)}</strong>
                     </div>
-                    <button class="icon-btn delete-btn" style="width:32px; height:32px; font-size:14px; flex-shrink:0; margin-left:8px;" onclick="event.stopPropagation(); removeSingleTeam(${t.id})">×</button>
+                    <button class="icon-btn delete-btn setup-team-delete" onclick="event.stopPropagation(); removeSingleTeam(${t.id})">×</button>
                 </div>`;
         });
     }
@@ -868,7 +872,7 @@ function renderSetupPoolHtml() {
         const isSelected = setupDraftSelection.some(item => item.type === 'guest' && Number(item.id) === Number(guest.id));
         html += `<div class="select-card ${isSelected ? 'selected' : ''}" data-type="guest" data-id="${guest.id}" onclick="toggleSelectCard(event, this)">
             <div class="player-left"><input type="checkbox" aria-label="${escapeHtml(guest.name)} auswählen" value="${guest.id}" ${isSelected ? 'checked' : ''} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
-                <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">G</div><strong>${escapeHtml(guest.name)} <small>(Gast)</small></strong></div></div>`;
+                <div class="avatar avatar-sm">G</div><strong>${escapeHtml(guest.name)} <small>(Gast)</small></strong></div></div>`;
     });
 
     const selectablePlayers = sortSetupPlayersByLastParticipation(state.players, state.games)
@@ -886,7 +890,7 @@ function renderSetupPoolHtml() {
             <div class="select-card ${isSelected ? "selected" : ""} ${isFilterHidden || isCollapsedHidden ? "filter-hidden" : ""}" data-type="player" data-id="${p.id}" onclick="toggleSelectCard(event, this)">
                 <div class="player-left">
                     <input type="checkbox" aria-label="${escapeHtml(p.name)} auswählen" value="${p.id}" ${isSelected ? "checked" : ""} onclick="event.stopPropagation(); toggleSelectCard(event, this.parentElement.parentElement)">
-                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                    <div class="avatar avatar-sm">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
                     <strong>${escapeHtml(p.name)}</strong>
                 </div>
             </div>`;
@@ -913,15 +917,15 @@ function openTeamBuilderModal() {
 
     let bodyHtml = `
         <p>Wähle die Spieler aus, die zusammen ein Team bilden sollen:</p>
-        <div id="modalTeamPlayersList" style="max-height:260px; overflow-y:auto; display:flex; flex-direction:column; gap:6px; padding:2px;">`;
+        <div id="modalTeamPlayersList" class="modal-team-player-list">`;
 
     availablePlayers.forEach(p => {
         bodyHtml += `
-            <div class="select-card" style="margin-bottom:0; padding:10px;" onclick="this.querySelector('input').click(); this.classList.toggle('selected', this.querySelector('input').checked)">
+            <div class="select-card select-card-compact" onclick="this.querySelector('input').click(); this.classList.toggle('selected', this.querySelector('input').checked)">
                 <div class="player-left">
                     <input type="checkbox" aria-label="${escapeHtml(p.name)} auswählen" value="${p.id}" onclick="event.stopPropagation(); this.closest('.select-card').classList.toggle('selected', this.checked)">
-                    <div class="avatar" style="width:28px; height:28px; font-size:10px;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
-                    <span style="font-weight:600; font-size:14px;">${escapeHtml(p.name)}</span>
+                    <div class="avatar avatar-xs">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                    <span class="modal-team-player-name">${escapeHtml(p.name)}</span>
                 </div>
             </div>`;
     });
@@ -1099,7 +1103,7 @@ function updateDragOrderList() {
         card.dataset.type = item.type;
         card.innerHTML = `
             <div class="player-left">
-                <div class="avatar" style="width:28px; height:28px; font-size:10px; ${isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${isTeam ? 'T' : escapeHtml(displayName.substring(0,2).toUpperCase())}</div>
+                <div class="avatar avatar-xs ${isTeam ? 'avatar-team' : ''}">${isTeam ? 'T' : escapeHtml(displayName.substring(0,2).toUpperCase())}</div>
                 <strong>${escapeHtml(displayName)}</strong>
             </div>
             <span class="reorder-handle" draggable="true" role="button" tabindex="0" aria-label="${escapeHtml(displayName)} verschieben" title="Reihenfolge ändern"></span>`;
@@ -1448,10 +1452,10 @@ function renderPersonalDashboardCard() {
     const formLabels = { win: 'S', loss: 'N', draw: 'U' };
     const formTitles = { win: 'Sieg', loss: 'Niederlage', draw: 'Unentschieden' };
     const openGames = dashboard.openGames.length
-        ? dashboard.openGames.map(game => `<button class="dashboard-game" onclick="resumeGame(${Number(game.id)})"><span>${escapeHtml(game.name)}</span><strong>Öffnen</strong></button>`).join('')
+        ? `<small>${dashboard.openGames.length} eigene ${dashboard.openGames.length === 1 ? 'Partie läuft' : 'Partien laufen'} · Details und Fortsetzen im Abschnitt „Laufende Spiele“.</small>`
         : '<small>Keine eigene Partie läuft gerade.</small>';
     const recentForm = stats.recentForm.length
-        ? stats.recentForm.map(result => `<span class="dashboard-form-result is-${result}" title="${formTitles[result]}">${formLabels[result]}</span>`).join('')
+        ? stats.recentForm.map(result => `<span class="dashboard-form-result is-${result}" title="${formTitles[result]}" aria-label="${formTitles[result]}">${formLabels[result]}</span>`).join('')
         : '<small>Noch keine gewertete Partie.</small>';
     const frequent = dashboard.frequentPlayers.length
         ? dashboard.frequentPlayers.map(entry => `<span class="badge-neutral dashboard-person-badge">${escapeHtml(entry.player.name)} · ${entry.count}×</span>`).join('')
@@ -1926,7 +1930,7 @@ function renderGame(isSyncUpdate = false) {
         let html = `${renderNewGameAction()}${renderPersonalDashboardCard()}`;
 
         if(state.activeGames && state.activeGames.length > 0) {
-            html += `<div class="title" style="margin-top:20px; padding:0 4px;">Laufende Spiele (${state.activeGames.length})</div>`;
+            html += `<div class="title active-games-heading">Laufende Spiele (${state.activeGames.length})</div>`;
                 
             state.activeGames.forEach(ag => {
                 const isReadOnlyMultiDeviceWerewolf = ag.gameTypeId === 'werwolf' && ag.werewolf?.multiDevice && ag.werewolf.access !== undefined;
@@ -1941,7 +1945,7 @@ function renderGame(isSyncUpdate = false) {
                         <div class="active-game-card-top">
                             <div class="active-game-meta">
                                 <strong class="label-title">${escapeHtml(ag.name)}</strong>
-                                <span style="font-size:11px; font-weight:600;">${escapeHtml(ag.date)} · ${modeText}</span>
+                                <span class="active-game-date">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
                             ${ratedBadge}
                         </div>
@@ -2095,7 +2099,7 @@ function renderGame(isSyncUpdate = false) {
         </div>
         ${IS_PREVIEW_MODE ? '' : '<section id="collaborationPanel" class="collaboration-panel" aria-live="polite"></section>'}
 
-        <div class="card scoreboard-card" style="padding: 14px 12px;">
+        <div class="card scoreboard-card scoreboard-card--compact">
             <div class="scoreboard-heading">
                 <h2>Spielstand</h2>
                 <div class="scoreboard-heading-actions">
@@ -2175,7 +2179,7 @@ function renderGame(isSyncUpdate = false) {
                     </div>
                 </div>
                 <button onclick="openWizardRoundModal()">Runde ${wizardRoundInfo.currentRound} auswerten</button>
-                <button class="green" style="margin-top: 8px;" onclick="finishGame()">Spiel beenden</button>
+                <button class="green score-finish-btn" onclick="finishGame()">Spiel beenden</button>
             </div>`;
     } else if(state.currentGame.mode === 'round') {
         html += `
@@ -2186,16 +2190,16 @@ function renderGame(isSyncUpdate = false) {
         state.currentGame.players.forEach((p, idx) => {
             html += `
                 <div class="round-player-row inline-panel">
-                    <span class="player-name" style="flex:1;">${escapeHtml(p.name)}</span>
+                    <span class="player-name score-player-name">${escapeHtml(p.name)}</span>
                     <button class="stepper-button" type="button" id="sign_${p.id}" aria-label="Vorzeichen für ${escapeHtml(p.name)} wechseln" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})">+</button>
-                    <input type="text" inputmode="numeric" id="inp_${p.id}" aria-label="Punkte für ${escapeHtml(p.name)}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
+                    <input type="text" inputmode="numeric" id="inp_${p.id}" aria-label="Punkte für ${escapeHtml(p.name)}" placeholder="0" class="score-value-input"
                     onkeydown="handleRoundEnter(event, ${idx})">
                 </div>`;
         });
 
         html += `</div>
                 <button onclick="addRoundRow()">Runde speichern</button>
-                <button class="green" style="margin-top: 8px;" onclick="finishGame()">Spiel beenden</button>
+                <button class="green score-finish-btn" onclick="finishGame()">Spiel beenden</button>
              </div>`;
     } else {
         html += `
@@ -2205,17 +2209,17 @@ function renderGame(isSyncUpdate = false) {
 
         state.currentGame.players.forEach((p, idx) => {
             html += `
-                <div class="round-player-row" style="display:flex; align-items:center; gap:8px;">
-                    <span class="player-name" style="flex:1;">${escapeHtml(p.name)}</span>
+                <div class="round-player-row round-player-row-inline">
+                    <span class="player-name score-player-name">${escapeHtml(p.name)}</span>
                     <button class="stepper-button" type="button" id="sign_${p.id}" aria-label="Vorzeichen für ${escapeHtml(p.name)} wechseln" onpointerdown="handleScoreSignPointerDown(event, ${p.id})" onclick="handleScoreSignClick(event, ${p.id})">+</button>
-                    <input type="text" inputmode="numeric" id="inp_${p.id}" aria-label="Punkte für ${escapeHtml(p.name)}" placeholder="0" style="width:85px; height:38px; text-align:center; font-weight:700;"
+                    <input type="text" inputmode="numeric" id="inp_${p.id}" aria-label="Punkte für ${escapeHtml(p.name)}" placeholder="0" class="score-value-input"
                     onkeydown="handleSingleEnter(event, ${p.id})">
-                    <button class="submit-single-btn" onclick="addSingleScore(${p.id})" style="width:42px; height:38px; font-size:11px;">OK</button>
+                    <button class="submit-single-btn submit-single-btn-compact" onclick="addSingleScore(${p.id})">OK</button>
                 </div>`;
         });
 
         html += `</div>
-                <button class="green" style="margin-top: 14px;" onclick="finishGame()">Spiel beenden</button>
+                <button class="green score-finish-btn score-finish-btn--loose" onclick="finishGame()">Spiel beenden</button>
              </div>`;
     }
 
@@ -2380,13 +2384,13 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
 
     let body = `
         <p>Korrigiere die Punktzahl für <strong>${escapeHtml(p.name)}</strong> (${labelText}):</p>
-        <div style="display:flex; gap:8px; align-items:center;">
-            <button type="button" id="modalSignBtn" onpointerdown="handleModalSignPointerDown(event)" onclick="handleModalSignClick(event)" style="width:44px; height:48px; border-radius:var(--radius-md); font-size:18px; font-weight:800; padding:0; flex-shrink:0;
+        <div class="modal-score-edit-row">
+            <button type="button" id="modalSignBtn" class="modal-sign-btn" onpointerdown="handleModalSignPointerDown(event)" onclick="handleModalSignClick(event)" style="
                 background: ${isNegative ? 'var(--danger-light)' : 'var(--card-raised)'};
                 color: ${isNegative ? 'var(--danger)' : 'var(--muted)'};">
                 ${isNegative ? '-' : '+'}
             </button>
-            <input type="text" inputmode="decimal" id="modalRoundInput" value="${absoluteValue}" style="text-align:center; font-weight:bold; font-size:18px;">
+            <input type="text" inputmode="decimal" id="modalRoundInput" class="modal-score-input" value="${absoluteValue}">
         </div>`;
         
     let actions = `<button class="secondary" onclick="closeModal()">Abbrechen</button><button onclick="submitEditRound()">Speichern</button>`;
@@ -2482,7 +2486,7 @@ function finishGame() {
     let html = `
         <div class="card">
             <div class="title">Wer hat gewonnen?</div>
-            <div id="winnerCardsList" style="margin-bottom:16px;">
+            <div id="winnerCardsList" class="winner-cards-list">
                 <div class="winner-select-card" data-id="Unentschieden" onclick="selectWinnerCard(this)">
                     <div class="player-left"><strong>Unentschieden</strong></div>
                 </div>`;
@@ -2491,12 +2495,12 @@ function finishGame() {
         const isBest = p.total === bestScore;
         html += `
             <div class="winner-select-card ${isBest ? 'selected' : ''}" data-id="${p.id}" onclick="selectWinnerCard(this)">
-                <div class="player-left" style="flex: 1; min-width: 0;">
-                    <div class="avatar" style="width:32px; height:32px; font-size:11px; flex-shrink:0; ${p.isTeam ? 'background: var(--success-light); color: var(--success);' : ''}">${p.isTeam ? 'T' : escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
-                    <strong class="player-name" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(p.name)}</strong>
-                    ${isBest ? '<span class="rec-tag" style="margin-left:8px; flex-shrink:0;">Empfehlung</span>' : ''}
+                <div class="player-left winner-card-main">
+                    <div class="avatar avatar-sm ${p.isTeam ? 'avatar-team' : ''}">${p.isTeam ? 'T' : escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                    <strong class="player-name winner-card-name">${escapeHtml(p.name)}</strong>
+                    ${isBest ? '<span class="rec-tag winner-recommendation">Empfehlung</span>' : ''}
                 </div>
-                <div style="margin-left:auto; padding-left:12px; font-weight:700; font-size:14px; white-space:nowrap; text-align:right; flex-shrink:0;">
+                <div class="winner-card-score">
                     ${p.total} Pkt
                 </div>
             </div>`;
@@ -2504,7 +2508,7 @@ function finishGame() {
 
     html += `</div>
             <button class="green" onclick="saveGame()">Spielwertung speichern</button>
-            <button class="secondary" style="margin-top:8px;" onclick="cancelSetup()">Zurück</button>
+            <button class="secondary modal-back-btn" onclick="cancelSetup()">Zurück</button>
         </div>`;
 
     document.getElementById("gameContent").innerHTML = html;
@@ -2573,7 +2577,7 @@ function showResult(gameData) {
 
     let textModeInfo = game.rated === false ? ' (Freundschaftsspiel)' : '';
     let html = `
-        <div class="card result-hero-card" style="text-align:center; padding:24px 16px;">
+        <div class="card result-hero-card">
             <div class="result-label">Ergebnis</div>
             <div class="score-positive">${escapeHtml(game.winner)}</div>
             <p class="score-caption">${escapeHtml(game.name)}${textModeInfo} · ${escapeHtml(game.date)}</p>
@@ -2596,8 +2600,8 @@ function showResult(gameData) {
         }
 
         html += `
-            <div style="display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid var(--border)">
-                <span style="font-weight:600; font-size:14px;">${currentRank}. ${escapeHtml(p.name)}</span>
+            <div class="result-ranking-row">
+                <span class="result-ranking-name">${currentRank}. ${escapeHtml(p.name)}</span>
                 <strong class="link-accent">${p.total} Pkt</strong>
             </div>`;
     });
@@ -2607,7 +2611,7 @@ function showResult(gameData) {
         <button onclick="startRematch()">Revanche starten</button>
         <button class="secondary" onclick="customizeLastGame()">Spieler hinzufügen</button>
     </div>
-    <button class="secondary" style="margin-top:8px;" onclick="newGame()">Hauptmenü</button>
+    <button class="secondary modal-back-btn" onclick="newGame()">Hauptmenü</button>
     </div>`;
 
     document.getElementById("gameContent").innerHTML = html;
@@ -2999,9 +3003,9 @@ function renderRanking() {
         let rank = String(overallRank).padStart(2, "0");
 
         box.innerHTML += `
-            <div class="rank-card" style="cursor: pointer; transition: background 0.15s ease;" onclick="openPlayerProfileModal(${p.id})">
-                <div class="rank-card-header" style="justify-content: space-between;">
-                    <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+            <div class="rank-card rank-card-interactive" onclick="openPlayerProfileModal(${p.id})">
+                <div class="rank-card-header">
+                    <div class="rank-card-identity">
                         <span class="rank-position">${rank}</span>
                         <span>${escapeHtml(p.name)}</span>
                     </div>
@@ -3099,7 +3103,7 @@ function renderHistory() {
 
     if (filteredGames.length > 5 && !state.showAllHistory) {
         box.innerHTML += `
-            <button class="secondary" style="margin-top: 10px; height: 40px; font-size: 14px;" onclick="triggerShowAllHistory()">
+            <button class="secondary history-load-more-btn" onclick="triggerShowAllHistory()">
                 Alle anzeigen (${filteredGames.length} Spiele)
             </button>`;
     }
@@ -3134,7 +3138,7 @@ async function viewGameDetails(gameId) {
         <p class="section-intro-compact">
             Datum: ${escapeHtml(g.date)} · Typ: ${modeTextInfo}
         </p>
-        <div class="modal-scoreboard-list" style="margin-bottom:20px;">`;
+        <div class="modal-scoreboard-list modal-scoreboard-list-spaced">`;
 
     g.players.forEach(p => {
         const isWinner = isWinningParty(g, p) || (g.winner === 'Unentschieden' && p.total === bestScore && anyRoundsPlayed);
@@ -3188,10 +3192,10 @@ async function viewGameDetails(gameId) {
     html += `</div>`;
     
     // Titel als HTML-String für innerHTML
-    let modalTitle = `<span style="display:flex; align-items:center; gap:8px;">${escapeHtml(g.name)} <button class="icon-btn edit-btn" style="width:30px; height:28px; font-size:11px; flex-shrink:0;" onclick="triggerRenameHistoryGame(${g.id})" title="Spielnamen ändern" aria-label="Spielnamen ändern">Aa</button></span>`;
+    let modalTitle = `<span class="history-modal-title">${escapeHtml(g.name)} <button class="icon-btn edit-btn history-title-edit-btn" onclick="triggerRenameHistoryGame(${g.id})" title="Spielnamen ändern" aria-label="Spielnamen ändern">Aa</button></span>`;
 
     let actions = `
-        <button class="secondary" onclick="closeModal()" style="flex:1">Schließen</button>
+        <button class="secondary modal-action-fill" onclick="closeModal()">Schließen</button>
         ${promotableGuests.map(guest => `<button class="secondary" onclick="promoteGuest(${guest.id}, ${g.id})">Als festen Spieler übernehmen (${escapeHtml(guest.name)})</button>`).join('')}
         <button class="red button-danger-compact" onclick="triggerDeleteHistoryGame(${g.id})">Löschen</button>`;
     
@@ -3311,16 +3315,16 @@ function renderRulesPage() {
             ? `<span class="badge-neutral-inline">Nur Regeln</span>`
             : '';
 
-        let playBtnHtml = !g.hideFromSelection
+        let playBtnHtml = !IS_PREVIEW_MODE && !g.hideFromSelection
             ? `<button class="rules-start-btn"
                 title="Spiel starten" aria-label="${escapeHtml(g.name)} starten" onclick="event.stopPropagation(); quickStartGame('${g.id}')">Start</button>`
             : '';
 
         box.innerHTML += `
-            <div class="history-card" style="cursor: default;">
+            <div class="history-card history-card-static">
                 <div class="history-card-top rules-game-header">
                     <div class="history-card-info rules-game-title">
-                        <div class="history-card-date" style="display:flex; align-items:center; flex-wrap:wrap; gap:4px;">
+                        <div class="history-card-date history-card-date-flex">
                             ${escapeHtml(g.name)} ${pureRulesBadge}
                         </div>
                     </div>
@@ -3328,7 +3332,7 @@ function renderRulesPage() {
                 </div>
                 <div class="history-card-sub subcopy">${g.description}</div>
                 ${g.rules && g.rules.descriptionLong ? `
-                    <button class="secondary" style="margin-top: 10px; height: 36px; font-size: 13px; font-weight: 700;" 
+                    <button class="secondary rules-detail-btn"
                         onclick="openCollectionRulesModal('${g.id}')">
                         Regelbuch öffnen
                     </button>
@@ -3338,6 +3342,7 @@ function renderRulesPage() {
 }
 
 async function quickStartGame(gameId) {
+    if (IS_PREVIEW_MODE) return;
     if (state.currentGame && state.currentGame.id) {
         await pauseCurrentGame(); 
     }
@@ -3421,9 +3426,9 @@ function openPlayerProfileModal(playerId) {
             const stats = gameStats[gName];
             const rate = Math.round((stats.wins / stats.games) * 100);
             gamesHtml += `
-                <div style="display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--border)">
-                    <div style="font-size:14px; font-weight:600;">${gName}</div>
-                    <div style="text-align:right; font-size:13px;">
+                <div class="profile-game-row">
+                    <div class="profile-game-name">${gName}</div>
+                    <div class="profile-game-stats">
                         <strong>${stats.wins} Siege</strong> <span class="text-muted">/ ${stats.games} Spiele</span>
                         <span class="badge-accent-compact">${rate}%</span>
                     </div>
@@ -3442,9 +3447,9 @@ function openPlayerProfileModal(playerId) {
             <div class="success-panel">
                 <div>
                     <div class="success-eyebrow">Beste Team-Harmonie</div>
-                    <div style="font-size:15px; font-weight:700; margin-top:2px;">Mit ${bestPartnerName}</div>
+                    <div class="profile-partner-name">Mit ${bestPartnerName}</div>
                 </div>
-                <div style="text-align:right; font-size:13px;">
+                <div class="profile-game-stats">
                     <strong>${pStats.wins} Siege</strong> <span class="text-muted">in ${pStats.games} Spielen</span>
                     <div class="success-value">${pRate}% Win-Rate</div>
                 </div>
@@ -3452,20 +3457,20 @@ function openPlayerProfileModal(playerId) {
     }
 
     let bodyHtml = `
-        <div style="text-align:center; margin-bottom:16px;">
-            <div class="avatar" style="width:54px; height:54px; font-size:18px; margin:0 auto 8px auto;">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
-            <h2 style="font-size:20px; font-weight:800;">${escapeHtml(p.name)}</h2>
+        <div class="profile-modal-header">
+            <div class="avatar profile-modal-avatar">${escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+            <h2 class="profile-modal-name">${escapeHtml(p.name)}</h2>
             <p class="text-meta-top">Gesamt-Erfolgsquote: <strong>${p.games ? Math.round((p.wins / p.games) * 100) : 0}%</strong></p>
         </div>
         
         <div class="section-label">Siege nach Spielen</div>
-        <div style="display:flex; flex-direction:column; gap:2px; margin-bottom:10px;">
+        <div class="profile-game-list">
             ${gamesHtml}
         </div>
         ${partnerHtml}
     `;
 
-    let actionsHtml = `<button class="secondary" style="flex:1;" onclick="closeModal()">Schließen</button>`;
+    let actionsHtml = `<button class="secondary modal-action-fill" onclick="closeModal()">Schließen</button>`;
     openModal(`Spielerprofil`, bodyHtml, actionsHtml);
 }
 
@@ -3535,7 +3540,7 @@ function toggleTimerMenu() {
 
     let body = `
         <p class="section-copy-loose">Wähle die Zeitdauer für den Zug-Timer:</p>
-        <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:10px;">
+        <div class="timer-option-grid">
             <button class="secondary" onclick="startTimer(30)">30 Sek</button>
             <button class="secondary" onclick="startTimer(60)">1 Min</button>
             <button class="secondary" onclick="startTimer(120)">2 Min</button>
@@ -3643,11 +3648,11 @@ function openStartPlayerSelectorModal() {
     let body = `
         <p>Wähle den Startspieler manuell oder starte den Zufallsgenerator:</p>
         
-        <div id="startPlayerList" style="display:flex; flex-direction:column; gap:8px; margin-bottom:16px;">
+        <div id="startPlayerList" class="start-player-list">
             ${players.map(p => `
-                <div class="select-card start-player-card" data-id="${p.id}" onclick="selectStartPlayerDirectly(${p.id})" style="margin-bottom:0; padding:12px;">
+                <div class="select-card start-player-card" data-id="${p.id}" onclick="selectStartPlayerDirectly(${p.id})">
                     <div class="player-left">
-                        <div class="avatar" style="width:30px; height:30px; font-size:11px;">${p.isTeam ? 'T' : escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
+                        <div class="avatar avatar-start-player">${p.isTeam ? 'T' : escapeHtml(p.name.substring(0,2).toUpperCase())}</div>
                         <strong class="start-player-name">${escapeHtml(p.name)}</strong>
                     </div>
                 </div>
@@ -3812,35 +3817,35 @@ let selectedDiceCount = 1; // Standard: 1 Würfel
 
 function openDiceModal() {
     let body = `
-        <div style="text-align:center; margin-bottom:16px;">
-            <div id="diceDisplayBox" style="display:flex; justify-content:center; align-items:center; gap:8px; flex-wrap:wrap; min-height:80px; margin:10px 0;">
+        <div class="dice-preview-panel">
+            <div id="diceDisplayBox" class="dice-display-box">
                 <!-- Wird dynamisch befüllt -->
             </div>
             <div class="status-line" id="diceTotalLabel">Bereit zum Würfeln!</div>
         </div>
 
-        <div style="margin-bottom:14px;">
+        <div class="dice-control-section">
             <span class="field-label">WÜRFELTYP</span>
-            <div style="display:grid; grid-template-columns: repeat(4, 1fr); gap:6px;">
-                <button class="secondary" id="dtype_4" onclick="setDiceType(4)" style="height:34px; font-size:12px; padding:0;">W4</button>
-                <button class="secondary" id="dtype_6" onclick="setDiceType(6)" style="height:34px; font-size:12px; padding:0;">W6</button>
-                <button class="secondary" id="dtype_8" onclick="setDiceType(8)" style="height:34px; font-size:12px; padding:0;">W8</button>
-                <button class="secondary" id="dtype_10" onclick="setDiceType(10)" style="height:34px; font-size:12px; padding:0;">W10</button>
-                <button class="secondary" id="dtype_12" onclick="setDiceType(12)" style="height:34px; font-size:12px; padding:0;">W12</button>
-                <button class="secondary" id="dtype_20" onclick="setDiceType(20)" style="height:34px; font-size:12px; padding:0;">W20</button>
-                <button class="secondary" id="dtype_50" onclick="setDiceType(50)" style="height:34px; font-size:12px; padding:0;">W50</button>
-                <button class="secondary" id="dtype_100" onclick="setDiceType(100)" style="height:34px; font-size:12px; padding:0;">W100</button>
+            <div class="dice-option-grid dice-type-grid">
+                <button class="secondary dice-option" id="dtype_4" onclick="setDiceType(4)">W4</button>
+                <button class="secondary dice-option" id="dtype_6" onclick="setDiceType(6)">W6</button>
+                <button class="secondary dice-option" id="dtype_8" onclick="setDiceType(8)">W8</button>
+                <button class="secondary dice-option" id="dtype_10" onclick="setDiceType(10)">W10</button>
+                <button class="secondary dice-option" id="dtype_12" onclick="setDiceType(12)">W12</button>
+                <button class="secondary dice-option" id="dtype_20" onclick="setDiceType(20)">W20</button>
+                <button class="secondary dice-option" id="dtype_50" onclick="setDiceType(50)">W50</button>
+                <button class="secondary dice-option" id="dtype_100" onclick="setDiceType(100)">W100</button>
             </div>
         </div>
 
-        <div style="margin-bottom:16px;">
+        <div class="dice-control-section dice-count-section">
             <span class="field-label">ANZAHL (1-5)</span>
-            <div style="display:grid; grid-template-columns: repeat(5, 1fr); gap:6px;">
-                <button class="secondary" id="dcount_1" onclick="setDiceCount(1)" style="height:34px; font-size:12px; padding:0;">1x</button>
-                <button class="secondary" id="dcount_2" onclick="setDiceCount(2)" style="height:34px; font-size:12px; padding:0;">2x</button>
-                <button class="secondary" id="dcount_3" onclick="setDiceCount(3)" style="height:34px; font-size:12px; padding:0;">3x</button>
-                <button class="secondary" id="dcount_4" onclick="setDiceCount(4)" style="height:34px; font-size:12px; padding:0;">4x</button>
-                <button class="secondary" id="dcount_5" onclick="setDiceCount(5)" style="height:34px; font-size:12px; padding:0;">5x</button>
+            <div class="dice-option-grid dice-count-grid">
+                <button class="secondary dice-option" id="dcount_1" onclick="setDiceCount(1)">1x</button>
+                <button class="secondary dice-option" id="dcount_2" onclick="setDiceCount(2)">2x</button>
+                <button class="secondary dice-option" id="dcount_3" onclick="setDiceCount(3)">3x</button>
+                <button class="secondary dice-option" id="dcount_4" onclick="setDiceCount(4)">4x</button>
+                <button class="secondary dice-option" id="dcount_5" onclick="setDiceCount(5)">5x</button>
             </div>
         </div>
     `;
@@ -3868,7 +3873,7 @@ function updateDicePreview() {
     let html = '';
     for (let i = 0; i < selectedDiceCount; i++) {
         html += `
-            <div style="font-size:${fontSize}; background:var(--bg); border:2px dashed var(--border); border-radius:var(--radius-md); width:${boxSize}; height:${boxSize}; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--muted);">
+            <div class="dice-face dice-face--placeholder" style="font-size:${fontSize}; width:${boxSize}; height:${boxSize};">
                 ?
             </div>
         `;
@@ -3931,7 +3936,7 @@ function rollDiceAnimation() {
         const boxSize = selectedDiceCount >= 4 ? '52px' : '60px';
 
         displayBox.innerHTML = tempResults.map(v => `
-            <div style="font-size:${fontSize}; background:var(--bg); border:2px solid var(--primary); border-radius:var(--radius-md); width:${boxSize}; height:${boxSize}; display:flex; align-items:center; justify-content:center; font-weight:800; color:var(--primary); transform: rotate(${(Math.random() * 16) - 8}deg);">
+            <div class="dice-face dice-face--rolled" style="font-size:${fontSize}; width:${boxSize}; height:${boxSize}; transform:rotate(${(Math.random() * 16) - 8}deg);">
                 ${v}
             </div>
         `).join('');

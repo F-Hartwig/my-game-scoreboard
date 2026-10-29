@@ -622,10 +622,15 @@ button,
 
 body.preview-mode { padding-bottom:max(18px, env(safe-area-inset-bottom)); }
 body.preview-mode .toolbar,
-body.preview-mode .bottom-nav,
 body.preview-mode .theme-toggle-btn,
+body.preview-mode .account-btn,
 body.preview-mode .game-status-actions,
-body.preview-mode .score-entry-card { display:none !important; }
+body.preview-mode .score-entry-card,
+body.preview-mode .preview-write-control,
+body.preview-mode .player-card .actions,
+body.preview-mode .new-game-action,
+body.preview-mode .active-game-actions { display:none !important; }
+body.preview-mode .bottom-nav { grid-template-columns:repeat(4, minmax(0, 1fr)); }
 body.preview-mode .round-pill { cursor:default; }
 
 .game-status-secondary {
@@ -2645,7 +2650,79 @@ body { padding-inline: 24px; }
 .dashboard-person-badge { padding: 6px 9px; font-size: 11px; font-weight: 700; }
 .dashboard-form-section { grid-template-columns: auto 1fr; align-items: center; column-gap: 12px; }
 .dashboard-form { min-height: 28px; display: flex; align-items: center; justify-content: flex-end; gap: 5px; }
-.dashboard-form-result { width: 28px; height: 28px; display: grid; place-items: center; font-size: 10px; font-weight: 850; }
+.dashboard-form-result { width: 28px; height: 28px; display: grid; place-items: center; color: var(--text-muted); background: var(--surface-soft); border: 1px solid var(--line); border-radius: var(--radius-control); font-size: 10px; font-weight: 850; }
+.dashboard-form-result.is-win { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.dashboard-form-result.is-loss { color: var(--danger); background: var(--danger-soft); border-color: var(--danger); }
+.dashboard-form-result.is-draw { color: var(--text-muted); }
+.setup-section-heading { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.setup-section-heading .title { margin:0; }
+.setup-custom-name { margin-bottom:20px; }
+.setup-action-row { margin-bottom:14px; }
+.setup-selection-list { margin-bottom:20px; }
+.game-mode-options { display:grid; gap:10px; margin-bottom:20px; }
+.mode-select-title { font-weight:700; }
+.setup-cancel-btn { margin-top:8px; }
+.active-games-heading { margin-top:20px; padding:0 4px; }
+.active-game-date { font-size:11px; font-weight:600; }
+.scoreboard-card--compact { padding:14px 12px; }
+.dice-preview-panel { margin-bottom:16px; text-align:center; }
+.dice-display-box { display:flex; min-height:80px; align-items:center; justify-content:center; flex-wrap:wrap; gap:8px; margin:10px 0; }
+.dice-control-section { margin-bottom:14px; }
+.dice-count-section { margin-bottom:16px; }
+.dice-option-grid { display:grid; gap:6px; }
+.dice-type-grid { grid-template-columns:repeat(4, 1fr); }
+.dice-count-grid { grid-template-columns:repeat(5, 1fr); }
+.dice-option { height:44px; min-height:44px; padding:0; font-size:12px; }
+.dice-face { display:flex; width:60px; height:60px; align-items:center; justify-content:center; border-radius:var(--radius-control); font-weight:800; }
+.dice-face--placeholder { color:var(--muted); background:var(--bg); border:2px dashed var(--border); }
+.dice-face--rolled { color:var(--primary); background:var(--bg); border:2px solid var(--primary); }
+.setup-team-main, .winner-card-main { flex:1; min-width:0; }
+.setup-team-name { overflow:hidden; word-break:break-all; text-overflow:ellipsis; }
+.setup-team-delete { width:32px; height:32px; min-height:32px; flex-shrink:0; margin-left:8px; font-size:14px; }
+.avatar-sm { width:32px; height:32px; flex-shrink:0; font-size:11px; }
+.avatar-xs { width:28px; height:28px; font-size:10px; }
+.avatar-team { color:var(--success); background:var(--success-soft); }
+.modal-team-player-list { max-height:260px; padding:2px; display:flex; flex-direction:column; gap:6px; overflow-y:auto; }
+.select-card-compact { margin-bottom:0; padding:10px; }
+.modal-team-player-name { font-size:14px; font-weight:600; }
+.score-finish-btn, .modal-back-btn { margin-top:8px; }
+.score-finish-btn--loose { margin-top:14px; }
+.score-player-name { flex:1; }
+.score-value-input { width:85px; height:44px; text-align:center; font-weight:700; }
+.round-player-row-inline { display:flex; align-items:center; gap:8px; }
+.submit-single-btn-compact { width:44px; height:44px; font-size:11px; }
+.modal-score-edit-row { display:flex; align-items:center; gap:8px; }
+.modal-sign-btn { width:44px; height:48px; padding:0; flex-shrink:0; border-radius:var(--radius-control); font-size:18px; font-weight:800; }
+.modal-score-input { text-align:center; font-size:18px; font-weight:700; }
+.winner-cards-list { margin-bottom:16px; }
+.winner-card-name { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.winner-recommendation { flex-shrink:0; margin-left:8px; }
+.winner-card-score { margin-left:auto; padding-left:12px; flex-shrink:0; text-align:right; white-space:nowrap; font-size:14px; font-weight:700; }
+.result-hero-card { padding:24px 16px; text-align:center; }
+.result-ranking-row { padding:10px 0; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); }
+.result-ranking-name { font-size:14px; font-weight:600; }
+.rank-card-interactive { cursor:pointer; transition:background 150ms ease; }
+.rank-card-identity { min-width:0; display:flex; align-items:center; gap:10px; }
+.history-load-more-btn { height:44px; margin-top:10px; font-size:14px; }
+.modal-scoreboard-list-spaced { margin-bottom:20px; }
+.profile-game-row { padding:8px 0; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--line); }
+.profile-game-name { font-size:14px; font-weight:600; }
+.profile-game-stats { text-align:right; font-size:13px; }
+.profile-partner-name { margin-top:2px; font-size:15px; font-weight:700; }
+.profile-modal-header { margin-bottom:16px; text-align:center; }
+.profile-modal-avatar { width:54px; height:54px; margin:0 auto 8px; font-size:18px; }
+.profile-modal-name { font-size:20px; font-weight:800; }
+.profile-game-list { margin-bottom:10px; display:flex; flex-direction:column; gap:2px; }
+.modal-action-fill { flex:1; }
+.start-player-list { margin-bottom:16px; display:flex; flex-direction:column; gap:8px; }
+.start-player-card { margin-bottom:0; padding:12px; }
+.avatar-start-player { width:30px; height:30px; font-size:11px; }
+.history-modal-title { display:flex; align-items:center; gap:8px; }
+.history-title-edit-btn { width:30px; height:28px; min-height:28px; flex-shrink:0; font-size:11px; }
+.history-card-static { cursor:default; }
+.history-card-date-flex { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
+.rules-detail-btn { height:44px; margin-top:10px; font-size:13px; font-weight:700; }
+.timer-option-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
 .werwolf-setup { display: grid; gap: 12px; margin: 0 0 16px; }
 .werwolf-setup > p { font-size: 13px; }
 .werwolf-role-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }

@@ -69,10 +69,39 @@ test('collaboration refresh preserves activity disclosure and home keeps a compa
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=mono-pulse-16/);
-  assert.match(indexSource, /app\.js\?v=mono-pulse-4/);
+  assert.match(indexSource, /style\.css\?v=mono-pulse-17/);
+  assert.match(indexSource, /app\.js\?v=mono-pulse-5/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
+});
+
+test('preview keeps navigation and rules read-only while blocking all setup entry points', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const css = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+
+  assert.match(source, /async function openNewGameSetup\(element\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
+  assert.match(source, /function startSetup\(prefillGame = null\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
+  assert.match(source, /async function quickStartGame\(gameId\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
+  assert.match(source, /let playBtnHtml = !IS_PREVIEW_MODE && !g\.hideFromSelection/);
+  assert.match(source, /async function toggleFav\(id\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
+  assert.match(source, /IS_PREVIEW_MODE \? '' : `<button class="icon-btn favorite-btn/);
+  assert.match(css, /body\.preview-mode \.preview-write-control/);
+  assert.match(css, /body\.preview-mode \.new-game-action/);
+  assert.match(css, /body\.preview-mode \.active-game-actions/);
+  assert.match(css, /body\.preview-mode \.bottom-nav \{ grid-template-columns:repeat\(4/);
+  assert.doesNotMatch(css, /body\.preview-mode \.bottom-nav[^\{]*\{[^}]*display:\s*none/);
+});
+
+test('dashboard status badges are semantic and open games remain in the detailed section', async () => {
+  const source = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
+  const css = await fs.readFile(new URL('../style.css', import.meta.url), 'utf8');
+
+  assert.match(source, /Details und Fortsetzen im Abschnitt „Laufende Spiele“/);
+  assert.doesNotMatch(source, /dashboard-game" onclick="resumeGame/);
+  assert.match(source, /aria-label="\$\{formTitles\[result\]\}"/);
+  assert.match(css, /\.dashboard-form-result\.is-win \{ color: var\(--success\)/);
+  assert.match(css, /\.dashboard-form-result\.is-loss \{ color: var\(--danger\)/);
+  assert.match(css, /\.dashboard-form-result\.is-draw \{ color: var\(--text-muted\)/);
 });
 
 test('Werwolf client keeps configured living night-role steps and persistent moderator resources', async () => {
