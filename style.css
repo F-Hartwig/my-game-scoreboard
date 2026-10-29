@@ -2689,6 +2689,13 @@ body { padding-inline: 24px; }
 .editing-notice {
     margin-inline: 14px;
 }
+.collaboration-presence {
+    min-height: 44px;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+}
 .collaboration-presence > div:first-child { display: flex; align-items: center; gap: 7px; font-size: 12px; }
 .presence-dot { width: 8px; height: 8px; display: inline-block; }
 .presence-people { display: flex; align-items: center; justify-content: flex-end; gap: 5px; flex-wrap: wrap; }
