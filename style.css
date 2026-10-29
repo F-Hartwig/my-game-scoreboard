@@ -2958,7 +2958,7 @@ body { padding-inline: 24px; }
     .personal-comparison-head { align-items: stretch; }
     .personal-comparison-head select { width: 50%; }
     .personal-comparison-grid { grid-template-columns: repeat(2, 1fr); }
-.collaboration-presence { align-items: flex-start; }
+    .collaboration-presence { align-items: center; }
     .presence-person small { display: none; }
     .activity-entry { grid-template-columns: 1fr auto; }
     .activity-undo { grid-column: 1 / -1; width: 100%; }
