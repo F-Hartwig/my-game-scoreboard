@@ -292,7 +292,11 @@ button.secondary, button.ghost { color: var(--text); background: var(--surface);
 .history-score, .round-pill, .dashboard-win-rate, .stats-overview-value) {
     font-variant-numeric: tabular-nums;
 }
-:where(.personal-dashboard-card, .history-card, .rank-card, .active-game-card, .ww-day-summary,
+.status-badge { display: inline-flex; align-items: center; min-height: 28px; max-width: 100%; padding: 4px 8px; border: 1px solid var(--line); border-radius: var(--radius-pill); font-size: 12px; font-weight: 760; line-height: 1.2; overflow-wrap: anywhere; }
+.status-badge--neutral { color: var(--text-muted); background: var(--surface-soft); border-color: var(--line); }
+.status-badge--success { color: var(--success); background: var(--success-soft); border-color: var(--success); }
+.status-badge--danger { color: var(--danger); background: var(--danger-soft); border-color: var(--danger); }
+:where(.personal-dashboard-card, .history-card, .rank-card, .active-game-card,
 .ww-personal-role, .ww-secret) { background: var(--surface); border-color: var(--line); }
 
 /* Semantic status */
@@ -2836,8 +2840,13 @@ body { padding-inline: 24px; }
 .ww-section-actions .game-action-icon { width: 40px; height: 40px !important; padding: 0 !important; }
 .ww-section-actions .game-action-icon svg, .ww-mayor-crown svg { width: 18px; height: 18px; fill: currentColor; }
 .ww-mayor-crown { display: inline-flex; vertical-align: -3px; margin-left: 6px; }
-.ww-day-action { display: flex; align-items: center; gap: 10px; }
+.ww-day-deaths { display: grid; gap: 8px; }
+.ww-day-section-title { font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; }
+.ww-day-death-badges { display: flex; flex-wrap: wrap; gap: 8px; min-width: 0; }
+.ww-day-action { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .ww-day-action > button { width: auto; }
+.ww-day-edit-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; }
+.ww-day-edit-action svg { width: 18px; height: 18px; flex: none; }
 .ww-day-confirmation { margin: 0; font-size: 13px; }
 @media (max-width: 420px) { .ww-section-heading { align-items: flex-start; } .ww-section-actions { gap: 6px; } .ww-section-actions > button:not(.game-action-icon) { padding-inline: 10px; } }
 .ww-roster, .ww-events, .ww-field-group, .ww-step-content, .ww-witch-heal-action, .ww-witch-poison-action { display: grid; gap: 12px; margin: 0; }
@@ -2850,7 +2859,6 @@ body { padding-inline: 24px; }
 .ww-player > strong { min-width: 0; overflow-wrap: anywhere; } .ww-player span { font-size: 12px; overflow-wrap: anywhere; } .ww-player button { grid-column: 2; grid-row: 1 / 3; width: auto; } .ww-player.dead { opacity: .58; }
 .ww-effect-list { grid-column: 1; display: flex; flex-wrap: wrap; gap: 6px; margin-top: 5px; }
 .ww-effect-badge { padding: 4px 8px; font-size: 10px !important; font-weight: 760; }
-.ww-day-summary { padding: 14px; }
 .ww-events { font-size: 13px; } .ww-events > div { padding: 7px 0; }
 .ww-readonly-card { display: grid; gap: 14px; overflow: hidden; }
 .ww-personal-role { display: grid; gap: 7px; padding: 16px; }

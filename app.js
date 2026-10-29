@@ -1745,6 +1745,13 @@ function wwDeathSummary(ww) {
     if (names.length === 2) return `${names[0]} und ${names[1]} sind gestorben.`;
     return `${names.slice(0, -1).join(', ')} und ${names.at(-1)} sind gestorben.`;
 }
+function wwDayDeathsPanel(ww) {
+    const deathIds = wwNightDeathIdsForDay(ww);
+    const badges = deathIds.length
+        ? deathIds.map(playerId => `<span class="status-badge status-badge--danger">${escapeHtml(wwPlayerName(playerId))}</span>`).join('')
+        : '<span class="status-badge status-badge--neutral">Niemand</span>';
+    return `<section class="ww-day-deaths" aria-labelledby="wwDayDeathsTitle"><span id="wwDayDeathsTitle" class="ww-day-section-title">Todesfälle</span><div class="ww-day-death-badges">${badges}</div></section>`;
+}
 async function saveWerewolf() { const saved = await apiUpdateActiveGame(state.currentGame); if (saved) { state.currentGame = saved; state.activeGames = state.activeGames.map(game => String(game.id) === String(saved.id) ? saved : game); } renderGame(); return Boolean(saved); }
 function wwRoleStatus(role, ww) {
     const notes = [];
@@ -1783,8 +1790,8 @@ function wwActionPanel(ww, step) {
     if (step === 'seer') return `${sleepingNotice}<label>Person prüfen<select id="wwTarget">${options}</select></label>`;
     if (step === 'day') {
         const draft = wwDayDraft(ww), plan = wwDayPlan(ww, draft.accusationTargetId, draft.hunterShotId);
-        if (wwDayAccusationIsConfirmed(ww)) return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p><div class="ww-day-action"><button type="button" class="secondary game-action-icon" data-ww-day-action="edit-accusation" aria-label="Anklage ändern" title="Anklage ändern">✎</button></div>`;
-        return `<p class="ww-day-summary"><strong>${escapeHtml(wwDeathSummary(ww))}</strong></p><label>Tod durch Anklage<select id="wwAccusationTarget"><option value=""${draft.accusationTargetId == null ? ' selected' : ''}>Niemand</option>${wwDayTargetOptions(plan.accusationTargetIds, draft.accusationTargetId)}</select></label><div class="ww-day-action"><button type="button" data-ww-day-action="confirm-accusation">Anklage bestätigen</button></div><div id="wwHunterField">${plan.hunterId == null ? '' : `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwDayTargetOptions(plan.hunterTargetIds, plan.hunterShotId)}</select></label>`}</div>`;
+        if (wwDayAccusationIsConfirmed(ww)) return `${wwDayDeathsPanel(ww)}<div class="ww-day-action"><span class="status-badge status-badge--success">Anklage bestätigt</span><button type="button" class="secondary ww-day-edit-action" data-ww-day-action="edit-accusation"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4Z"/></svg><span>Anklage ändern</span></button></div>`;
+        return `${wwDayDeathsPanel(ww)}<label>Tod durch Anklage<select id="wwAccusationTarget"><option value=""${draft.accusationTargetId == null ? ' selected' : ''}>Niemand</option>${wwDayTargetOptions(plan.accusationTargetIds, draft.accusationTargetId)}</select></label><div class="ww-day-action"><button type="button" data-ww-day-action="confirm-accusation">Anklage bestätigen</button></div><div id="wwHunterField">${plan.hunterId == null ? '' : `<label>Jäger schießt auf<select id="wwHunterTarget"><option value="">Kein Schuss</option>${wwDayTargetOptions(plan.hunterTargetIds, plan.hunterShotId)}</select></label>`}</div>`;
     }
     return `${sleepingNotice}<label>Ziel / Ergebnis<select id="wwTarget">${options}</select></label>`;
 }
