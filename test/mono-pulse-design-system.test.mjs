@@ -33,7 +33,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-23/);
+  assert.match(index, /style\.css\?v=mono-pulse-24/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -66,8 +66,8 @@ test('presence and activity cards use the full content width and the leading pla
   assert.match(css, /\.collaboration-panel\s*\{[\s\S]*?padding:\s*12px 0/);
   assert.doesNotMatch(css, /\.collaboration-presence[^}]*margin-inline/);
   assert.match(css, /\.editing-notice\s*\{\s*margin-inline:\s*14px/);
-  assert.match(css, /\.collaboration-presence\s*\{[\s\S]*?background:\s*var\(--surface\)[\s\S]*?border:\s*1px solid var\(--line\)[\s\S]*?border-radius:\s*var\(--radius-card\)/);
-  assert.match(css, /@media \(max-width:\s*520px\)[\s\S]*?\.collaboration-presence\s*\{\s*align-items:\s*center;/);
+  assert.match(css, /\.collaboration-presence\s*\{[\s\S]*?display:\s*flex;[\s\S]*?align-items:\s*center;[\s\S]*?justify-content:\s*space-between;[\s\S]*?background:\s*var\(--surface\)[\s\S]*?border-radius:\s*var\(--radius-card\)/);
+  assert.equal((css.match(/\.collaboration-presence\s*\{/g) || []).length, 1);
   assert.match(css, /\.scoreboard-row:has\(\.leader-badge\)\s*\{[\s\S]*?border-color:\s*var\(--accent\)/);
 });
 

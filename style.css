@@ -2698,8 +2698,7 @@ body { padding-inline: 24px; }
     }
 .personal-dashboard-card { display: grid; gap: 12px; }
 .personal-dashboard-head,
-.personal-comparison-head,
-.collaboration-presence { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.personal-comparison-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .personal-dashboard-head > div,
 .personal-comparison-head > div { display: grid; gap: 3px; }
 .dashboard-eyebrow { font-size: 10px; font-weight: 760; letter-spacing: .55px; text-transform: uppercase; }
@@ -2890,6 +2889,10 @@ body { padding-inline: 24px; }
 .collaboration-presence {
     min-height: 44px;
     padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
     background: var(--surface);
     border: 1px solid var(--line);
     border-radius: var(--radius-card);
@@ -2958,7 +2961,6 @@ body { padding-inline: 24px; }
     .personal-comparison-head { align-items: stretch; }
     .personal-comparison-head select { width: 50%; }
     .personal-comparison-grid { grid-template-columns: repeat(2, 1fr); }
-    .collaboration-presence { align-items: center; }
     .presence-person small { display: none; }
     .activity-entry { grid-template-columns: 1fr auto; }
     .activity-undo { grid-column: 1 / -1; width: 100%; }
