@@ -343,6 +343,11 @@ function openGameSwitcher(trigger) {
 
 async function handleGameSwitcherTrigger(element) {
     if (IS_PREVIEW_MODE) return;
+    const popover = document.getElementById('gameSwitcherPopover');
+    if (popover && !popover.hidden) {
+        closeGameSwitcher();
+        return;
+    }
     await loadAllFromDb();
     if (!state.activeGames.length) {
         await openNewGameSetup(element);

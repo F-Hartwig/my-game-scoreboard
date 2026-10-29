@@ -71,7 +71,7 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
   assert.match(indexSource, /style\.css\?v=mono-pulse-21/);
-  assert.match(indexSource, /app\.js\?v=mono-pulse-11/);
+  assert.match(indexSource, /app\.js\?v=mono-pulse-12/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
 });
@@ -82,6 +82,7 @@ test('preview keeps navigation and rules read-only while blocking all setup entr
 
   assert.match(source, /async function openNewGameSetup\(element\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
   assert.match(source, /async function handleGameSwitcherTrigger\(element\) \{\s+if \(IS_PREVIEW_MODE\) return;/);
+  assert.match(source, /const popover = document\.getElementById\('gameSwitcherPopover'\);\s+if \(popover && !popover\.hidden\) \{\s+closeGameSwitcher\(\);\s+return;/);
   assert.match(source, /async function closeGameSwitcherForNavigation\(\)[\s\S]*?window\.addEventListener\('popstate', finish, \{ once: true \}\);[\s\S]*?history\.back\(\)/);
   assert.match(source, /async function selectGameFromSwitcher\(gameId\) \{\s+await closeGameSwitcherForNavigation\(\);\s+await resumeGame\(gameId\);/);
   assert.match(source, /async function createGameFromSwitcher\(\) \{\s+await closeGameSwitcherForNavigation\(\);\s+await openNewGameSetup/);
