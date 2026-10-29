@@ -134,6 +134,33 @@ button:disabled { color: var(--text-muted); background: var(--surface-muted); bo
     border-radius: var(--radius-control);
     box-shadow: none;
 }
+input[type="checkbox"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 20px;
+    border: 1px solid var(--line-strong);
+    border-radius: 6px;
+    background-color: var(--surface);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 13px 13px;
+    cursor: pointer;
+    transition: none;
+}
+input[type="checkbox"]:checked {
+    background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 8.3 6.7 11.2 12.8 4.8' fill='none' stroke='white' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") center / 13px 13px no-repeat;
+    border-color: var(--accent);
+}
+input[type="checkbox"]:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
 button.primary, .auth-form button, .add-player-btn, .new-game-action > button,
 .submit-single-btn, .result-next-actions button:first-child,
 #modalActions button:last-child:not(.secondary):not(.red):not(.danger),
@@ -1045,8 +1072,6 @@ input::placeholder {
 }
 
 .select-card input[type="checkbox"] {
-    -webkit-appearance: none;
-    appearance: none;
     width: 22px;
     height: 22px;
     min-width: 22px;
@@ -1059,28 +1084,7 @@ input::placeholder {
     align-self: center;
     box-sizing: border-box;
     aspect-ratio: 1;
-    display: grid;
-    place-content: center;
-    cursor: pointer;
-    transition: background 0.16s ease, border-color 0.16s ease, box-shadow 0.16s ease;
-}
-
-.select-card input[type="checkbox"]::after {
-    content: "";
-    width: 5px;
-    height: 10px;
-    border-right: 2px solid #ffffff;
-    border-bottom: 2px solid #ffffff;
-    transform: translateY(-1px) rotate(45deg) scale(0);
-    transform-origin: center;
-    transition: transform 0.12s ease;
-}
-.select-card input[type="checkbox"]:checked {
-    background: var(--accent);
-    border-color: var(--accent);
-}
-.select-card input[type="checkbox"]:checked::after {
-    transform: translateY(-1px) rotate(45deg) scale(1);
+    border-radius: 50%;
 }
 .player-left {
     min-width: 0;
@@ -2388,7 +2392,6 @@ select { min-height: 44px; }
     display: grid; place-content: center;
     cursor: pointer;
 }
-.select-card input[type="checkbox"]::after { width: 4px; height: 8px; }
 .mode-select-card input[type="radio"]::after { content: ""; width: 8px; height: 8px; transform: scale(0); }
 .mode-select-card input[type="radio"]:checked::after { transform: scale(1); }
 html { scroll-padding-block: 24px 120px; }
