@@ -234,6 +234,31 @@ button.secondary, button.ghost { color: var(--text); background: var(--surface);
 .badge-neutral-inline { padding: 3px 8px; margin-left: 8px; color: var(--text-muted); background: var(--surface-raised); border: 1px solid var(--line-strong); font-size: 11px; vertical-align: middle; }
 .badge-accent { padding: 3px 7px; margin-left: 6px; color: var(--accent-text); background: var(--accent-soft); border: 1px solid var(--accent); font-size: 11px; }
 .badge-accent-compact { padding: 2px 6px; margin-left: 6px; color: var(--accent-text); background: var(--accent-soft); border-radius: 6px; }
+.dashboard-win-rate,
+.personal-rank-badge,
+.wizard-order-badge,
+.wizard-starter-status,
+.rec-tag {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-muted);
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-pill);
+    font-variant-numeric: tabular-nums;
+}
+.rec-tag,
+.wizard-starter-option.selected .wizard-starter-status {
+    color: var(--accent-text);
+    background: var(--accent-soft);
+    border-color: var(--accent);
+}
+.game-limit-badge.danger {
+    color: var(--danger);
+    background: var(--danger-soft);
+    border-color: var(--danger);
+}
 .label-title { display: block; margin-bottom: 2px; color: var(--text); font-size: 15px; }
 .inline-panel { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-control); }
 .stepper-button { width: 36px; height: 38px; min-height: 38px; padding: 0; flex-shrink: 0; color: var(--text-muted); background: var(--surface-raised); font-size: 16px; font-weight: 800; }

@@ -32,7 +32,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-14/);
+  assert.match(index, /style\.css\?v=mono-pulse-15/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -74,4 +74,10 @@ test('mobile header keeps an accessible account and profile-assignment control',
   assert.match(css, /\.account-btn-icon\s*\{[\s\S]*?stroke:\s*currentColor/);
   assert.match(css, /\.account-btn\s*\{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/);
   assert.match(css, /\.account-btn #accountLabel\s*\{\s*display:\s*none/);
+});
+
+test('all compact dashboard and game labels use the shared badge surface contract', () => {
+  assert.match(css, /\.dashboard-win-rate,[\s\S]*?\.personal-rank-badge,[\s\S]*?\.wizard-order-badge,[\s\S]*?\.wizard-starter-status,[\s\S]*?\.rec-tag\s*\{[\s\S]*?background:\s*var\(--surface-soft\)[\s\S]*?border:\s*1px solid var\(--line\)[\s\S]*?border-radius:\s*var\(--radius-pill\)/);
+  assert.match(css, /\.rec-tag,[\s\S]*?\.wizard-starter-option\.selected \.wizard-starter-status\s*\{[\s\S]*?background:\s*var\(--accent-soft\)/);
+  assert.match(css, /\.game-limit-badge\.danger\s*\{[\s\S]*?background:\s*var\(--danger-soft\)/);
 });
