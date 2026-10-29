@@ -194,8 +194,7 @@ button.secondary, button.ghost { color: var(--text); background: var(--surface);
 .history-score, .round-pill, .dashboard-win-rate, .stats-overview-value) {
     font-variant-numeric: tabular-nums;
 }
-:where(.personal-dashboard-card, .personal-stats-overview, .stats-overview,
-.history-card, .rank-card, .active-game-card, .ww-day-summary,
+:where(.personal-dashboard-card, .history-card, .rank-card, .active-game-card, .ww-day-summary,
 .ww-personal-role, .ww-secret) { background: var(--surface); border-color: var(--line); }
 
 /* Semantic status */
@@ -442,10 +441,26 @@ button,
 .theme-indicator {
     width: 18px;
     height: 18px;
-    display: block;
-    position: relative;
-    transition: background 0.2s ease, box-shadow 0.2s ease;
+    display: grid;
+    place-items: center;
+    color: var(--text-muted);
 }
+
+.theme-indicator svg {
+    width: 18px;
+    height: 18px;
+    fill: none;
+    stroke: currentColor;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    stroke-width: 1.8;
+}
+
+.theme-icon-moon { display: none; }
+.theme-toggle-btn.is-dark .theme-icon-sun { display: none; }
+.theme-toggle-btn.is-dark .theme-icon-moon { display: block; }
+.theme-toggle-btn:hover .theme-indicator { color: var(--text); }
+
 .toolbar {
     margin: 0 auto 16px;
     padding: 2px 2px 6px;
@@ -1353,10 +1368,16 @@ input::placeholder {
     margin-bottom: 15px;
     display: grid;
     gap: 10px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
 }
 
 .personal-stats-overview {
     margin-bottom: 15px;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
 }
 
 .personal-stats-overview[hidden] {
@@ -1408,8 +1429,11 @@ input::placeholder {
     padding: 12px 8px;
     display: grid;
     gap: 2px;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
     text-align: center;
-    }
+}
 
 .personal-stats-grid strong {
     font-size: 20px;
@@ -1435,7 +1459,10 @@ input::placeholder {
     display: flex;
     flex-direction: column;
     gap: 3px;
-    }
+    background: var(--surface-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
+}
 
 .personal-stats-insights strong {
     overflow: hidden;
@@ -1501,8 +1528,11 @@ input::placeholder {
     flex: 0 0 auto;
     display: grid;
     place-content: center;
+    background: var(--surface-soft);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-control);
     text-align: center;
-    }
+}
 
 .stats-overview-balance span {
     font-size: 22px;
@@ -1528,7 +1558,10 @@ input::placeholder {
     display: flex;
     flex-direction: column;
     justify-content: center;
-    }
+    background: var(--surface-raised);
+    border-color: var(--line);
+    border-radius: var(--radius-control);
+}
 
 .stats-overview-tile > span {
     font-size: 10px;
@@ -2504,6 +2537,8 @@ body { padding-inline: 24px; }
 .personal-comparison-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
 .personal-dashboard-metrics > div,
 .personal-comparison-grid > div { padding: 10px 6px; display: grid; gap: 2px; text-align: center; }
+.personal-comparison-grid { gap: 8px; background: transparent; border: 0; box-shadow: none; }
+.personal-comparison-grid > div { background: var(--surface-soft); border: 1px solid var(--line); border-radius: var(--radius-control); }
 .personal-dashboard-metrics strong,
 .personal-comparison-grid strong { font-size: 18px; }
 .personal-dashboard-metrics span,
