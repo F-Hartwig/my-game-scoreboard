@@ -235,9 +235,19 @@ function instantScrollToContainerEnd(element) {
     });
 }
 
-function removeSyncBlockAndNavigate(pageId, element) {
+function discardSetupDraft() {
     state.isSettingUpGame = false;
-    state.lastRenderedGameId = null; 
+    state.lastRenderedGameId = null;
+    state.ratedMode = true;
+    state.tempTeams = [];
+    state.setupGuestPlayers = [];
+    setupDraftSelection = [];
+    setupPlayerFilter = "all";
+    setupPlayerListExpanded = false;
+}
+
+function removeSyncBlockAndNavigate(pageId, element) {
+    discardSetupDraft();
     navigate(pageId, element);
 }
 
@@ -1120,8 +1130,7 @@ function setRated(val) {
 }
 
 function cancelSetup() {
-    state.isSettingUpGame = false;
-    state.lastRenderedGameId = null;
+    discardSetupDraft();
     renderGame();
 }
 
@@ -2538,6 +2547,7 @@ async function pauseCurrentGame() {
 }
 
 async function resumeGame(gameId) {
+    discardSetupDraft();
     let ag = state.activeGames.find(x => String(x.id) === String(gameId));
     if(ag) {
         state.currentGame = ag;
