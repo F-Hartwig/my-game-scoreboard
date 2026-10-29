@@ -32,7 +32,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-10/);
+  assert.match(index, /style\.css\?v=mono-pulse-11/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -50,4 +50,13 @@ test('ranking and history use compact statistic boxes with semantic winners', ()
   assert.match(css, /\.history-player-score\.is-winner\s*\{[\s\S]*?color:\s*var\(--success\)/);
   assert.match(css, /\.history-winner-summary\s*\{[\s\S]*?background:\s*var\(--success-soft\)/);
   assert.match(css, /\.history-winner-summary\.is-draw\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
+});
+
+test('activity disclosure is structured and only signed score values use semantic colors', () => {
+  assert.match(css, /\.activity-card\s*\{[\s\S]*?padding:\s*11px 12px/);
+  assert.match(css, /\.activity-card summary\s*\{[\s\S]*?grid-template-columns:\s*1fr auto auto/);
+  assert.match(css, /\.activity-card summary::after\s*\{[\s\S]*?border-right:/);
+  assert.match(css, /\.val-pos\s*\{[\s\S]*?color:\s*var\(--success\)/);
+  assert.match(css, /\.val-neg\s*\{[\s\S]*?color:\s*var\(--danger\)/);
+  assert.doesNotMatch(css, /\.round-pill\.val-(?:pos|neg)/);
 });
