@@ -161,6 +161,33 @@ input[type="checkbox"]:focus-visible {
     outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
 }
+input[type="radio"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    min-width: 20px;
+    min-height: 20px;
+    margin: 0;
+    padding: 0;
+    flex: 0 0 20px;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    background-color: var(--surface);
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: 8px 8px;
+    cursor: pointer;
+    transition: none;
+}
+input[type="radio"]:checked {
+    background: var(--accent) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Ccircle cx='6' cy='6' r='2.5' fill='white'/%3E%3C/svg%3E") center / 8px 8px no-repeat;
+    border-color: var(--accent);
+}
+input[type="radio"]:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
 button.primary, .auth-form button, .add-player-btn, .new-game-action > button,
 .submit-single-btn, .result-next-actions button:first-child,
 #modalActions button:last-child:not(.secondary):not(.red):not(.danger),
@@ -1068,7 +1095,6 @@ input::placeholder {
 .mode-select-card input[type="radio"] {
     width: 21px;
     height: 21px;
-    accent-color: var(--primary);
 }
 
 .select-card input[type="checkbox"] {
@@ -2392,8 +2418,6 @@ select { min-height: 44px; }
     display: grid; place-content: center;
     cursor: pointer;
 }
-.mode-select-card input[type="radio"]::after { content: ""; width: 8px; height: 8px; transform: scale(0); }
-.mode-select-card input[type="radio"]:checked::after { transform: scale(1); }
 html { scroll-padding-block: 24px 120px; }
 input, select { min-width: 0; }
 input::placeholder { opacity: 1; }

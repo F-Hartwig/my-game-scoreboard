@@ -33,7 +33,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-19/);
+  assert.match(index, /style\.css\?v=mono-pulse-20/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -100,4 +100,10 @@ test('all checkbox variants and mobile reorder handles remain visible and usable
   assert.doesNotMatch(css, /button, \[onclick\][^{]*, \.reorder-handle\s*\{\s*touch-action:\s*manipulation/);
   assert.match(app, /reorderHandle\.addEventListener\('dragend',[\s\S]*?captureSetupSelection\(\);/);
   assert.match(app, /const finishTouchDrag = \(\) => \{[\s\S]*?captureSetupSelection\(\);/);
+});
+
+test('selected game-mode radios render a browser-stable filled state', () => {
+  assert.match(css, /input\[type="radio"\]\s*\{[^}]*appearance:\s*none;[^}]*border-radius:\s*50%;[^}]*transition:\s*none;/s);
+  assert.match(css, /input\[type="radio"\]:checked\s*\{[^}]*background:\s*var\(--accent\) url\("data:image\/svg\+xml[^}]*border-color:\s*var\(--accent\);/s);
+  assert.doesNotMatch(css, /\.mode-select-card input\[type="radio"\]:checked::after/);
 });
