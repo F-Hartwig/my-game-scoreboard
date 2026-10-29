@@ -497,15 +497,9 @@ async function sharePreviewLink() {
 
 function toggleSignElement(btn) {
     if (!btn) return;
-    if (btn.innerText === '+') {
-        btn.innerText = '-';
-        btn.style.background = 'var(--danger-light)';
-        btn.style.color = 'var(--danger)';
-    } else {
-        btn.innerText = '+';
-        btn.style.background = 'var(--card-raised)';
-        btn.style.color = 'var(--muted)';
-    }
+    const isNegative = btn.innerText === '+';
+    btn.innerText = isNegative ? '-' : '+';
+    btn.classList.toggle('is-negative', isNegative);
 }
 
 function focusInputWithoutScrolling(input) {
@@ -2388,8 +2382,7 @@ function resetSignButton(playerId) {
     const btn = document.getElementById(`sign_${playerId}`);
     if (btn) {
         btn.innerText = '+';
-        btn.style.background = 'var(--card-raised)';
-        btn.style.color = 'var(--muted)';
+        btn.classList.remove('is-negative');
     }
 }
 
@@ -2502,9 +2495,7 @@ function triggerEditRound(playerId, roundIndex, currentVal) {
     let body = `
         <p>Korrigiere die Punktzahl für <strong>${escapeHtml(p.name)}</strong> (${labelText}):</p>
         <div class="modal-score-edit-row">
-            <button type="button" id="modalSignBtn" class="modal-sign-btn" onpointerdown="handleModalSignPointerDown(event)" onclick="handleModalSignClick(event)" style="
-                background: ${isNegative ? 'var(--danger-light)' : 'var(--card-raised)'};
-                color: ${isNegative ? 'var(--danger)' : 'var(--muted)'};">
+            <button type="button" id="modalSignBtn" class="modal-sign-btn${isNegative ? ' is-negative' : ''}" onpointerdown="handleModalSignPointerDown(event)" onclick="handleModalSignClick(event)">
                 ${isNegative ? '-' : '+'}
             </button>
             <input type="text" inputmode="decimal" id="modalRoundInput" class="modal-score-input" value="${absoluteValue}">

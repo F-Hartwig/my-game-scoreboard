@@ -8,6 +8,7 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
+const gamesConfig = fs.readFileSync(path.join(root, 'gamesConfig.js'), 'utf8');
 
 test('Mono Pulse has one token source and no legacy visual effects', () => {
   assert.equal((css.match(/^:root\s*\{/gm) || []).length, 1);
@@ -33,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-24/);
+  assert.match(index, /style\.css\?v=mono-pulse-25/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -108,4 +109,15 @@ test('selected game-mode radios render a browser-stable filled state', () => {
   assert.match(css, /input\[type="radio"\]\s*\{[^}]*appearance:\s*none;[^}]*border-radius:\s*50%;[^}]*transition:\s*none;/s);
   assert.match(css, /input\[type="radio"\]:checked\s*\{[^}]*background:\s*var\(--accent\) url\("data:image\/svg\+xml[^}]*border-color:\s*var\(--accent\);/s);
   assert.doesNotMatch(css, /\.mode-select-card input\[type="radio"\]:checked::after/);
+});
+
+test('rule documents and sign states use shared classes instead of static inline visuals', () => {
+  assert.doesNotMatch(gamesConfig, /style=/i);
+  assert.match(gamesConfig, /class="rule-content"/);
+  assert.match(gamesConfig, /class="rule-heading rule-heading--(?:success|warning|danger)"/);
+  assert.match(css, /\.rule-content\s*\{[^}]*max-height:\s*400px[^}]*overflow-y:\s*auto/s);
+  assert.match(css, /\.rule-heading\s*\{[^}]*color:\s*var\(--primary\)/s);
+  assert.match(css, /\.modal-sign-btn\.is-negative\s*\{[^}]*color:\s*var\(--danger\)[^}]*background:\s*var\(--danger-light\)/s);
+  assert.doesNotMatch(app, /modalSignBtn[\s\S]{0,300}style=/);
+  assert.match(app, /classList\.toggle\('is-negative', isNegative\)/);
 });
