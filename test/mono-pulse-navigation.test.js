@@ -9,7 +9,7 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     const index = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
     const css = fs.readFileSync(path.join(root, 'style.css'), 'utf8');
 
-    assert.match(index, /style\.css\?v=mono-pulse-37/);
+    assert.match(index, /style\.css\?v=mono-pulse-38/);
     assert.match(index, /app\.js\?v=mono-pulse-25/);
     const app = fs.readFileSync(path.join(root, 'app.js'), 'utf8');
     assert.match(index, /nav-item nav-item--play[\s\S]*?handleGameSwitcherTrigger\(this\)[\s\S]*?aria-controls="gameSwitcherPopover"[\s\S]*?<span>Spielen<\/span>/);
@@ -19,6 +19,8 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     assert.match(app, /async function resumeGame\(gameId\)\s*\{\s*discardSetupDraft\(\);[\s\S]*?state\.currentGame = ag;[\s\S]*?renderGame\(\);/);
     assert.match(app, /function bindGameSwitcher\(\)/);
     assert.match(index, /id="gameSwitcherPopover"[\s\S]*?data-game-switcher-new/);
+    assert.match(index, /<button type="button" class="game-switcher__new primary" data-game-switcher-new>Neues Spiel anlegen<\/button>/);
+    assert.doesNotMatch(index, /data-game-switcher-new>[^<]*\+/);
     assert.match(index, /<span>Übersicht<\/span>[\s\S]*?<span>Spieler<\/span>[\s\S]*?<span>Spielen<\/span>[\s\S]*?<span>Statistik<\/span>[\s\S]*?<span>Regeln<\/span>/);
     assert.match(index, /removeSyncBlockAndNavigate\('playersPage', this\)/);
     assert.match(index, /openOverview\(this\)[\s\S]*?<span>Übersicht<\/span>/);
@@ -33,4 +35,7 @@ test('Mono Pulse navigation keeps its targets and exposes the centered play and 
     assert.match(css, /\.nav-item--play span:last-child\s*\{[^}]*margin-top:\s*-1px;/s);
     assert.match(css, /\.game-switcher-item\.is-current\s*\{[^}]*border-color:\s*var\(--accent\);/s);
     assert.match(css, /\.game-switcher-item__self\s*\{[^}]*color:\s*var\(--accent-text\);/s);
+    assert.match(css, /\.game-switcher-item\s*\{[^}]*justify-content:\s*space-between;[^}]*color:\s*var\(--text\);[^}]*background:\s*var\(--surface-raised\);[^}]*border:\s*1px solid var\(--line\);/s);
+    assert.match(css, /\.game-switcher__new\s*\{\s*justify-content:\s*center;\s*\}/);
+    assert.doesNotMatch(css, /\.game-switcher__new\s*\{[^}]*?(?:color|background|border(?:-color)?):/s);
 });
