@@ -3489,16 +3489,16 @@ function renderRulesPage() {
             : '';
 
         box.innerHTML += `
-            <div class="history-card history-card-static">
-                <div class="history-card-top rules-game-header">
-                    <div class="history-card-info rules-game-title">
-                        <div class="history-card-date history-card-date-flex">
+            <div class="rules-game-card">
+                <div class="rules-game-header">
+                    <div class="rules-game-title">
+                        <div class="rules-game-name">
                             ${escapeHtml(g.name)} ${pureRulesBadge}
                         </div>
                     </div>
                     ${playBtnHtml}
                 </div>
-                <div class="history-card-sub subcopy">${g.description}</div>
+                <div class="rules-game-description subcopy">${g.description}</div>
                 ${g.rules && g.rules.descriptionLong ? `
                     <button class="secondary rules-detail-btn"
                         onclick="openCollectionRulesModal('${g.id}')">

@@ -34,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-36/);
+  assert.match(index, /style\.css\?v=mono-pulse-37/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -67,6 +67,17 @@ test('ranking and history use compact statistic boxes with semantic winners', ()
   assert.match(css, /\.history-card-result\.is-draw\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.match-card-title\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
   assert.match(css, /\.history-rating-badge\s*\{[\s\S]*?margin-left:\s*auto;[\s\S]*?flex:\s*0 0 auto/);
+});
+
+test('rule cards use the reusable Mono Pulse layout contract', () => {
+  const rulesPage = app.slice(app.indexOf('function renderRulesPage()'), app.indexOf('async function quickStartGame'));
+  assert.match(rulesPage, /<div class="rules-game-card">[\s\S]*?<div class="rules-game-header">[\s\S]*?<div class="rules-game-title">[\s\S]*?\$\{playBtnHtml\}[\s\S]*?<div class="rules-game-description subcopy">/);
+  assert.doesNotMatch(rulesPage, /history-card/);
+  assert.match(css, /\.rules-game-card\s*\{[\s\S]*?padding:\s*14px;[\s\S]*?display:\s*flex;[\s\S]*?flex-direction:\s*column;[\s\S]*?gap:\s*10px;/);
+  assert.match(css, /\.rules-game-header\s*\{[\s\S]*?display:\s*flex;[\s\S]*?align-items:\s*center;[\s\S]*?justify-content:\s*space-between;/);
+  assert.match(css, /\.rules-game-title\s*\{[\s\S]*?min-width:\s*0;[\s\S]*?flex:\s*1 1 auto;/);
+  assert.match(css, /\.rules-start-btn\s*\{[\s\S]*?min-height:\s*44px;[\s\S]*?flex:\s*0 0 auto;/);
+  assert.match(css, /\.rules-detail-btn\s*\{[^}]*width:\s*100%;[^}]*margin:\s*0;/);
 });
 
 test('activity disclosure is structured and only signed score values use semantic colors', () => {

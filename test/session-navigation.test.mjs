@@ -6,7 +6,7 @@ test('main navigation restores only valid non-preview pages after data and game 
     const app = await fs.readFile(new URL('../app.js', import.meta.url), 'utf8');
     const index = await fs.readFile(new URL('../index.html', import.meta.url), 'utf8');
 
-    assert.match(index, /app\.js\?v=mono-pulse-24/);
+    assert.match(index, /app\.js\?v=mono-pulse-25/);
 
     assert.match(app, /const ACTIVE_MAIN_PAGE_SESSION_KEY = 'scorebuddy-active-main-page';/);
     assert.match(app, /const MAIN_PAGE_IDS = new Set\(\['gamePage', 'playersPage', 'statsPage', 'rulesPage'\]\);/);

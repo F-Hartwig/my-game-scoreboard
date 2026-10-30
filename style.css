@@ -1984,20 +1984,50 @@ input::placeholder {
     flex: 0 0 auto;
 }
 
+.rules-game-card {
+    margin-bottom: 12px;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--radius-card);
+    box-shadow: var(--shadow-card);
+}
+
 .rules-game-header {
+    display: flex;
     align-items: center;
-    gap: 14px;
-    padding-bottom: 0;
-    }
+    justify-content: space-between;
+    gap: 10px;
+}
 
 .rules-game-title {
-    padding-block: 3px;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.rules-game-name {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 4px;
+    font-size: 15px;
+    font-weight: 780;
+    overflow-wrap: anywhere;
+}
+
+.rules-game-description {
+    margin: 0;
+    font-size: 11px;
+    font-weight: 600;
 }
 
 .rules-start-btn {
     width: auto;
     min-width: 68px;
-    min-height: 38px;
+    min-height: 44px;
     margin: 0;
     padding: 0 15px;
     flex: 0 0 auto;
@@ -2862,7 +2892,7 @@ body { padding-inline: 24px; }
 .history-title-edit-btn { width:30px; height:28px; min-height:28px; flex-shrink:0; font-size:11px; }
 .history-card-static { cursor:default; }
 .history-card-date-flex { display:flex; align-items:center; flex-wrap:wrap; gap:4px; }
-.rules-detail-btn { height:44px; margin-top:10px; font-size:13px; font-weight:700; }
+.rules-detail-btn { width:100%; height:44px; margin:0; font-size:13px; font-weight:700; }
 .timer-option-grid { display:grid; grid-template-columns:repeat(3, 1fr); gap:10px; }
 .werwolf-setup { display: grid; gap: 12px; margin: 0 0 16px; }
 .werwolf-setup > p { font-size: 13px; }
