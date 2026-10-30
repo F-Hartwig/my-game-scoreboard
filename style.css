@@ -1651,11 +1651,6 @@ input::placeholder {
     gap: 7px;
 }
 
-.personal-form-dot {
-    width: 12px;
-    height: 12px;
-    display: block;
-    }
 .stats-overview-hero {
     padding: 20px;
     display: flex;
