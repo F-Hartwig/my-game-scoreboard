@@ -1651,6 +1651,25 @@ input::placeholder {
     gap: 7px;
 }
 
+.result-strip {
+    width: 100%;
+    min-width: 0;
+    padding-bottom: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 7px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
+    -webkit-overflow-scrolling: touch;
+}
+
+.result-strip > * {
+    flex: 0 0 auto;
+}
+
 .stats-overview-hero {
     padding: 20px;
     display: flex;

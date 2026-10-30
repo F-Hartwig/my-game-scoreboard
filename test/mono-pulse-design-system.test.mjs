@@ -34,10 +34,12 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-32/);
+  assert.match(index, /style\.css\?v=mono-pulse-33/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
+  assert.match(css, /\.result-strip\s*\{[\s\S]*?justify-content:\s*flex-start;[\s\S]*?overflow-x:\s*auto/);
+  assert.match(css, /\.result-strip > \*\s*\{\s*flex:\s*0 0 auto/);
   assert.match(css, /\.theme-toggle-btn\s*\{[\s\S]*?min-height:\s*42px/);
   assert.match(css, /\.stats-overview\s*\{[\s\S]*?background:\s*transparent/);
   assert.match(css, /\.personal-stats-overview\s*\{[\s\S]*?background:\s*transparent/);

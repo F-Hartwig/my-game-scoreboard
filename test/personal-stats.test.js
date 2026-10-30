@@ -22,6 +22,7 @@ test('personal stats include teams, rated games, streak and recent form', async 
     assert.equal(stats.winRate, 75);
     assert.equal(stats.currentWinStreak, 2);
     assert.deepEqual(stats.favoriteGame, { name: 'Cabo', games: 3 });
+    assert.deepEqual(stats.formHistory, ['win', 'win', 'loss', 'win']);
     assert.deepEqual(stats.recentForm, ['win', 'win', 'loss', 'win']);
     assert.equal(stats.rank, 1);
     assert.equal(stats.rankedPlayers, 3);

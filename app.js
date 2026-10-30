@@ -2828,8 +2828,8 @@ function renderPersonalStats() {
         : "Noch offen";
     const formLabels = { win: "Sieg", loss: "Niederlage", draw: "Unentschieden" };
     const formShortLabels = { win: "S", loss: "N", draw: "U" };
-    const recentForm = stats.recentForm.length
-        ? stats.recentForm.map(result => `<span class="dashboard-form-result is-${result}" title="${formLabels[result]}" aria-label="${formLabels[result]}">${formShortLabels[result]}</span>`).join("")
+    const formHistory = stats.formHistory.length
+        ? stats.formHistory.map(result => `<span class="dashboard-form-result is-${result}" title="${formLabels[result]}" aria-label="${formLabels[result]}">${formShortLabels[result]}</span>`).join("")
         : '<small>Noch keine gewertete Partie</small>';
     const comparisons = state.players
         .filter(player => String(player.id) !== String(stats.player.id))
@@ -2867,7 +2867,7 @@ function renderPersonalStats() {
             <div class="personal-stats-insights">
                 <div><span>Aktuelle Siegesserie</span><strong>${stats.currentWinStreak}</strong></div>
                 <div><span>Meistgespielt</span><strong>${favoriteLabel}</strong></div>
-                <div class="personal-form"><span>Letzte Spiele</span><div class="dashboard-form" aria-label="Letzte Spiele">${recentForm}</div></div>
+                <div class="personal-form"><span>Letzte Spiele</span><div class="result-strip" aria-label="Letzte Spiele">${formHistory}</div></div>
             </div>
         </section>${comparisonHtml}`;
 }

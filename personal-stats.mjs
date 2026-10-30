@@ -70,6 +70,7 @@ export function buildPersonalStats(playerId, players = [], games = []) {
         winRate: personalGames.length ? Math.round((wins / personalGames.length) * 100) : 0,
         currentWinStreak,
         favoriteGame: favoriteGame ? { name: favoriteGame[0], games: favoriteGame[1] } : null,
+        formHistory: [...results].reverse(),
         recentForm: results.slice(-5).reverse(),
         rank: rankIndex >= 0 ? rankIndex + 1 : null,
         rankedPlayers: ranked.length
