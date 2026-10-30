@@ -16,7 +16,7 @@ async function jsonRequest(url, options = {}) {
 
 function showGate(html) {
     const gate = document.getElementById('authGate');
-    gate.innerHTML = `<div class="auth-card"><img src="/icon.png?v=zaehlbund-1" alt="" width="64" height="64"><h1>ScoreBuddy</h1>${html}</div>`;
+    gate.innerHTML = `<div class="auth-card"><img src="/icon.png?v=podium-1" alt="" width="64" height="64"><h1>ScoreBuddy</h1>${html}</div>`;
     gate.hidden = false;
     document.body.classList.add('auth-pending');
 }
