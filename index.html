@@ -100,11 +100,11 @@
     </main>
 
     <nav class="bottom-nav" aria-label="Hauptnavigation">
-        <button class="nav-item active" aria-current="page" onclick="openOverview(this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-6h6v6"/></svg><span>Übersicht</span></button>
-        <button class="nav-item" onclick="removeSyncBlockAndNavigate('playersPage', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2"/></svg><span>Spieler</span></button>
+        <button class="nav-item active" id="overviewNav" aria-current="page" onclick="openOverview(this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"/><path d="M9 21v-6h6v6"/></svg><span>Übersicht</span></button>
+        <button class="nav-item" id="playersNav" onclick="removeSyncBlockAndNavigate('playersPage', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="9" cy="8" r="3"/><path d="M3 20v-2a6 6 0 0 1 12 0v2m1-15a3 3 0 0 1 0 6m2 3a5 5 0 0 1 3 4v2"/></svg><span>Spieler</span></button>
         <button class="nav-item nav-item--play preview-write-control" id="gameSwitcherTrigger" onclick="handleGameSwitcherTrigger(this)" aria-label="Spielen" aria-expanded="false" aria-controls="gameSwitcherPopover"><span class="nav-play-icon" aria-hidden="true"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg></span><span>Spielen</span></button>
-        <button class="nav-item" onclick="removeSyncBlockAndNavigate('statsPage', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V12m7 8V4m7 16V8"/></svg><span>Statistik</span></button>
-        <button class="nav-item" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg><span>Regeln</span></button>
+        <button class="nav-item" id="statsNav" onclick="removeSyncBlockAndNavigate('statsPage', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 20V12m7 8V4m7 16V8"/></svg><span>Statistik</span></button>
+        <button class="nav-item" id="rulesNav" onclick="removeSyncBlockAndNavigate('rulesPage', this)"><svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01M12 12h.01M19 12h.01"/></svg><span>Regeln</span></button>
     </nav>
 
     <section class="game-switcher" id="gameSwitcherPopover" role="dialog" aria-modal="false" aria-label="Laufende Spiele wechseln" hidden>
@@ -131,6 +131,6 @@
         </div>
     </div>
 
-    <script type="module" src="/app.js?v=mono-pulse-22"></script>
+    <script type="module" src="/app.js?v=mono-pulse-23"></script>
 </body>
 </html>

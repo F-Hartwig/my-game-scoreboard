@@ -82,6 +82,14 @@ let wwLocalHandoffReveal = null;
 let wwLocalDayDraft = null;
 let scoreboardViewMode = 'list';
 const ACTIVE_GAME_SESSION_KEY = 'scorebuddy-active-game-id';
+const ACTIVE_MAIN_PAGE_SESSION_KEY = 'scorebuddy-active-main-page';
+const MAIN_PAGE_IDS = new Set(['gamePage', 'playersPage', 'statsPage', 'rulesPage']);
+const MAIN_PAGE_NAVIGATION_IDS = Object.freeze({
+    gamePage: { overview: 'overviewNav', game: 'gameSwitcherTrigger' },
+    playersPage: { default: 'playersNav' },
+    statsPage: { default: 'statsNav' },
+    rulesPage: { default: 'rulesNav' }
+});
 try {
     scoreboardViewMode = localStorage.getItem('scorebuddy-scoreboard-view') === 'grid' ? 'grid' : 'list';
 } catch {}
@@ -104,6 +112,31 @@ function restoreCurrentGameAfterReload() {
         if (!storedGameId) return;
         state.currentGame = state.activeGames.find(game => String(game.id) === storedGameId) || null;
         if (!state.currentGame) sessionStorage.removeItem(ACTIVE_GAME_SESSION_KEY);
+    } catch {}
+}
+
+function getMainPageNavigationElement(pageId) {
+    const navigation = MAIN_PAGE_NAVIGATION_IDS[pageId] || MAIN_PAGE_NAVIGATION_IDS.gamePage;
+    const navigationId = pageId === 'gamePage'
+        ? (state.currentGame ? navigation.game : navigation.overview)
+        : navigation.default;
+    return document.getElementById(navigationId);
+}
+
+function restoreMainPageAfterReload() {
+    if (IS_PREVIEW_MODE) return 'gamePage';
+    try {
+        const storedPageId = sessionStorage.getItem(ACTIVE_MAIN_PAGE_SESSION_KEY);
+        return MAIN_PAGE_IDS.has(storedPageId) ? storedPageId : 'gamePage';
+    } catch {
+        return 'gamePage';
+    }
+}
+
+function rememberActiveMainPage(pageId) {
+    if (IS_PREVIEW_MODE || !MAIN_PAGE_IDS.has(pageId)) return;
+    try {
+        sessionStorage.setItem(ACTIVE_MAIN_PAGE_SESSION_KEY, pageId);
     } catch {}
 }
 
@@ -261,16 +294,17 @@ async function openOverview(element) {
 // ===============================
 // NAVIGATION
 // ===============================
-async function navigate(pageId, element) {
+async function navigate(pageId, element, { reloadData = true } = {}) {
     if (pageId !== 'gamePage') wwClearLocalHandoffReveal();
     const activePage = document.getElementById(pageId);
+    if (!activePage || !element || !MAIN_PAGE_IDS.has(pageId)) return false;
     document.querySelector(".skip-link").href = `#${pageId}`;
     activePage.tabIndex = -1;
 
     const titles = { gamePage: "ScoreBuddy", playersPage: "Spieler", statsPage: "Statistik", rulesPage: "Spielesammlung" };
-    document.getElementById("headerTitle").innerText = titles[pageId];
+    document.getElementById("headerTitle").innerText = IS_PREVIEW_MODE && pageId === 'gamePage' ? 'Live-Vorschau' : titles[pageId];
 
-    await loadAllFromDb();
+    if (reloadData) await loadAllFromDb();
     if(pageId === 'playersPage') renderPlayers();
     if(pageId === 'statsPage') { state.showAllHistory = false; renderStatsPage(); }
     if(pageId === 'gamePage') { state.lastRenderedGameId = null; renderGame(); }
@@ -286,7 +320,9 @@ async function navigate(pageId, element) {
     else if (!IS_PREVIEW_MODE) {
         try { sessionStorage.removeItem(ACTIVE_GAME_SESSION_KEY); } catch {}
     }
+    rememberActiveMainPage(pageId);
     syncLiveSyncState();
+    return true;
 }
 
 async function openNewGameSetup(element) {
@@ -3642,9 +3678,9 @@ async function initApp() {
     await loadAllFromDb();
     restoreCurrentGameAfterReload();
     isFocusMode = sessionStorage.getItem("scorebuddy_focus_mode") === "true" && Boolean(state.currentGame);
-    renderGame();
+    const restoredPageId = restoreMainPageAfterReload();
+    await navigate(restoredPageId, getMainPageNavigationElement(restoredPageId), { reloadData: false });
     if (isFocusMode) requestFocusWakeLock();
-    syncLiveSyncState();
     startCollaborationSync();
 }
 
