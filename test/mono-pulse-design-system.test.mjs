@@ -34,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-34/);
+  assert.match(index, /style\.css\?v=mono-pulse-35/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -43,6 +43,8 @@ test('statistics containers stay transparent and theme toggle has visible icons'
   assert.match(css, /\.theme-toggle-btn\s*\{[\s\S]*?min-height:\s*42px/);
   assert.match(css, /\.stats-overview\s*\{[\s\S]*?background:\s*transparent/);
   assert.match(css, /\.personal-stats-overview\s*\{[\s\S]*?background:\s*transparent/);
+  assert.match(css, /\.ranking-controls\s*\{[\s\S]*?padding:\s*7px 0;/);
+  assert.equal((css.match(/\.ranking-controls\s*\{/g) || []).length, 1);
   assert.match(css, /\.personal-stats-grid > div\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.personal-comparison-grid > div\s*\{[^}]*background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.stats-overview-balance\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
