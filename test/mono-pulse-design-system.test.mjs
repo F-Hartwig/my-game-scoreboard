@@ -89,6 +89,16 @@ test('mobile header keeps an accessible account and profile-assignment control',
   assert.match(css, /\.account-btn #accountLabel\s*\{\s*display:\s*none/);
 });
 
+test('Zählbund branding uses an adaptive header mark and dark app icon references', () => {
+  assert.match(index, /<svg class="brand-mark"[^>]*role="img"[^>]*aria-labelledby="brandMarkTitle brandMarkDesc"/);
+  assert.match(index, /<path fill="currentColor" d="M10 12H16V52H10Z M22 12H28V52H22Z M34 12H40V52H34Z M46 12H52V52H46Z"\/>/);
+  assert.match(index, /<path fill="#FF5A1F" d="M6 40L54 16L58 24L10 48Z"\/>/);
+  assert.match(index, /<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg\?v=zaehlbund-1">/);
+  assert.match(index, /<link rel="apple-touch-icon" sizes="180x180" href="\/icon\.png\?v=zaehlbund-1">/);
+  assert.doesNotMatch(index, /data:image\/svg\+xml|>SB<|%3ESB%3C|(?:#7588ff|#4357df|#4f46e5|#6366f1|#8b5cf6)/i);
+  assert.match(css, /\.brand-mark\s*\{[\s\S]*?width:\s*50px;[\s\S]*?height:\s*50px/);
+});
+
 test('all compact dashboard and game labels use the shared badge surface contract', () => {
   assert.match(css, /\.dashboard-win-rate,[\s\S]*?\.personal-rank-badge,[\s\S]*?\.wizard-order-badge,[\s\S]*?\.wizard-starter-status,[\s\S]*?\.rec-tag\s*\{[\s\S]*?background:\s*var\(--surface-soft\)[\s\S]*?border:\s*1px solid var\(--line\)[\s\S]*?border-radius:\s*var\(--radius-pill\)/);
   assert.match(css, /\.rec-tag,[\s\S]*?\.wizard-starter-option\.selected \.wizard-starter-status\s*\{[\s\S]*?background:\s*var\(--accent-soft\)/);

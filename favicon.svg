@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
+  <title id="title">ScoreBuddy App-Icon</title>
+  <desc id="desc">Dunkles ScoreBuddy App-Icon mit weißen Zählstrichen und orangefarbenem Abschluss</desc>
+  <rect width="64" height="64" fill="#171717"/>
+  <path fill="#FFFFFF" d="M10 12H16V52H10Z M22 12H28V52H22Z M34 12H40V52H34Z M46 12H52V52H46Z"/>
+  <path fill="#FF5A1F" d="M6 40L54 16L58 24L10 48Z"/>
+</svg>

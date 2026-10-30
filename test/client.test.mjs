@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs/promises';
+import crypto from 'node:crypto';
 
 const clientFiles = ['app.js', 'state.js', 'index.html', 'style.css', 'game-switcher.mjs'];
 
@@ -25,6 +26,19 @@ test('app and API share one auth module instance for CSRF state', async () => {
 
   assert.equal(appSource.match(authImport)?.[1], './auth-client.js');
   assert.equal(apiSource.match(authImport)?.[1], './auth-client.js');
+});
+
+test('login uses the cache-busted Zählbund app icon without changing auth module imports', async () => {
+  const source = await fs.readFile(new URL('../auth-client.js', import.meta.url), 'utf8');
+  const icon = await fs.readFile(new URL('../icon.png', import.meta.url));
+  const favicon = await fs.readFile(new URL('../favicon.svg', import.meta.url), 'utf8');
+
+  assert.match(source, /<img src="\/icon\.png\?v=zaehlbund-1" alt="" width="64" height="64">/);
+  assert.equal(crypto.createHash('sha256').update(icon).digest('hex'), '7551a2d0b569b6937a2eecb402d7151550a30e834fd8f5206d6428c02ea77b3d');
+  assert.match(favicon, /<rect width="64" height="64" fill="#171717"\/>/);
+  assert.match(favicon, /<path fill="#FFFFFF" d="M10 12H16V52H10Z M22 12H28V52H22Z M34 12H40V52H34Z M46 12H52V52H46Z"\/>/);
+  assert.match(favicon, /<path fill="#FF5A1F" d="M6 40L54 16L58 24L10 48Z"\/>/);
+  assert.doesNotMatch(favicon, /SB|(?:#7588ff|#4357df|#4f46e5|#6366f1|#8b5cf6)/i);
 });
 
 test('user bindings save directly from the select without a confirmation button', async () => {
