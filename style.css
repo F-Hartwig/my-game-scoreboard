@@ -1932,6 +1932,23 @@ input::placeholder {
     flex: 1;
 }
 
+.history-card-title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.history-card-date {
+    min-width: 0;
+    overflow-wrap: anywhere;
+}
+
+.history-rating-badge {
+    margin-left: auto;
+    flex: 0 0 auto;
+}
+
 .rules-game-header {
     align-items: center;
     gap: 14px;

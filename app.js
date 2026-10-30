@@ -3195,7 +3195,7 @@ function renderHistory() {
     let gamesToRender = state.showAllHistory ? reversedGames : reversedGames.slice(0, 5);
 
     gamesToRender.forEach(g => {
-        let unratedTag = g.rated === false ? ' <span class="badge-neutral">Freundschaft</span>' : '';
+        let unratedTag = g.rated === false ? '<span class="badge-neutral history-rating-badge">Freundschaft</span>' : '';
         const isDraw = g.winner === "Unentschieden";
         const entryCount = Math.max(...(g.players || []).map(player => player.rounds?.length || 0), 0);
         const entryLabel = g.mode === "single" ? "Einträge" : "Runden";
@@ -3203,7 +3203,10 @@ function renderHistory() {
             <div class="history-card" onclick="viewGameDetails(${g.id})">
                 <div class="history-card-top match-history-header">
                     <div class="history-card-info">
-                        <div class="history-card-date">${escapeHtml(g.name)}${unratedTag}</div>
+                        <div class="history-card-title-row">
+                            <div class="history-card-date">${escapeHtml(g.name)}</div>
+                            ${unratedTag}
+                        </div>
                         <div class="history-card-sub">${escapeHtml(g.date)} · ${g.players.length} Teilnehmer · ${entryCount} ${entryLabel}</div>
                     </div>
                     <div class="history-winner-summary ${isDraw ? 'is-draw' : ''}">
