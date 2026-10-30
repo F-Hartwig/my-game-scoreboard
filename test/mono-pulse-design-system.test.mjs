@@ -34,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-30/);
+  assert.match(index, /style\.css\?v=mono-pulse-31/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -59,9 +59,9 @@ test('ranking and history use compact statistic boxes with semantic winners', ()
   assert.match(css, /\.stat-grid > div\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.history-player-score\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.history-player-score\.is-winner\s*\{[\s\S]*?color:\s*var\(--success\)/);
-  assert.match(css, /\.history-winner-summary\s*\{[\s\S]*?background:\s*var\(--success-soft\)/);
-  assert.match(css, /\.history-winner-summary\.is-draw\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
-  assert.match(css, /\.history-card-title-row\s*\{[\s\S]*?justify-content:\s*space-between/);
+  assert.match(css, /\.history-card-result\s*\{[\s\S]*?background:\s*var\(--success-soft\)/);
+  assert.match(css, /\.history-card-result\.is-draw\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
+  assert.match(css, /\.match-card-title\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
   assert.match(css, /\.history-rating-badge\s*\{[\s\S]*?margin-left:\s*auto;[\s\S]*?flex:\s*0 0 auto/);
 });
 
@@ -110,7 +110,7 @@ test('all compact dashboard and game labels use the shared badge surface contrac
 test('frequent players use badges and unrated active games align their badge right', () => {
   assert.match(app, /class="badge-neutral dashboard-person-badge"/);
   assert.match(app, /class="badge-neutral active-game-rating-badge">Ungewertet/);
-  assert.match(app, /<div class="active-game-meta">[\s\S]*?<\/div>\s*\$\{ratedBadge\}/);
+  assert.match(app, /<div class="match-card-meta active-game-meta">[\s\S]*?<\/div>\s*\$\{ratedBadge\}/);
   assert.match(css, /\.dashboard-person-badge\s*\{[\s\S]*?padding:\s*6px 9px/);
   assert.match(css, /\.active-game-rating-badge\s*\{[\s\S]*?margin-left:\s*auto/);
 });

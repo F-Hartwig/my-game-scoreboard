@@ -86,11 +86,11 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=mono-pulse-30/);
-  assert.match(indexSource, /app\.js\?v=mono-pulse-19/);
+  assert.match(indexSource, /style\.css\?v=mono-pulse-31/);
+  assert.match(indexSource, /app\.js\?v=mono-pulse-20/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
-  assert.match(source, /class="history-card-title-row">[\s\S]*?class="history-card-date">\$\{escapeHtml\(g\.name\)\}[\s\S]*?\$\{unratedTag\}/);
+  assert.match(source, /class="match-card history-card"[\s\S]*?class="match-card-title history-card-date">\$\{escapeHtml\(g\.name\)\}[\s\S]*?\$\{unratedTag\}/);
   assert.match(source, /badge-neutral history-rating-badge">Freundschaft/);
 });
 

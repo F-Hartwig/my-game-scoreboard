@@ -2060,15 +2060,15 @@ function renderGame(isSyncUpdate = false) {
                     : ag.players.map(player => `<div class="active-game-player-line"><span>${escapeHtml(player.name)}</span><strong>${player.total} Pkt</strong></div>`).join("");
                 
                 html += `
-                    <div class="active-game-card">
-                        <div class="active-game-card-top">
-                            <div class="active-game-meta">
-                                <strong class="label-title">${escapeHtml(ag.name)}</strong>
+                    <div class="match-card active-game-card">
+                        <div class="match-card-top active-game-card-top">
+                            <div class="match-card-meta active-game-meta">
+                                <strong class="match-card-title label-title">${escapeHtml(ag.name)}</strong>
                                 <span class="active-game-date">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
                             ${ratedBadge}
                         </div>
-                        <div class="active-game-players-box">
+                        <div class="match-card-body active-game-players-box">
                             ${playerLines}
                         </div>
                         <div class="active-game-actions">
@@ -3200,21 +3200,21 @@ function renderHistory() {
         const entryCount = Math.max(...(g.players || []).map(player => player.rounds?.length || 0), 0);
         const entryLabel = g.mode === "single" ? "Einträge" : "Runden";
         box.innerHTML += `
-            <div class="history-card" onclick="viewGameDetails(${g.id})">
-                <div class="history-card-top match-history-header">
-                    <div class="history-card-info">
+            <div class="match-card history-card" onclick="viewGameDetails(${g.id})">
+                <div class="match-card-top history-card-top">
+                    <div class="match-card-meta history-card-info">
                         <div class="history-card-title-row">
-                            <div class="history-card-date">${escapeHtml(g.name)}</div>
-                            ${unratedTag}
+                            <div class="match-card-title history-card-date">${escapeHtml(g.name)}</div>
                         </div>
                         <div class="history-card-sub">${escapeHtml(g.date)} · ${g.players.length} Teilnehmer · ${entryCount} ${entryLabel}</div>
                     </div>
-                    <div class="history-winner-summary ${isDraw ? 'is-draw' : ''}">
-                        <span>${isDraw ? 'Ergebnis' : 'Gewinner'}</span>
-                        <strong>${escapeHtml(g.winner)}</strong>
-                    </div>
+                    ${unratedTag}
                 </div>
-                <div class="history-card-scores">
+                <div class="history-card-result ${isDraw ? 'is-draw' : ''}">
+                    <span>${isDraw ? 'Ergebnis' : 'Gewinner'}</span>
+                    <strong>${escapeHtml(g.winner)}</strong>
+                </div>
+                <div class="match-card-body history-card-scores">
                     ${g.players.map(p => {
                         const isWinner = isWinningParty(g, p);
                         return `<span class="history-player-score ${isWinner ? 'is-winner' : ''}">${escapeHtml(p.name)}: <strong>${p.total}</strong></span>`;
