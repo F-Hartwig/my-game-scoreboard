@@ -20,7 +20,7 @@ const ENDPOINTS = Object.freeze({
     gameNights: { empty: [], maxItems: 200, adminWrite: false }
 });
 const PUBLIC_FILES = new Set([
-    'index.html', 'style.css', 'icon.png', 'app.js', 'api.js', 'auth-client.js', 'state.js',
+    'index.html', 'style.css', 'icon.png', 'favicon.svg', 'app.js', 'api.js', 'auth-client.js', 'state.js',
     'gamesConfig.js', 'security.mjs', 'preview-selection.mjs', 'game-switcher.mjs', 'score-entry-draft.mjs', 'setup-player-order.mjs',
     'personal-stats.mjs', 'werwolf-role-count.mjs', 'werwolf-day-resolution.mjs'
 ]);

@@ -39,6 +39,8 @@ test('login uses the cache-busted Zählbund app icon without changing auth modul
   assert.match(favicon, /<path fill="#FFFFFF" d="M10 12H16V52H10Z M22 12H28V52H22Z M34 12H40V52H34Z M46 12H52V52H46Z"\/>/);
   assert.match(favicon, /<path fill="#FF5A1F" d="M6 40L54 16L58 24L10 48Z"\/>/);
   assert.doesNotMatch(favicon, /SB|(?:#7588ff|#4357df|#4f46e5|#6366f1|#8b5cf6)/i);
+  const server = await fs.readFile(new URL('../server.js', import.meta.url), 'utf8');
+  assert.match(server, /'favicon\.svg'/);
 });
 
 test('user bindings save directly from the select without a confirmation button', async () => {

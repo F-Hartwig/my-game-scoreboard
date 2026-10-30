@@ -96,7 +96,7 @@ test('Zählbund branding uses an adaptive header mark and dark app icon referenc
   assert.match(index, /<link rel="icon" type="image\/svg\+xml" href="\/favicon\.svg\?v=zaehlbund-1">/);
   assert.match(index, /<link rel="apple-touch-icon" sizes="180x180" href="\/icon\.png\?v=zaehlbund-1">/);
   assert.doesNotMatch(index, /data:image\/svg\+xml|>SB<|%3ESB%3C|(?:#7588ff|#4357df|#4f46e5|#6366f1|#8b5cf6)/i);
-  assert.match(css, /\.brand-mark\s*\{[\s\S]*?width:\s*50px;[\s\S]*?height:\s*50px/);
+  assert.match(css, /\.brand-mark\s*\{[\s\S]*?width:\s*50px;[\s\S]*?height:\s*50px;[\s\S]*?color:\s*var\(--text\)/);
 });
 
 test('all compact dashboard and game labels use the shared badge surface contract', () => {
