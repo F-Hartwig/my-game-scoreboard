@@ -118,7 +118,7 @@ function restoreCurrentGameAfterReload() {
 function getMainPageNavigationElement(pageId) {
     const navigation = MAIN_PAGE_NAVIGATION_IDS[pageId] || MAIN_PAGE_NAVIGATION_IDS.gamePage;
     const navigationId = pageId === 'gamePage'
-        ? (state.currentGame ? navigation.game : navigation.overview)
+        ? (IS_PREVIEW_MODE || !state.currentGame ? navigation.overview : navigation.game)
         : navigation.default;
     return document.getElementById(navigationId);
 }
