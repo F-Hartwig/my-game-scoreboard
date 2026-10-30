@@ -9,7 +9,7 @@ import { buildHeadToHeadStats, buildPersonalDashboard, buildPersonalStats } from
 import { sortSetupPlayersByLastParticipation } from './setup-player-order.mjs';
 import { bindWerewolfRoleCount, updateWerewolfRoleCount as renderWerewolfRoleCount } from './werwolf-role-count.mjs';
 import { planWerewolfDayDeaths, planWerewolfNightDeaths } from './werwolf-day-resolution.mjs';
-import { getGameSwitcherItems, renderGameSwitcherItems } from './game-switcher.mjs';
+import { gameHasPlayer, getGameSwitcherItems, playerEntryHasPlayer, renderGameSwitcherItems } from './game-switcher.mjs';
 
 const IS_PREVIEW_MODE = new URLSearchParams(window.location.search).get('preview') === '1';
 let nextGuestDraftId = -1;
@@ -2089,11 +2089,20 @@ function renderGame(isSyncUpdate = false) {
                 
             state.activeGames.forEach(ag => {
                 const isReadOnlyMultiDeviceWerewolf = ag.gameTypeId === 'werwolf' && ag.werewolf?.multiDevice && ag.werewolf.access !== undefined;
+                const isOwnGame = gameHasPlayer(ag, authState.user?.playerId);
                 let modeText = ag.mode === 'round' ? 'Runden-Modus' : 'Einzel-Modus';
                 let ratedBadge = ag.rated === false ? '<span class="badge-neutral active-game-rating-badge">Ungewertet</span>' : '';
+                const selfBadge = isOwnGame ? '<span class="badge-accent active-game-self-badge">Du</span>' : '';
+                const cardBadges = selfBadge || ratedBadge ? `<div class="match-card-badges">${selfBadge}${ratedBadge}</div>` : '';
                 const playerLines = isReadOnlyMultiDeviceWerewolf
-                    ? ag.players.map(player => `<div class="active-game-player-line"><span>${escapeHtml(player.name)}${player.self ? ' (Du)' : ''}</span></div>`).join("")
-                    : ag.players.map(player => `<div class="active-game-player-line"><span>${escapeHtml(player.name)}</span><strong>${player.total} Pkt</strong></div>`).join("");
+                    ? ag.players.map(player => {
+                        const isSelf = player.self === true || playerEntryHasPlayer(player, authState.user?.playerId);
+                        return `<div class="active-game-player-line ${isSelf ? 'is-self' : ''}"><span>${escapeHtml(player.name)}${isSelf ? ' (Du)' : ''}</span></div>`;
+                    }).join("")
+                    : ag.players.map(player => {
+                        const isSelf = playerEntryHasPlayer(player, authState.user?.playerId);
+                        return `<div class="active-game-player-line ${isSelf ? 'is-self' : ''}"><span>${escapeHtml(player.name)}</span><strong>${player.total} Pkt</strong></div>`;
+                    }).join("");
                 
                 html += `
                     <div class="match-card active-game-card">
@@ -2102,7 +2111,7 @@ function renderGame(isSyncUpdate = false) {
                                 <strong class="match-card-title label-title">${escapeHtml(ag.name)}</strong>
                                 <span class="active-game-date">${escapeHtml(ag.date)} · ${modeText}</span>
                             </div>
-                            ${ratedBadge}
+                            ${cardBadges}
                         </div>
                         <div class="match-card-body active-game-players-box">
                             ${playerLines}

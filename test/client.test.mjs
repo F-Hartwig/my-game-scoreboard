@@ -86,8 +86,8 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.match(source, />Letzte Spiele</);
   assert.doesNotMatch(source, />Letzte Form</);
   assert.doesNotMatch(source, />Letzte Ergebnisse</);
-  assert.match(indexSource, /style\.css\?v=mono-pulse-33/);
-  assert.match(indexSource, /app\.js\?v=mono-pulse-23/);
+  assert.match(indexSource, /style\.css\?v=mono-pulse-34/);
+  assert.match(indexSource, /app\.js\?v=mono-pulse-24/);
   assert.match(source, /\$\{stats\.winRate\} % Siege/);
   assert.doesNotMatch(source, /active-game-badge paused-status/);
   assert.match(source, /class="match-card history-card"[\s\S]*?class="match-card-title history-card-date">\$\{escapeHtml\(g\.name\)\}[\s\S]*?\$\{unratedTag\}/);
@@ -95,6 +95,9 @@ test('collaboration refresh preserves activity disclosure and the overview has n
   assert.match(source, /class="personal-form"[\s\S]*?class="result-strip" aria-label="Letzte Spiele">\$\{formHistory\}/);
   assert.match(source, /class="dashboard-form-result is-\$\{result\}"[\s\S]*?\$\{formShortLabels\[result\]\}/);
   assert.doesNotMatch(source, /personal-form-dot/);
+  assert.match(source, /badge-accent active-game-self-badge">Du</);
+  assert.match(source, /class="match-card-badges">\$\{selfBadge\}\$\{ratedBadge\}/);
+  assert.match(source, /active-game-player-line \$\{isSelf \? 'is-self' : ''\}/);
 });
 
 test('navigation renders the game dashboard before exposing gamePage', async () => {
@@ -465,7 +468,7 @@ test('multi-device Werewolf setup and read-only player views have dedicated safe
   assert.doesNotMatch(appSource.slice(appSource.indexOf('function renderMultiDeviceWerewolfPlayer'), appSource.indexOf('function renderMultiDeviceWerewolfWaiting')), /Anonyme Rolle/);
   assert.match(appSource, /escapeHtml\(role\.name \|\| \(role\.self \? 'Du' : '\?'\)\)/);
   assert.match(appSource, /const roleLabel = role\.roleId \? ` · \$\{escapeHtml\(WW_ROLE_NAMES\[role\.roleId\] \|\| role\.roleId\)\}` : ''/);
-  assert.match(appSource, /const playerLines = isReadOnlyMultiDeviceWerewolf[\s\S]*?player\.self \? ' \(Du\)' : ''/);
+  assert.match(appSource, /const playerLines = isReadOnlyMultiDeviceWerewolf[\s\S]*?const isSelf = player\.self === true \|\| playerEntryHasPlayer\(player, authState\.user\?\.playerId\);[\s\S]*?isSelf \? ' \(Du\)' : ''/);
   assert.match(appSource, /isReadOnlyMultiDeviceWerewolf[\s\S]*?playerLines/);
   assert.match(styleSource, /\.ww-personal-role/);
   assert.match(styleSource, /\.ww-readonly-roster/);

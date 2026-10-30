@@ -2,12 +2,16 @@ function sameId(left, right) {
     return left !== undefined && left !== null && right !== undefined && right !== null && String(left) === String(right);
 }
 
-function gameHasPlayer(game, playerId) {
+export function playerEntryHasPlayer(player, playerId) {
     if (playerId === undefined || playerId === null) return false;
-    return Array.isArray(game?.players) && game.players.some(player => (
+    return Boolean(player) && (
         sameId(player?.id, playerId) ||
         (Array.isArray(player?.playerIds) && player.playerIds.some(id => sameId(id, playerId)))
-    ));
+    );
+}
+
+export function gameHasPlayer(game, playerId) {
+    return Array.isArray(game?.players) && game.players.some(player => playerEntryHasPlayer(player, playerId));
 }
 
 function escapeHtml(value) {

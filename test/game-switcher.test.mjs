@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 
-const { getGameSwitcherItems, renderGameSwitcherItems } = await import('../game-switcher.mjs');
+const { gameHasPlayer, getGameSwitcherItems, playerEntryHasPlayer, renderGameSwitcherItems } = await import('../game-switcher.mjs');
 
 test('game switcher prioritizes own games and marks the current game', () => {
     const games = [
@@ -23,4 +23,12 @@ test('game switcher safely handles empty input and escapes game names', () => {
     assert.deepEqual(getGameSwitcherItems(null, null, 7), []);
     const html = renderGameSwitcherItems(getGameSwitcherItems([{ id: 1, name: '<Spiel>', players: [] }], null, 7));
     assert.match(html, /&lt;Spiel&gt;/);
+});
+
+test('shared player membership handles individuals and teams', () => {
+    assert.equal(playerEntryHasPlayer({ id: 7 }, '7'), true);
+    assert.equal(playerEntryHasPlayer({ id: 70, playerIds: [7, 9] }, 7), true);
+    assert.equal(playerEntryHasPlayer({ id: 70, playerIds: [8, 9] }, 7), false);
+    assert.equal(gameHasPlayer({ players: [{ playerIds: [3, 7] }] }, 7), true);
+    assert.equal(gameHasPlayer({ players: [{ id: 3 }] }, 7), false);
 });

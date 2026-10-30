@@ -34,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-33/);
+  assert.match(index, /style\.css\?v=mono-pulse-34/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -112,9 +112,10 @@ test('all compact dashboard and game labels use the shared badge surface contrac
 test('frequent players use badges and unrated active games align their badge right', () => {
   assert.match(app, /class="badge-neutral dashboard-person-badge"/);
   assert.match(app, /class="badge-neutral active-game-rating-badge">Ungewertet/);
-  assert.match(app, /<div class="match-card-meta active-game-meta">[\s\S]*?<\/div>\s*\$\{ratedBadge\}/);
+  assert.match(app, /<div class="match-card-meta active-game-meta">[\s\S]*?<\/div>\s*\$\{cardBadges\}/);
   assert.match(css, /\.dashboard-person-badge\s*\{[\s\S]*?padding:\s*6px 9px/);
-  assert.match(css, /\.active-game-rating-badge\s*\{[\s\S]*?margin-left:\s*auto/);
+  assert.match(css, /\.match-card-badges\s*\{[\s\S]*?flex-wrap:\s*wrap;[\s\S]*?justify-content:\s*flex-end/);
+  assert.match(css, /\.active-game-player-line\.is-self\s*\{[\s\S]*?background:\s*var\(--accent-soft\);[\s\S]*?border:\s*1px solid var\(--accent\)/);
 });
 
 test('all checkbox variants and mobile reorder handles remain visible and usable', () => {

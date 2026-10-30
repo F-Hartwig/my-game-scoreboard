@@ -1318,6 +1318,15 @@ input::placeholder {
 
 .match-card-body { min-width: 0; }
 
+.match-card-badges {
+    max-width: 52%;
+    display: flex;
+    flex: 0 0 auto;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+}
+
 .active-game-badge {
     flex: 0 0 auto;
     padding: 5px 9px;
@@ -1331,7 +1340,12 @@ input::placeholder {
     font-weight: 550;
 }
 .active-game-rating-badge {
-    margin-left: auto;
+    flex: 0 0 auto;
+    align-self: flex-start;
+}
+
+.active-game-self-badge {
+    margin-left: 0;
     flex: 0 0 auto;
     align-self: flex-start;
 }
@@ -1344,10 +1358,20 @@ input::placeholder {
     }
 
 .active-game-player-line {
+    min-width: 0;
+    padding: 5px 7px;
     display: flex;
     justify-content: space-between;
     gap: 12px;
     font-size: 13px;
+}
+
+.active-game-player-line.is-self {
+    color: var(--accent-text);
+    background: var(--accent-soft);
+    border: 1px solid var(--accent);
+    border-radius: var(--radius-control);
+    font-weight: 760;
 }
 
 .active-game-actions {
