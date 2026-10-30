@@ -2203,8 +2203,9 @@ input::placeholder {
 }
 
 .history-card-result {
-    width: fit-content;
+    width: 100%;
     max-width: 100%;
+    box-sizing: border-box;
     padding: 6px 9px;
     display: inline-flex;
     align-items: center;
@@ -2212,7 +2213,7 @@ input::placeholder {
     color: var(--success);
     background: var(--success-soft);
     border: 1px solid var(--success);
-    border-radius: var(--radius-pill);
+    border-radius: var(--radius-control);
 }
 
 .history-card-result.is-draw {

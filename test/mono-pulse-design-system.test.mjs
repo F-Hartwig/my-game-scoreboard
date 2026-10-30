@@ -34,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-35/);
+  assert.match(index, /style\.css\?v=mono-pulse-36/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -63,7 +63,7 @@ test('ranking and history use compact statistic boxes with semantic winners', ()
   assert.match(css, /\.stat-grid > div\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.history-player-score\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.history-player-score\.is-winner\s*\{[\s\S]*?color:\s*var\(--success\)/);
-  assert.match(css, /\.history-card-result\s*\{[\s\S]*?background:\s*var\(--success-soft\)/);
+  assert.match(css, /\.history-card-result\s*\{[\s\S]*?width:\s*100%;[\s\S]*?background:\s*var\(--success-soft\)[\s\S]*?border-radius:\s*var\(--radius-control\)/);
   assert.match(css, /\.history-card-result\.is-draw\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
   assert.match(css, /\.match-card-title\s*\{[\s\S]*?overflow-wrap:\s*anywhere/);
   assert.match(css, /\.history-rating-badge\s*\{[\s\S]*?margin-left:\s*auto;[\s\S]*?flex:\s*0 0 auto/);
