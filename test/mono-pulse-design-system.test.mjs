@@ -56,7 +56,8 @@ test('wizard round entry is inline, rotated and uses shared neutral surfaces', (
   assert.match(app, /class="wizard-round-meta"[\s\S]*?Runde[\s\S]*?Geber[\s\S]*?Startspieler/);
   assert.match(app, /class="wizard-player-list wizard-round-player-list"[\s\S]*?id="wizardSubmitBtn" onclick="submitWizardRound\(\)"/);
   assert.doesNotMatch(app, /<button onclick="openWizardRoundModal\(\)">/);
-  assert.match(css, /\.wizard-round-meta\s*\{[\s\S]*?grid-template-columns:\s*repeat\(auto-fit, minmax\(min\(100%, 132px\), 1fr\)\)/);
+  assert.match(css, /\.wizard-round-meta\s*\{[\s\S]*?grid-template-columns:\s*repeat\(3, minmax\(0, 1fr\)\)/);
+  assert.match(css, /\.wizard-round-entry \.validation-error\s*\{\s*margin-bottom:\s*12px;/);
   assert.doesNotMatch(css, /\.wizard-turn-card\s*\{[^}]*?(?:background|border(?:-color|-radius)?|box-shadow)\s*:/s);
   assert.match(css, /\.wizard-player-card\s*\{\s*padding:\s*10px 0;/);
   assert.match(css, /\.wizard-input-field span\s*\{[\s\S]*?margin:\s*0 0 4px;/);
