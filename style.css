@@ -380,6 +380,7 @@ button.secondary, button.ghost { color: var(--text); background: var(--surface);
 .status-line { height: 20px; color: var(--text-muted); font-size: 14px; font-weight: 700; }
 .field-label { display: block; margin-bottom: 6px; color: var(--text-muted); font-size: 12px; font-weight: 700; }
 .validation-error { display: none; margin-top: 12px; padding: 8px; color: var(--danger); background: var(--danger-soft); border-radius: var(--radius-control); font-size: 12px; font-weight: 700; text-align: center; }
+.wizard-round-entry .validation-error { margin-bottom: 12px; }
 
 /* Shared rule-document contract for every predefined game. */
 .rule-content { max-height: 400px; padding-right: 4px; overflow-y: auto; font-size: 13px; line-height: 1.5; }
@@ -2053,7 +2054,7 @@ input::placeholder {
 .wizard-round-meta {
     margin-bottom: 12px;
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 8px;
 }
 
