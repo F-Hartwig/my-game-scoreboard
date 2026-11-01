@@ -34,7 +34,7 @@ test('Mono Pulse exposes reusable component contracts', () => {
 });
 
 test('statistics containers stay transparent and theme toggle has visible icons', () => {
-  assert.match(index, /style\.css\?v=mono-pulse-38/);
+  assert.match(index, /style\.css\?v=mono-pulse-39/);
   assert.match(index, /class="theme-icon-sun"/);
   assert.match(index, /class="theme-icon-moon"/);
   assert.match(css, /\.theme-toggle-btn\.is-dark \.theme-icon-moon\s*\{\s*display:\s*block/);
@@ -50,10 +50,13 @@ test('statistics containers stay transparent and theme toggle has visible icons'
   assert.match(css, /\.stats-overview-balance\s*\{[\s\S]*?background:\s*var\(--surface-soft\)/);
 });
 
-test('wizard round information uses the shared neutral info-card surface', () => {
+test('wizard round entry is inline, rotated and uses shared neutral surfaces', () => {
   assert.match(css, /\.wizard-starter-option,\s*\.info-card\)\s*\{[\s\S]*?background:\s*var\(--surface\)[\s\S]*?border:\s*1px solid var\(--line\)[\s\S]*?border-radius:\s*var\(--radius-control\)[\s\S]*?box-shadow:\s*none/);
-  assert.match(app, /<div class="info-card wizard-turn-card">[\s\S]*?Beginnt diese Runde/);
-  assert.match(app, /<div class="info-card wizard-turn-card wizard-turn-card-modal">[\s\S]*?Beginnt diese Runde/);
+  assert.match(app, /const displayedPlayers = wizardTurnInfo\?\.orderedPlayers \|\| state\.currentGame\.players/);
+  assert.match(app, /class="wizard-round-meta"[\s\S]*?Runde[\s\S]*?Geber[\s\S]*?Startspieler/);
+  assert.match(app, /class="wizard-player-list wizard-round-player-list"[\s\S]*?id="wizardSubmitBtn" onclick="submitWizardRound\(\)"/);
+  assert.doesNotMatch(app, /<button onclick="openWizardRoundModal\(\)">/);
+  assert.match(css, /\.wizard-round-meta\s*\{[\s\S]*?grid-template-columns:\s*repeat\(auto-fit, minmax\(min\(100%, 132px\), 1fr\)\)/);
   assert.doesNotMatch(css, /\.wizard-turn-card\s*\{[^}]*?(?:background|border(?:-color|-radius)?|box-shadow)\s*:/s);
   assert.match(css, /\.wizard-player-card\s*\{\s*padding:\s*10px 0;/);
   assert.match(css, /\.wizard-input-field span\s*\{[\s\S]*?margin:\s*0 0 4px;/);

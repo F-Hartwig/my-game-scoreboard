@@ -2137,6 +2137,7 @@ function renderGame(isSyncUpdate = false) {
 
     let modeTextInfo = state.currentGame.rated === false ? ' (Ungewertet)' : '';
     const wizardRoundInfo = state.currentGame.gameTypeId === "wizard" ? getWizardRoundInfo(state.currentGame) : null;
+    const wizardTurnInfo = state.currentGame.gameTypeId === "wizard" ? getWizardTurnInfo(state.currentGame) : null;
     let statusText = state.currentGame.mode === 'round' ? `${state.currentGame.name}${modeTextInfo} · Runde ${maxRounds + 1}` : `${state.currentGame.name}${modeTextInfo}`;
     if (wizardRoundInfo?.isComplete) {
         statusText = `${state.currentGame.name}${modeTextInfo} · ${wizardRoundInfo.maxRounds} Runden gespielt`;
@@ -2274,7 +2275,8 @@ function renderGame(isSyncUpdate = false) {
             </div>
             <div class="scoreboard-list ${scoreboardViewMode === 'grid' ? 'is-grid-view' : ''}">`;
 
-    state.currentGame.players.forEach(p => {
+    const displayedPlayers = wizardTurnInfo?.orderedPlayers || state.currentGame.players;
+    displayedPlayers.forEach(p => {
         const isLeading = p.total === leadingScore && anyRoundsPlayed && leadsCount === 1;
         
         let roundCounter = 1;
@@ -2325,24 +2327,41 @@ function renderGame(isSyncUpdate = false) {
 
     html += `</div></div>`;
     if (state.currentGame.gameTypeId === "wizard") {
-        const wizardTurnInfo = getWizardTurnInfo(state.currentGame);
         html += wizardRoundInfo.isComplete ? `
             <div class="card score-entry-card" id="inputCardAnchor">
                 <div class="title">Wizard abgeschlossen</div>
                 <p class="section-hint-loose">Alle ${wizardRoundInfo.maxRounds} möglichen Runden wurden gespielt.</p>
                 <button class="green" onclick="finishGame()">Spiel auswerten</button>
             </div>` : `
-            <div class="card score-entry-card">
+            <div class="card score-entry-card wizard-round-entry" id="inputCardAnchor">
                 <div class="title">Wizard Rundenwertung</div>
                 <p class="section-hint-loose">Runde ${wizardRoundInfo.currentRound} von ${wizardRoundInfo.maxRounds}: Trage die gebotenen und gemachten Stiche ein.</p>
-                <div class="info-card wizard-turn-card">
-                    <div class="wizard-turn-copy">
-                        <span>Beginnt diese Runde</span>
-                        <strong>${escapeHtml(wizardTurnInfo.starter?.name || "–")}</strong>
-                        <small>Erste Ansage und erster Stich</small>
-                    </div>
+                <div class="wizard-round-meta" aria-label="Rundenrollen">
+                    <div class="info-card wizard-role-card"><span>Runde</span><strong>${wizardRoundInfo.currentRound} / ${wizardRoundInfo.maxRounds}</strong></div>
+                    <div class="info-card wizard-role-card"><span>Geber</span><strong>${escapeHtml(wizardTurnInfo.dealer?.name || "–")}</strong></div>
+                    <div class="info-card wizard-role-card"><span>Startspieler</span><strong>${escapeHtml(wizardTurnInfo.starter?.name || "–")}</strong></div>
                 </div>
-                <button onclick="openWizardRoundModal()">Runde ${wizardRoundInfo.currentRound} auswerten</button>
+                <div class="wizard-player-list wizard-round-player-list">
+                    ${wizardTurnInfo.orderedPlayers.map((p, orderIndex) => {
+                        const pDraft = state.currentGame.wizardDraft?.[p.id] || { bid: "", act: "" };
+                        const bidVal = pDraft.bid ?? "";
+                        const actVal = pDraft.act ?? "";
+                        return `
+                            <div class="wizard-player-card" id="wiz_card_${p.id}">
+                                <div class="wizard-player-heading">
+                                    <strong>${escapeHtml(p.name)}</strong>
+                                    ${orderIndex === 0 ? '<span class="wizard-order-badge">Beginnt</span>' : ''}
+                                    ${p.id === wizardTurnInfo.dealer?.id ? '<span class="wizard-order-badge secondary">Geber</span>' : ''}
+                                </div>
+                                <div class="wizard-input-grid">
+                                    <label class="wizard-input-field"><span>Ansage</span><input type="number" inputmode="numeric" min="0" max="${wizardRoundInfo.currentRound}" step="1" id="wiz_bid_${p.id}" value="${bidVal}" placeholder="0" oninput="saveWizardDraft(${p.id})"></label>
+                                    <label class="wizard-input-field"><span>Stiche</span><input type="number" inputmode="numeric" min="0" max="${wizardRoundInfo.currentRound}" step="1" id="wiz_act_${p.id}" value="${actVal}" placeholder="0" oninput="saveWizardDraft(${p.id})"></label>
+                                </div>
+                            </div>`;
+                    }).join('')}
+                </div>
+                <div class="validation-error" id="wizardErrorMsg"></div>
+                <button id="wizardSubmitBtn" onclick="submitWizardRound()">Runde ${wizardRoundInfo.currentRound} auswerten</button>
                 <button class="green score-finish-btn" onclick="finishGame()">Spiel beenden</button>
             </div>`;
     } else if(state.currentGame.mode === 'round') {

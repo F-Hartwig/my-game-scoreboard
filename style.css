@@ -2046,6 +2046,43 @@ input::placeholder {
     justify-content: space-between;
     }
 
+.wizard-round-entry {
+    min-width: 0;
+}
+
+.wizard-round-meta {
+    margin-bottom: 12px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(min(100%, 132px), 1fr));
+    gap: 8px;
+}
+
+.wizard-role-card {
+    min-width: 0;
+    padding: 10px;
+}
+
+.wizard-role-card span,
+.wizard-role-card strong {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.wizard-role-card span {
+    font-size: 10px;
+    font-weight: 680;
+}
+
+.wizard-role-card strong {
+    margin-top: 3px;
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.wizard-round-player-list {
+    margin-bottom: 12px;
+}
+
 .wizard-turn-copy {
     min-width: 0;
 }
